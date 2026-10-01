@@ -4,7 +4,13 @@
   "version": "1.0.0",
   "scripts": {
     "setup": "npm install && npm install --prefix server && npm install --prefix client && npm run db:push --prefix server",
-    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "test": "npm test --prefix server && playwright test",
+    "test:api": "npm test --prefix server",
+    "test:e2e": "playwright test"
   },
-  "devDependencies": { "concurrently": "^9.0.0" }
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "concurrently": "^9.0.0"
+  }
 }

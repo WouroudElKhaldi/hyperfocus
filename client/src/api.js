@@ -13,6 +13,7 @@ async function req(method, url, body) {
   if (!res.ok) {
     const e = new Error(data.error || `Request failed (${res.status})`);
     e.code = data.error;
+    e.status = res.status;
     throw e;
   }
   // anything that changed data may have earned your pet some XP, so tell the pet widget to look again

@@ -1,0 +1,815 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`response shapes of read endpoints > GET /api/backups 1`] = `
+{
+  "backups": [
+    {
+      "createdAt": "date",
+      "name": "string",
+      "size": "number",
+    },
+  ],
+  "folder": "string",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/books (item) 1`] = `
+[
+  {
+    "author": "string",
+    "createdAt": "date",
+    "foundAt": "null",
+    "id": "number",
+    "notes": "string",
+    "result": "string",
+    "status": "string",
+    "title": "string",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/books/:id 1`] = `
+{
+  "author": "string",
+  "createdAt": "date",
+  "foundAt": "null",
+  "id": "number",
+  "notes": "string",
+  "result": "string",
+  "status": "string",
+  "title": "string",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/books/:id/chat 1`] = `
+[
+  {
+    "bookId": "number",
+    "content": "string",
+    "createdAt": "date",
+    "id": "number",
+    "role": "string",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/calendar 1`] = `
+{
+  "events": [
+    {
+      "allDay": "boolean",
+      "baseDay": "string",
+      "category": "string",
+      "day": "string",
+      "endTime": "string",
+      "id": "number",
+      "location": "string",
+      "notes": "string",
+      "occId": "string",
+      "remindMin": "number",
+      "repeat": "string",
+      "repeatUntil": "string",
+      "startTime": "string",
+      "title": "string",
+    },
+  ],
+  "from": "string",
+  "goals": [],
+  "posts": [],
+  "study": [],
+  "tasks": [
+    {
+      "day": "string",
+      "done": "boolean",
+      "id": "number",
+      "title": "string",
+    },
+  ],
+  "to": "string",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/chat/threads (item) 1`] = `
+[
+  {
+    "count": "number",
+    "createdAt": "date",
+    "id": "number",
+    "title": "string",
+    "updatedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/chat/threads/:id 1`] = `
+{
+  "messages": [
+    {
+      "content": "string",
+      "createdAt": "date",
+      "id": "number",
+      "role": "string",
+      "threadId": "number",
+    },
+  ],
+  "thread": {
+    "createdAt": "date",
+    "id": "number",
+    "title": "string",
+    "updatedAt": "date",
+  },
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/email-templates (item) 1`] = `
+[
+  {
+    "createdAt": "date",
+    "files": "number",
+    "id": "number",
+    "name": "string",
+    "preview": "string",
+    "subject": "string",
+    "updatedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/emails (item) 1`] = `
+[
+  {
+    "ccAddr": "string",
+    "createdAt": "date",
+    "files": "number",
+    "id": "number",
+    "job": {
+      "company": "string",
+      "id": "number",
+      "title": "string",
+    },
+    "jobId": "number",
+    "lastError": "string",
+    "preview": "string",
+    "sentAt": "null",
+    "status": "string",
+    "subject": "string",
+    "toAddr": "string",
+    "updatedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/emails/:id 1`] = `
+{
+  "attachments": [
+    {
+      "filename": "string",
+      "id": "number",
+      "inline": "boolean",
+      "mime": "string",
+      "size": "number",
+    },
+  ],
+  "bccAddr": "string",
+  "body": "string",
+  "ccAddr": "string",
+  "createdAt": "date",
+  "fromAddr": "string",
+  "html": "string",
+  "id": "number",
+  "job": {
+    "company": "string",
+    "id": "number",
+    "title": "string",
+  },
+  "jobId": "number",
+  "lastError": "string",
+  "messageId": "string",
+  "sentAt": "null",
+  "status": "string",
+  "subject": "string",
+  "toAddr": "string",
+  "updatedAt": "date",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/emails/status 1`] = `
+{
+  "hasKey": "boolean",
+  "hasUser": "boolean",
+  "ready": "boolean",
+  "user": "string",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/events (item) 1`] = `
+[
+  {
+    "allDay": "boolean",
+    "category": "string",
+    "createdAt": "date",
+    "day": "string",
+    "endTime": "string",
+    "exceptions": "string",
+    "id": "number",
+    "location": "string",
+    "notes": "string",
+    "remindMin": "number",
+    "repeat": "string",
+    "repeatUntil": "string",
+    "startTime": "string",
+    "title": "string",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/goals (item) 1`] = `
+[
+  {
+    "actions": [
+      {
+        "done": "boolean",
+        "goalId": "number",
+        "id": "number",
+        "text": "string",
+      },
+    ],
+    "analyzedAt": "null",
+    "createdAt": "date",
+    "id": "number",
+    "logs": [
+      {
+        "createdAt": "date",
+        "goalId": "number",
+        "id": "number",
+        "text": "string",
+      },
+    ],
+    "original": "string",
+    "refined": "string",
+    "status": "string",
+    "suggestion": "string",
+    "targetDate": "date",
+    "verdict": "string",
+    "verdictNote": "string",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/health 1`] = `
+{
+  "ai": "boolean",
+  "demo": "boolean",
+  "n8n": "boolean",
+  "ok": "boolean",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/jobs (item) 1`] = `
+[
+  {
+    "appliedAt": "null",
+    "company": "string",
+    "contactEmail": "string",
+    "contactName": "string",
+    "createdAt": "date",
+    "emailCount": "number",
+    "followUpDay": "string",
+    "id": "number",
+    "lastSentAt": "null",
+    "location": "string",
+    "notes": "string",
+    "salary": "string",
+    "source": "string",
+    "status": "string",
+    "title": "string",
+    "updatedAt": "date",
+    "url": "string",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/jobs/:id 1`] = `
+{
+  "appliedAt": "null",
+  "company": "string",
+  "contactEmail": "string",
+  "contactName": "string",
+  "createdAt": "date",
+  "emails": [
+    {
+      "id": "number",
+      "sentAt": "null",
+      "status": "string",
+      "subject": "string",
+      "toAddr": "string",
+      "updatedAt": "date",
+    },
+  ],
+  "followUpDay": "string",
+  "id": "number",
+  "location": "string",
+  "notes": "string",
+  "salary": "string",
+  "source": "string",
+  "status": "string",
+  "title": "string",
+  "updatedAt": "date",
+  "url": "string",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/notes (item) 1`] = `
+[
+  {
+    "archived": "boolean",
+    "body": "string",
+    "createdAt": "date",
+    "id": "number",
+    "kind": "string",
+    "pinned": "boolean",
+    "postIds": [
+      "number",
+    ],
+    "posted": "boolean",
+    "title": "string",
+    "updatedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/pet 1`] = `
+{
+  "age": "number",
+  "ageDays": "number",
+  "ages": [
+    {
+      "age": "number",
+      "at": "number",
+      "name": "string",
+    },
+  ],
+  "auras": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "backdrops": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "badges": [
+    {
+      "desc": "string",
+      "have": "number",
+      "id": "string",
+      "label": "string",
+      "need": "number",
+      "progress": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "from": "number",
+  "items": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "slot": "string",
+      "unlocked": "boolean",
+    },
+  ],
+  "legend": "boolean",
+  "legendAt": "number",
+  "level": "number",
+  "maxTraits": "number",
+  "mood": "string",
+  "nextAt": "number",
+  "outfit": {},
+  "patterns": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "perks": {},
+  "personalities": [
+    {
+      "desc": "string",
+      "id": "string",
+      "label": "string",
+      "perk": {
+        "book?": "number",
+        "goal?": "number",
+        "post?": "number",
+        "review?": "number",
+        "skill?": "number",
+        "step?": "number",
+        "study?": "number",
+        "task?": "number",
+        "win?": "number",
+      },
+      "title": "string",
+    },
+  ],
+  "pet": {
+    "aura": "string",
+    "backdrop": "string",
+    "bio": "string",
+    "color": "string",
+    "createdAt": "date",
+    "gender": "string",
+    "id": "number",
+    "name": "string",
+    "outfit": "string",
+    "pattern": "string",
+    "species": "string",
+    "style": "string",
+    "traits": [],
+  },
+  "points": {
+    "capture": {
+      "task": {
+        "cap": "number",
+        "label": "string",
+        "xp": "number",
+      },
+      "thought": {
+        "cap": "number",
+        "label": "string",
+        "xp": "number",
+      },
+    },
+    "other": {
+      "book": "number",
+      "goal": "number",
+      "post": "number",
+      "review": "number",
+      "skill": "number",
+      "step": "number",
+      "win": "number",
+    },
+    "priority": {
+      "high": "number",
+      "low": "number",
+      "normal": "number",
+      "urgent": "number",
+    },
+  },
+  "progress": "number",
+  "recent": [
+    {
+      "amount": "number",
+      "createdAt": "date",
+      "note": "string",
+      "source": "string",
+    },
+  ],
+  "stage": "number",
+  "stageName": "string",
+  "stats": {
+    "bestStreak": "number",
+    "books": "number",
+    "goals": "number",
+    "posts": "number",
+    "reviews": "number",
+    "steps": "number",
+    "streak": "number",
+    "studyMinutes": "number",
+    "tasks": "number",
+    "wins": "number",
+  },
+  "today": {
+    "allBonus": "number",
+    "allDone": "boolean",
+    "quests": [
+      {
+        "bonus": "number",
+        "done": "boolean",
+        "have": "number",
+        "id": "string",
+        "label": "string",
+        "need": "number",
+      },
+    ],
+    "xp": "number",
+  },
+  "xp": "number",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/pet/catalog 1`] = `
+{
+  "ages": [
+    {
+      "age": "number",
+      "at": "number",
+      "name": "string",
+    },
+  ],
+  "auras": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "backdrops": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "items": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "slot": "string",
+      "unlocked": "boolean",
+    },
+  ],
+  "legendAt": "number",
+  "maxTraits": "number",
+  "patterns": [
+    {
+      "for": "string",
+      "have": "number",
+      "id": "string",
+      "kind": "string",
+      "label": "string",
+      "name": "string",
+      "need": "number",
+      "unlocked": "boolean",
+    },
+  ],
+  "personalities": [
+    {
+      "desc": "string",
+      "id": "string",
+      "label": "string",
+      "perk": {
+        "book?": "number",
+        "goal?": "number",
+        "post?": "number",
+        "review?": "number",
+        "skill?": "number",
+        "step?": "number",
+        "study?": "number",
+        "task?": "number",
+        "win?": "number",
+      },
+      "title": "string",
+    },
+  ],
+  "points": {
+    "capture": {
+      "task": {
+        "cap": "number",
+        "label": "string",
+        "xp": "number",
+      },
+      "thought": {
+        "cap": "number",
+        "label": "string",
+        "xp": "number",
+      },
+    },
+    "other": {
+      "book": "number",
+      "goal": "number",
+      "post": "number",
+      "review": "number",
+      "skill": "number",
+      "step": "number",
+      "win": "number",
+    },
+    "priority": {
+      "high": "number",
+      "low": "number",
+      "normal": "number",
+      "urgent": "number",
+    },
+  },
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/posts (item) 1`] = `
+[
+  {
+    "attempts": "number",
+    "createdAt": "date",
+    "draft": "string",
+    "id": "number",
+    "lastAttemptAt": "null",
+    "lastError": "string",
+    "noteId": "number",
+    "postedAt": "null",
+    "scheduledAt": "null",
+    "status": "string",
+    "thought": "string",
+    "updatedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/posts/:id 1`] = `
+{
+  "attempts": "number",
+  "createdAt": "date",
+  "draft": "string",
+  "id": "number",
+  "lastAttemptAt": "null",
+  "lastError": "string",
+  "noteId": "number",
+  "postedAt": "null",
+  "scheduledAt": "null",
+  "status": "string",
+  "thought": "string",
+  "updatedAt": "date",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/profile 1`] = `
+{
+  "about": "string",
+  "avatar": "string",
+  "email": "string",
+  "helps": "string",
+  "id": "number",
+  "linkedin": "string",
+  "location": "string",
+  "name": "string",
+  "role": "string",
+  "updatedAt": "date",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/reminders (item) 1`] = `
+[
+  {
+    "at": "date",
+    "createdAt": "date",
+    "done": "boolean",
+    "id": "number",
+    "lastFiredAt": "null",
+    "note": "string",
+    "repeat": "string",
+    "title": "string",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/reviews (item) 1`] = `
+[
+  {
+    "content": {
+      "headline": "string",
+      "postIdea": "string",
+      "priorities": [
+        {
+          "title": "string",
+          "why": "string",
+        },
+      ],
+      "tinyStart": "string",
+      "watch": [],
+      "wins": [
+        "string",
+      ],
+    },
+    "createdAt": "date",
+    "id": "number",
+    "label": "string",
+    "stats": {
+      "draftsWaiting": "number",
+      "goalStepsDone": "number",
+      "goalUpdates": "number",
+      "postsPublished": "number",
+      "scheduled": "number",
+      "studyDays": "number",
+      "studyMinutes": "number",
+      "studyMinutesLastWeek": "number",
+      "studySessions": "number",
+      "tasksDone": "number",
+      "tasksOpen": "number",
+      "tasksOverdue": "number",
+    },
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/settings 1`] = `
+{
+  "breakEveryMin": "number",
+  "morningAt": "string",
+  "reminders": "boolean",
+}
+`;
+
+exports[`response shapes of read endpoints > GET /api/skills (item) 1`] = `
+[
+  {
+    "area": "string",
+    "createdAt": "date",
+    "id": "number",
+    "level": "number",
+    "name": "string",
+    "notes": "string",
+    "target": "number",
+    "updatedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/study (item) 1`] = `
+[
+  {
+    "breakMs": "number",
+    "course": "string",
+    "createdAt": "date",
+    "endedAt": "date",
+    "id": "number",
+    "notes": "string",
+    "part": "string",
+    "pausedAt": "null",
+    "startedAt": "date",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/tasks (item) 1`] = `
+[
+  {
+    "createdAt": "date",
+    "done": "boolean",
+    "doneAt": "null",
+    "dueDay": "string",
+    "id": "number",
+    "priority": "string",
+    "steps": [
+      {
+        "done": "boolean",
+        "id": "number",
+        "taskId": "number",
+        "text": "string",
+      },
+    ],
+    "title": "string",
+    "today": "boolean",
+  },
+]
+`;
+
+exports[`response shapes of read endpoints > GET /api/wins (manual item) 1`] = `
+[
+  {
+    "date": "date",
+    "id": "string",
+    "kind": "string",
+    "manual": "boolean",
+    "text": "string",
+    "winId": "number",
+  },
+]
+`;

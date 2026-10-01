@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useToast } from "../App.jsx";
 import RichEditor from "../components/RichEditor.jsx";
+import LoadProblem, { isId, notFound } from "../components/LoadProblem.jsx";
 
 const size = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 const when = (d) => new Date(d).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -40,10 +41,13 @@ export default function EmailEditor() {
   const [history, setHistory] = useState([]); // the text before each "fix my English", so it can be undone
   const [status, setStatus] = useState(null);
   const [jobs, setJobs] = useState([]);
+  const [loadErr, setLoadErr] = useState(null);
+  const [attempt, setAttempt] = useState(0); // bumped by "Try again"
 
   useEffect(() => {
     loaded.current = false;
-    setEmail(null); setHistory([]); setFixes([]);
+    setEmail(null); setHistory([]); setFixes([]); setLoadErr(null);
+    if (!isId(id)) { setLoadErr(notFound); return; }
     api.get(`/emails/${id}`).then((e) => {
       setEmail(e); setHtml(e.html); setFiles(e.attachments);
       setF({ toAddr: e.toAddr, ccAddr: e.ccAddr, bccAddr: e.bccAddr, subject: e.subject });
@@ -51,10 +55,10 @@ export default function EmailEditor() {
       setSaved(true);
       // the first edit event after loading is not a change
       setTimeout(() => { loaded.current = true; }, 0);
-    }).catch((e) => toast(e.message, "err"));
+    }).catch(setLoadErr);
     api.get("/emails/status").then(setStatus).catch(() => {});
     api.get("/jobs").then(setJobs).catch(() => {});
-  }, [id]);
+  }, [id, attempt]);
 
   const locked = !!email && (email.status === "sent" || email.status === "sending");
   const current = () => ({ ...f, html: editor.current?.getHtml() ?? html });
@@ -154,6 +158,7 @@ export default function EmailEditor() {
   };
   const duplicate = async () => { const c = await api.post(`/emails/${id}/duplicate`); nav(`/emails/${c.id}`); };
 
+  if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel="Back to email" onRetry={() => setAttempt((a) => a + 1)} />;
   if (!email) return <p className="muted">Loading…</p>;
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const attached = files.filter((a) => !a.inline);

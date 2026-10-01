@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useToast } from "../App.jsx";
 import { STATUS, dayOf, statusChip } from "./Jobs.jsx";
+import LoadProblem, { isId, notFound } from "../components/LoadProblem.jsx";
 
 const when = (d) => new Date(d).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const EDIT = ["company", "title", "url", "location", "salary", "source", "contactName", "contactEmail", "followUpDay", "notes"];
@@ -16,8 +17,14 @@ export default function JobDetail() {
   const [emails, setEmails] = useState([]); // every email, to pick one to link
   const [pick, setPick] = useState("");
 
-  const load = () => api.get(`/jobs/${id}`).then((j) => { setJob(j); setF(Object.fromEntries(EDIT.map((k) => [k, j[k] ?? ""]))); }).catch((e) => toast(e.message, "err"));
-  useEffect(() => { load(); api.get("/emails").then(setEmails).catch(() => {}); }, [id]);
+  const [loadErr, setLoadErr] = useState(null);
+  // the first load shows a problem page if it fails; later refreshes (after a save) only show a toast
+  const load = (first) => {
+    if (first) setLoadErr(null);
+    if (first && !isId(id)) return setLoadErr(notFound);
+    return api.get(`/jobs/${id}`).then((j) => { setJob(j); setF(Object.fromEntries(EDIT.map((k) => [k, j[k] ?? ""]))); }).catch((e) => (first ? setLoadErr(e) : toast(e.message, "err")));
+  };
+  useEffect(() => { load(true); api.get("/emails").then(setEmails).catch(() => {}); }, [id]);
 
   const dirty = job && EDIT.some((k) => (f[k] ?? "") !== (job[k] ?? ""));
   const save = async () => {
@@ -34,6 +41,7 @@ export default function JobDetail() {
     nav("/jobs");
   };
 
+  if (loadErr) return <LoadProblem error={loadErr} what="job" back="/jobs" backLabel="Back to jobs" onRetry={() => load(true)} />;
   if (!job || !f) return <p className="muted">Loading…</p>;
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const linkedIds = new Set(job.emails.map((m) => m.id));

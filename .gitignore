@@ -11,3 +11,5 @@ client/dist
 tools
 *.log
 .claude
+e2e/results
+e2e/report

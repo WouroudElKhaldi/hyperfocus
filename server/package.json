@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:routes": "node test/support/route-coverage.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
@@ -16,6 +19,10 @@
     "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
-    "prisma": "^6.0.0"
+    "prisma": "^6.0.0",
+    "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.0"
   }
 }

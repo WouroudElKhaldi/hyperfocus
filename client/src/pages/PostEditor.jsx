@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useToast } from "../App.jsx";
+import LoadProblem, { isId, notFound } from "../components/LoadProblem.jsx";
 
 const LIMIT = 3000;
 const QUICK = ["Make it shorter", "Stronger hook", "More personal", "Simpler words", "Add a question at the end"];
@@ -101,13 +102,17 @@ export default function PostEditor() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(true);
   const loaded = useRef(false);
+  const [loadErr, setLoadErr] = useState(null);
+  const [attempt, setAttempt] = useState(0); // bumped by "Try again"
 
   useEffect(() => {
+    setLoadErr(null);
+    if (!isId(id)) { setLoadErr(notFound); return; }
     api.get(`/posts/${id}`).then((p) => {
       setPost(p); setThought(p.thought); setDraft(p.draft);
       setTimeout(() => (loaded.current = true), 0);
-    }).catch((e) => toast(e.message, "err"));
-  }, [id]);
+    }).catch(setLoadErr);
+  }, [id, attempt]);
 
   // while it is scheduled, keep the status fresh (only the status fields, never the text you're editing)
   useEffect(() => {
@@ -197,6 +202,7 @@ export default function PostEditor() {
   const markPosted = async () => setPost(await api.post(`/posts/${id}/mark-posted`));
   const remove = async () => { if (confirm("Delete this post?")) { await api.del(`/posts/${id}`); nav("/posts"); } };
 
+  if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel="Back to posts" onRetry={() => setAttempt((a) => a + 1)} />;
   if (!post) return <p className="muted">Loading…</p>;
   const posted = post.status === "posted";
 
