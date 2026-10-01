@@ -1,0 +1,35 @@
+{
+  "name": "Thought Studio -> LinkedIn",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "thought-studio-post",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "thought-studio-post"
+    },
+    {
+      "parameters": {
+        "postAs": "person",
+        "person": "",
+        "text": "={{ $json.body.text }}",
+        "shareMediaCategory": "NONE",
+        "additionalFields": {}
+      },
+      "name": "LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "LinkedIn", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

@@ -1,0 +1,21 @@
+{
+  "name": "thought-studio-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "nodemailer": "^10.0.13",
+    "sanitize-html": "^2.18.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0"
+  }
+}

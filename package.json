@@ -1,0 +1,10 @@
+{
+  "name": "thought-studio",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "setup": "npm install && npm install --prefix server && npm install --prefix client && npm run db:push --prefix server",
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+  },
+  "devDependencies": { "concurrently": "^9.0.0" }
+}

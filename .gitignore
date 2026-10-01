@@ -1,0 +1,13 @@
+node_modules
+.env
+*.db
+*.db-journal
+dist
+backups
+logs
+server/settings.json
+demo
+client/dist
+tools
+*.log
+.claude

@@ -1,0 +1,315 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// kind: thought | note | post_idea | project_idea
+model Note {
+  id        Int      @id @default(autoincrement())
+  kind      String   @default("thought")
+  title     String   @default("")
+  body      String
+  pinned    Boolean  @default(false)
+  archived  Boolean  @default(false) // hidden from the main list (kept, never deleted)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  posts     Post[]
+}
+
+model Task {
+  id        Int       @id @default(autoincrement())
+  title     String
+  done      Boolean   @default(false)
+  today     Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  doneAt    DateTime?
+  dueDay    String? // "YYYY-MM-DD", shown on the calendar
+  priority  String    @default("normal") // low | normal | high | urgent: more important tasks earn more points
+  steps     Step[]
+}
+
+model Step {
+  id     Int     @id @default(autoincrement())
+  text   String
+  done   Boolean @default(false)
+  taskId Int
+  task   Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// `thought` is the user's original words and is never overwritten by AI. `draft` is the editable LinkedIn version.
+model Post {
+  id        Int       @id @default(autoincrement())
+  thought   String
+  draft     String    @default("")
+  status    String    @default("draft") // draft | scheduled | posting | posted | failed | missed
+  postedAt  DateTime?
+  scheduledAt   DateTime? // when the app should auto-post it
+  attempts      Int       @default(0)
+  lastError     String    @default("")
+  lastAttemptAt DateTime?
+  noteId    Int?
+  note      Note?     @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// One sitting of studying for the program. endedAt == null means the timer is still running.
+model StudySession {
+  id        Int       @id @default(autoincrement())
+  course    String    @default("")
+  part      String    @default("")
+  notes     String    @default("")
+  startedAt DateTime
+  endedAt   DateTime?
+  breakMs   Int       @default(0) // total time spent on breaks, NOT counted as study time
+  pausedAt  DateTime? // set while the timer is paused (a break is in progress)
+  createdAt DateTime  @default(now())
+}
+
+// A goal: original = her own words (never overwritten), refined = AI's sharper wording.
+// verdict: achievable | stretch | unrealistic (AI's honest read, given the date)
+model Goal {
+  id          Int          @id @default(autoincrement())
+  original    String
+  refined     String       @default("")
+  targetDate  DateTime?
+  status      String       @default("active") // active | achieved | paused
+  verdict     String       @default("")
+  verdictNote String       @default("")
+  suggestion  String       @default("")
+  analyzedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  actions     GoalAction[]
+  logs        GoalLog[]
+}
+
+// The "How": concrete actions in the plan
+model GoalAction {
+  id     Int     @id @default(autoincrement())
+  text   String
+  done   Boolean @default(false)
+  goalId Int
+  goal   Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
+
+// What she is actually doing toward the goal, dated updates
+model GoalLog {
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
+  goalId    Int
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
+
+// Her own calendar entries. day is "YYYY-MM-DD" (local date, avoids timezone shifts); times are "HH:mm" or empty.
+model Event {
+  id        Int      @id @default(autoincrement())
+  title     String
+  day       String
+  startTime String   @default("")
+  endTime   String   @default("")
+  notes     String   @default("")
+  category  String   @default("event") // event | study | work | personal | health
+  allDay    Boolean  @default(false)
+  location  String   @default("")
+  repeat    String   @default("none") // none | daily | weekdays | weekly | monthly
+  repeatUntil String @default("")      // "YYYY-MM-DD" or empty = forever
+  exceptions  String @default("")      // comma-separated days skipped in a repeating series
+  remindMin Int      @default(-1)      // minutes before the start to send a desktop reminder, -1 = none
+  createdAt DateTime @default(now())
+}
+
+// A book she wants to read. result = JSON from the last "find links" search (summary + real links).
+// status: want | reading | done
+model Book {
+  id        Int       @id @default(autoincrement())
+  title     String
+  author    String    @default("")
+  status    String    @default("want")
+  notes     String    @default("")
+  result    String    @default("")
+  foundAt   DateTime?
+  createdAt DateTime  @default(now())
+  messages  BookMessage[]
+}
+
+// Her questions about one book, and the AI's answers. They are kept so she can come back to them.
+model BookMessage {
+  id        Int      @id @default(autoincrement())
+  bookId    Int
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  role      String   // user | assistant
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// A skill on the way from mid to senior. level: 0 = not rated yet, 1 shaky ... 5 could teach it. target = where she wants to be.
+model Skill {
+  id        Int      @id @default(autoincrement())
+  name      String
+  area      String   @default("")
+  level     Int      @default(0)
+  target    Int      @default(4)
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A saved weekly review. stats = numbers computed from her own data, content = the AI's write-up (both JSON text).
+model Review {
+  id        Int      @id @default(autoincrement())
+  label     String
+  stats     String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// A win she wrote down herself. (Finished tasks, study sessions and published posts are added to the Wins page automatically.)
+model Win {
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
+}
+
+// Her companion pet. Only one row. It starts as an egg and grows from the XP in PetXp, which is only earned after it was created.
+model Pet {
+  id        Int      @id @default(autoincrement())
+  name      String
+  species   String   // cat | fox | bunny | dragon | blob
+  gender    String   @default("neutral") // boy | girl | neutral: changes the look and which clothes fit
+  color     String   @default("#9b7bff") // body color, "#rrggbb"
+  traits    String   @default("")        // comma separated personality words
+  bio       String   @default("")
+  style     String   @default("none")    // accessory: none | bow | flower | glasses | scarf | headphones | crown
+  outfit    String   @default("{}")      // worn items by slot, JSON like {"head":"bow","neck":"scarf"}
+  pattern   String   @default("none")    // body pattern: none | cheeks | spots | stripes | stars | hearts
+  aura      String   @default("none")    // none | glow | sparkles | rainbow
+  backdrop  String   @default("meadow")  // meadow | night | sunrise | candy
+  createdAt DateTime @default(now())
+}
+
+// Every bit of XP she earned. `key` makes each achievement count once (for example "task:12"), so re-ticking never doubles it.
+model PetXp {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  source    String   // task | step | goal | post | study | win | review | skill | book
+  amount    Int
+  note      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+// The support chat. Each conversation is a thread (temporary chats are never stored at all).
+model ChatThread {
+  id        Int           @id @default(autoincrement())
+  title     String        @default("New chat")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @default(now())
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        Int         @id @default(autoincrement())
+  role      String      // user | assistant
+  content   String
+  createdAt DateTime    @default(now())
+  threadId  Int?
+  thread    ChatThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+}
+
+// The person using the app. One row, no login: it is simply saved on this computer.
+model Profile {
+  id        Int      @id @default(autoincrement())
+  name      String   @default("")
+  role      String   @default("")
+  location  String   @default("")
+  email     String   @default("")
+  linkedin  String   @default("")
+  about     String   @default("")
+  helps     String   @default("") // "what helps me": shared only with the AI companion, to fit its replies
+  avatar    String   @default("#7447e6")
+  updatedAt DateTime @updatedAt
+}
+
+// Reminders she writes herself: a title, a time, and optionally a repeat. They pop up as Windows notifications.
+model Reminder {
+  id          Int       @id @default(autoincrement())
+  title       String
+  note        String    @default("")
+  at          DateTime
+  repeat      String    @default("none") // none | daily | weekdays | weekly
+  done        Boolean   @default(false)
+  lastFiredAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// Emails written and sent from her own Gmail. status: draft | sending | sent | failed. `html` is the rich-text body, `body` its plain-text twin (for search and previews).
+model Email {
+  id          Int               @id @default(autoincrement())
+  toAddr      String            @default("")
+  ccAddr      String            @default("")
+  bccAddr     String            @default("")
+  subject     String            @default("")
+  html        String            @default("")
+  body        String            @default("")
+  status      String            @default("draft")
+  sentAt      DateTime?
+  fromAddr    String            @default("")
+  messageId   String            @default("")
+  lastError   String            @default("")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  jobId       Int?
+  job         JobApplication?   @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  attachments EmailAttachment[]
+}
+
+// A reusable email (subject, formatted body and its files) to start new drafts from.
+model EmailTemplate {
+  id          Int               @id @default(autoincrement())
+  name        String
+  subject     String            @default("")
+  html        String            @default("")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  attachments EmailAttachment[]
+}
+
+// A file on an email or a template. `inline` files are images shown inside the body (referenced by the body's <img src>).
+model EmailAttachment {
+  id         Int            @id @default(autoincrement())
+  filename   String
+  mime       String         @default("application/octet-stream")
+  size       Int            @default(0)
+  inline     Boolean        @default(false)
+  data       Bytes
+  emailId    Int?
+  email      Email?         @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  templateId Int?
+  template   EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+}
+
+// A job she is interested in or has applied to. status: wishlist | applied | interview | offer | rejected | withdrawn.
+// Emails sent for it are linked through Email.jobId, which is how she knows she applied.
+model JobApplication {
+  id           Int       @id @default(autoincrement())
+  company      String
+  title        String    @default("")
+  url          String    @default("")
+  location     String    @default("")
+  salary       String    @default("")
+  source       String    @default("")
+  status       String    @default("wishlist")
+  appliedAt    DateTime?
+  followUpDay  String? // "YYYY-MM-DD"
+  contactName  String    @default("")
+  contactEmail String    @default("")
+  notes        String    @default("")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  emails       Email[]
+}
