@@ -60,7 +60,6 @@ export async function startTestStack({ port } = {}) {
   const out = fs.openSync(log, "a");
   const child = spawn(process.execPath, ["src/index.js"], { cwd: SERVER_DIR, env, stdio: ["ignore", out, out] });
   const apiUrl = `http://127.0.0.1:${apiPort}`;
-  await waitForHealth(apiUrl, child, log);
 
   const stop = async () => {
     if (child.exitCode === null) {
@@ -72,5 +71,11 @@ export async function startTestStack({ port } = {}) {
     n8n.server.close();
     fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   };
+  try {
+    await waitForHealth(apiUrl, child, log);
+  } catch (e) {
+    await stop(); // otherwise the fake servers keep the test run from exiting
+    throw e;
+  }
   return { apiUrl, aiUrl: ai.url, n8nUrl: n8n.url, tmpDir: tmp, stop };
 }

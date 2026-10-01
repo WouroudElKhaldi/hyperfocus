@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 // Backups are consistent snapshots of the SQLite database, stored in <project>/backups.
 // BACKUP_DIR lets tests (and other setups) keep backups somewhere else
-const DIR = process.env.BACKUP_DIR ? path.resolve(process.env.BACKUP_DIR) : fileURLToPath(new URL("../../backups/", import.meta.url));
+const DIR = process.env.BACKUP_DIR ? path.resolve(process.env.BACKUP_DIR) : fileURLToPath(new URL("../../../backups/", import.meta.url));
 const NAME = /^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.db$/;
 const KEEP = 30; // newest backups kept, older ones are deleted
 const AUTO_EVERY_MS = 24 * 3600 * 1000;

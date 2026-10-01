@@ -5,11 +5,12 @@ node_modules
 dist
 backups
 logs
-server/settings.json
+apps/api/settings.json
 demo
-client/dist
+apps/web/dist
 tools
 *.log
 .claude
 e2e/results
 e2e/report
+.turbo

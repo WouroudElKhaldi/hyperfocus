@@ -10,7 +10,7 @@ export async function chat(messages, { json = false, temperature = 0.7 } = {}) {
   }
   const key = process.env.DEMO_MODE ? "" : process.env.DEEPSEEK_API_KEY;
   if (!key) {
-    const e = new Error("DEEPSEEK_API_KEY is missing. Add it to server/.env and restart.");
+    const e = new Error("DEEPSEEK_API_KEY is missing. Add it to apps/api/.env and restart.");
     e.status = 400;
     throw e;
   }

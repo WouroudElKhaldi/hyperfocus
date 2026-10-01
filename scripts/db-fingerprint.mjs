@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
-const file = args.find((a) => !a.startsWith("--")) ?? fileURLToPath(new URL("../server/prisma/dev.db", import.meta.url));
+const file = args.find((a) => !a.startsWith("--")) ?? fileURLToPath(new URL("../apps/api/prisma/dev.db", import.meta.url));
 const db = new DatabaseSync(file, { readOnly: true });
 
 // Values are normalised so the same data gives the same checksum in any database (dates as epoch ms, blobs as hex).

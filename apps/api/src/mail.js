@@ -177,7 +177,7 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
   app.post("/api/emails/:id/send", wrap(async (req, res) => {
     if (demo) throw err(403, "Sending is switched off in the demo.");
     const { user, pass } = cfg();
-    if (!user || !pass) throw err(400, "Gmail is not set up. Add GMAIL_USER (your address) and GMAIL_APP_KEY (your app password) to server/.env and restart.");
+    if (!user || !pass) throw err(400, "Gmail is not set up. Add GMAIL_USER (your address) and GMAIL_APP_KEY (your app password) to apps/api/.env and restart.");
     // save what is on screen first, so what is sent is exactly what she sees
     if (req.body && req.body.html !== undefined) {
       const cur = await prisma.email.findUnique({ where: { id: id(req) } });

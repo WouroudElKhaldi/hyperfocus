@@ -1,7 +1,7 @@
 import { test as base, expect } from "@playwright/test";
 
 // P0-03: every page loads without console errors, and its main action works.
-// Runs against the safe test API (fake AI replies are "Fake ...", see server/test/support/fakes.js).
+// Runs against the safe test API (fake AI replies are "Fake ...", see apps/api/test/support/fakes.js).
 
 const test = base.extend({
   // console errors a test expects on purpose (e.g. the browser logging a 404 when opening a deleted item)

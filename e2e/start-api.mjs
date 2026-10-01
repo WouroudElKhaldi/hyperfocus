@@ -1,6 +1,6 @@
 // Starts the safe test API (throwaway database, fake AI and n8n, no Gmail) for the browser tests.
 // Playwright runs this as a web server and stops it when the tests end.
-import { startTestStack } from "../server/test/support/stack.js";
+import { startTestStack } from "../apps/api/test/support/stack.js";
 
 const port = Number(process.env.E2E_API_PORT || 4310);
 const stack = await startTestStack({ port });

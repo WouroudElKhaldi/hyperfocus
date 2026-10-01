@@ -1,4 +1,4 @@
-import { SECURITY_HEADERS } from "../../client/security-headers.mjs";
+import { SECURITY_HEADERS } from "../../web/security-headers.mjs";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -17,17 +17,17 @@ import { registerMail } from "./mail.js";
 import { registerJobs } from "./jobs.js";
 import { rewritePost, taskSteps, organize, analyzeGoal, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.js";
 
-// Accept keys in server/.env or in the project-root .env
+// Accept keys in apps/api/.env or in the project-root .env
 dotenv.config({ path: new URL("../.env", import.meta.url) });
 // Root values fill in anything still empty. They never override a value that is already set, so real environment
-// variables (and server/.env) always win, and an empty value never wipes out a filled one.
-const rootEnv = dotenv.config({ path: new URL("../../.env", import.meta.url), processEnv: {} }).parsed || {};
+// variables (and apps/api/.env) always win, and an empty value never wipes out a filled one.
+const rootEnv = dotenv.config({ path: new URL("../../../.env", import.meta.url), processEnv: {} }).parsed || {};
 for (const [k, v] of Object.entries(rootEnv)) if (v && !process.env[k]) process.env[k] = v;
 
 // DEMO_MODE is for showing the app to someone else. Secrets are removed so they can never be used or seen.
 const DEMO = !!process.env.DEMO_MODE;
 if (DEMO) process.env.NOTIFY_DRY_RUN = "1";
-const prisma = new PrismaClient(); // note: Prisma reads server/.env itself at this point, so secrets are removed after it
+const prisma = new PrismaClient(); // note: Prisma reads apps/api/.env itself at this point, so secrets are removed after it
 if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_API_KEY", "GMAIL_APP_KEY"]) delete process.env[k];
 // The one place the LinkedIn webhook address is read. In the demo it is always empty.
 const n8nUrl = () => (DEMO ? "" : process.env.N8N_WEBHOOK_URL || "");
@@ -843,7 +843,7 @@ registerJobs(app, prisma, wrap);
 
 // The demo serves the built website from this same server, so only ONE port ever needs to be shared.
 if (DEMO) {
-  const dist = fileURLToPath(new URL("../../client/dist/", import.meta.url));
+  const dist = fileURLToPath(new URL("../../web/dist/", import.meta.url));
   app.use((_, res, next) => { for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v); next(); });
   app.use(express.static(dist));
   app.get(/^\/(?!api\/).*/, (_, res) => res.sendFile(path.join(dist, "index.html")));

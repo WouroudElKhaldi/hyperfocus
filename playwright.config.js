@@ -27,7 +27,7 @@ export default defineConfig({
       timeout: 60000,
     },
     {
-      command: "npm run dev --prefix client",
+      command: "pnpm --filter ./apps/web dev",
       url: `http://localhost:${WEB_PORT}`,
       env: { WEB_PORT: String(WEB_PORT), API_PORT: String(API_PORT) },
       reuseExistingServer: false,

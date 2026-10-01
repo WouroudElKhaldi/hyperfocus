@@ -13,9 +13,9 @@ Start-Sleep -Seconds 1
 
 if (-not $SkipBuild) {
   Write-Output "Building the website..."
-  Push-Location (Join-Path $root "client"); & npm run build 2>&1 | Select-Object -Last 3; Pop-Location
+  Push-Location (Join-Path $root "apps\web"); & npm run build 2>&1 | Select-Object -Last 3; Pop-Location
 }
-if (-not (Test-Path (Join-Path $root "client\dist\index.html"))) { Write-Error "The website build is missing."; exit 1 }
+if (-not (Test-Path (Join-Path $root "apps\web\dist\index.html"))) { Write-Error "The website build is missing."; exit 1 }
 
 # a fresh database every time
 foreach ($f in "demo.db", "demo.db-journal", "settings.json") { Remove-Item (Join-Path $demo $f) -Force -ErrorAction SilentlyContinue }
@@ -27,11 +27,11 @@ $env:NOTIFY_DRY_RUN = "1"
 $env:DEEPSEEK_API_KEY = ""
 $env:N8N_WEBHOOK_URL = ""
 
-Push-Location (Join-Path $root "server")
+Push-Location (Join-Path $root "apps\api")
 & npx prisma db push --skip-generate 2>&1 | Select-Object -Last 1
 Pop-Location
 
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c node src/index.js >> `"$demo\demo.log`" 2>&1" -WorkingDirectory (Join-Path $root "server") -WindowStyle Hidden
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c node src/index.js >> `"$demo\demo.log`" 2>&1" -WorkingDirectory (Join-Path $root "apps\api") -WindowStyle Hidden
 $up = $false
 for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 1; try { if ((Invoke-WebRequest -Uri "http://127.0.0.1:$Port/api/health" -UseBasicParsing -TimeoutSec 5).Content -match '"demo":true') { $up = $true; break } } catch {} }
 if (-not $up) { Write-Error "The demo did not start. See demo\demo.log"; exit 1 }

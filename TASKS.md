@@ -10,7 +10,7 @@
 
 ## Progress
 
-Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net`.
+Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (Phase 0 committed as e5fd23f).
 
 | Date | Task | What was done | Proof |
 |---|---|---|---|
@@ -25,6 +25,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 | 2026-10-02 | ✅ P0-09 | [docs/metrics.md](docs/metrics.md): north star (weekly students making progress), funnel, feature + Job Radar metrics, guardrails. Privacy-first: event counts only, never content. | – |
 | 2026-10-02 | ✅ P0-10 | Frozen backup at `%USERPROFILE%\hyperfocus-backups\pre-refactor-2026-10-02.db` (outside the repo). New `scripts/db-fingerprint.mjs` proves two DBs hold identical data. Restore steps + Postgres rehearsal plan in [docs/migration.md](docs/migration.md). | integrity_check ok · fingerprint of backup = dev.db |
 
+| 2026-10-02 | ✅ P1-01 | `server/` → `apps/api/`, `client/` → `apps/web/` (git renames, so history is kept; `.env` and `dev.db` moved with them). npm → **pnpm 12.8.1** workspace (pinned with `packageManager`) and **Turborepo** (`turbo.json`, replaces `concurrently`). Every path updated: API code (root `.env`, backups, security headers, demo build), PowerShell scripts, tests, configs, README. New commands: `pnpm bootstrap` (not `pnpm setup`, which is a built-in pnpm command), `pnpm dev`, `pnpm test`. pnpm-specific fixes: `postinstall: prisma generate` (pnpm skipped generation, so the API couldn't start), build-script approvals and the `deepmerge-ts` override moved to `pnpm-workspace.yaml`. Test stack now shuts its fakes down if the API fails to start (it used to hang). | 170/170 API · 59/59 browser · 125/125 routes · `pnpm dev` checked in the browser against your real DB · autostart commands checked · data fingerprint unchanged |
+
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
 
 **Known issues found (recorded as tests, fixed later in the phase named):**
@@ -32,6 +34,9 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 - P2-16: `textOf` leaves invisible non-breaking spaces in plain-text email bodies (its `&nbsp;` replace never matches).
 - P2-11: "find free copies" of a book calls the internet, so only its 404 path is tested. Needs a fake.
 - Vite's first-ever run re-optimises dependencies and restarts once. One E2E run hit it; cached since.
+- ⚠️ `scripts/stop-all.ps1` force-kills **whatever** listens on ports 4000/5173, including other projects' dev servers (your `var_platform` uses 5173). It should check the process belongs to Hyperfocus. Fix with P5-13 (local mode); until then, be careful running it.
+- Windows: `pnpm bootstrap`/`pnpm install` fail with `EPERM` while the app is running (the API locks Prisma's engine file). Stop the app first. Killing `pnpm dev` without Ctrl+C can leave the API and Vite running in the background.
+- Decision needed: Turborepo wrote `AGENTS.md` (instructions for AI agents to read Turbo's bundled docs) and re-adds it on each run. Either commit it, or set `"agentGuidance": false` in `turbo.json` and delete it.
 
 ## 0. How to read this file
 
@@ -178,7 +183,7 @@ hyperfocus/
 
 | ID | Task | Size | Depends | Acceptance |
 |---|---|---|---|---|
-| P1-01 | Create a branch, switch to **pnpm workspaces + Turborepo**, move `client→apps/web`, `server→apps/api`. No code changes yet. | M | P0-01 | `pnpm dev` runs both. All P0 tests green. |
+| ✅ P1-01 | Create a branch, switch to **pnpm workspaces + Turborepo**, move `client→apps/web`, `server→apps/api`. No code changes yet. | M | P0-01 | `pnpm dev` runs both. All P0 tests green. |
 | P1-02 | `packages/config`: strict `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Biome config | S | P1-01 | `pnpm lint` and `pnpm typecheck` wired through Turbo |
 | P1-03 | `packages/db`: move Prisma schema, export the typed client | S | P1-01 | API imports `@hyperfocus/db` |
 | P1-04 | `packages/shared`: set up Zod. Add the first schemas (Task, Step, Note) as a pilot. | S | P1-01 | Imported by both apps |
