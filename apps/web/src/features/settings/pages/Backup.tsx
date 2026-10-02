@@ -194,7 +194,7 @@ export default function Backup() {
         <h3>How to restore a backup</h3>
         <ol className="muted" style={{ margin: 0, paddingLeft: "var(--s-4)" }}>
           <li>Close the app (run <code>scripts\stop-all.ps1</code>, or restart the computer and stop it before it starts).</li>
-          <li>Copy the backup file over <code>server\prisma\dev.db</code>.</li>
+          <li>In the project folder, run <code>pnpm db:restore backups\</code> followed by the backup's file name.</li>
           <li>Start the app again. Or ask me and I'll do it with you.</li>
         </ol>
         </More>

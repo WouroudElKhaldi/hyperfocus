@@ -2,7 +2,7 @@
 
 Personal, local-only app: capture thoughts, manage tasks, turn ideas into LinkedIn posts with DeepSeek.
 
-**Stack:** React (Vite) · Express · Prisma + SQLite (a single file: `packages/db/prisma/dev.db`) · DeepSeek API · n8n for LinkedIn posting.
+**Stack:** React (Vite) · Hono · Prisma + PostgreSQL (installed on this computer, no Docker) · DeepSeek API · n8n for LinkedIn posting.
 
 ## Run
 Needs Node 24+ and pnpm (`npm install -g pnpm`; the repo pins the exact version).
@@ -38,7 +38,7 @@ is still read for now, but you can delete it once its values are in the root `.e
 
 - `GMAIL_USER` – your Gmail address, and `GMAIL_APP_KEY` – an App Password from https://myaccount.google.com/apppasswords (needs 2-Step Verification). Used by the Email page.
 
-Back up your data by copying `packages/db/prisma/dev.db`.
+Back up your data with Settings → Backup (a backup is also made automatically every day).
 
 ## Start automatically
 ```
@@ -51,15 +51,16 @@ Then n8n and Hyperfocus start hidden when you log in, and a "Hyperfocus" shortcu
 
 ## Backups
 Sidebar → Backup. A copy of the database is also made automatically once a day into `backups\` (newest 30 kept).
-To restore: stop the app, copy a backup over `packages\db\prisma\dev.db`, start the app.
+To restore: stop the app, run `pnpm db:restore backups\thought-studio-….dump`, start the app.
+(Backups from before the move to PostgreSQL end in `.db`: they are SQLite files, kept and downloadable.)
 
 ## Look at your data (the database)
-Your data is one SQLite file: `packages/db/prisma/dev.db`. To browse and edit it as tables:
+Your data is in the PostgreSQL on this computer (database `hyperfocus`). To browse and edit it as tables:
 ```
 powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1       # opens http://localhost:5555
 powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # closes it
 ```
-(Another way: install the free "DB Browser for SQLite" and open a copy of the file from `backups\`.)
+(Another way: pgAdmin, which comes with PostgreSQL: server localhost, user `hyperfocus`, password `hyperfocus-local`.)
 
 ## The music player
 - **Generated music** (80+ tracks): made live in the browser with the Web Audio API, no audio files. See `apps/web/src/features/music/audio/`:

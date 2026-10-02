@@ -4,11 +4,12 @@
   "version": "1.0.0",
   "packageManager": "pnpm@12.8.1",
   "scripts": {
-    "bootstrap": "pnpm install && pnpm --filter @hyperfocus/db db:push",
+    "bootstrap": "pnpm install && pnpm db:setup && pnpm --filter @hyperfocus/db db:migrate",
     "api:types": "node apps/api/scripts/api-types.mjs",
     "dev": "turbo run dev",
     "db:setup": "node scripts/db.mjs setup",
     "db:check": "node scripts/db.mjs check",
+    "db:restore": "node scripts/db.mjs restore",
     "build": "turbo run build",
     "test": "turbo run test && playwright test --project=desktop --project=phone",
     "test:api": "turbo run test --filter=./apps/api",

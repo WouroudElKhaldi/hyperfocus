@@ -27,7 +27,7 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
 
 const schema = z.object({
   DATABASE_URL: text.refine((v) => v !== "", {
-    message: 'DATABASE_URL is missing. For the local SQLite database use DATABASE_URL="file:./dev.db" (the path is relative to packages/db/prisma).',
+    message: 'DATABASE_URL is missing. For the local PostgreSQL (made by pnpm db:setup) use DATABASE_URL="postgresql://hyperfocus:hyperfocus-local@localhost:5432/hyperfocus".',
   }),
   PORT: text.refine((v) => v === "" || (/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 65535), {
     message: "PORT must be a whole number between 1 and 65535, like 4000",

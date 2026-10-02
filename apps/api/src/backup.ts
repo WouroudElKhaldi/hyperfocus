@@ -1,13 +1,47 @@
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.ts";
 import { type Db, httpError } from "./types.ts";
 
-// Backups are consistent snapshots of the SQLite database, stored in <project>/backups.
+// Backups are consistent snapshots of the PostgreSQL database (pg_dump, P4-02), stored in <project>/backups.
+// Older backups from the SQLite days (.db) are still listed and can be downloaded.
 // BACKUP_DIR lets tests (and other setups) keep backups somewhere else
 const DIR = config.backupDir ? path.resolve(config.backupDir) : fileURLToPath(new URL("../../../backups/", import.meta.url));
-const NAME = /^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.db$/;
+const NAME = /^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.(dump|db)$/;
+
+// pg_dump: from PG_DUMP, or from the newest PostgreSQL installed in Program Files (Windows), or from PATH
+function findPgDump(): string {
+  if (process.env["PG_DUMP"]) return process.env["PG_DUMP"];
+  const base = "C:/Program Files/PostgreSQL";
+  const versions = fs.existsSync(base) ? fs.readdirSync(base).filter((v) => /^\d+$/.test(v)).sort((a, b) => Number(b) - Number(a)) : [];
+  for (const v of versions) {
+    const p = path.join(base, v, "bin", "pg_dump.exe");
+    if (fs.existsSync(p)) return p;
+  }
+  return "pg_dump";
+}
+
+// the database address without Prisma's own ?schema=… (pg_dump gets the schema as an option instead)
+function dumpTarget(url: string): { url: string; schema: string } {
+  const u = new URL(url);
+  const schema = u.searchParams.get("schema") ?? "public";
+  u.search = "";
+  return { url: u.toString(), schema };
+}
+
+function pgDump(file: string): Promise<void> {
+  const { url, schema } = dumpTarget(config.databaseUrl);
+  return new Promise((resolve, reject) => {
+    // --format=custom: PostgreSQL's compact format, restored with `pnpm db:restore <file>` (pg_restore)
+    const child = spawn(findPgDump(), ["--format=custom", `--schema=${schema}`, "--no-owner", `--file=${file}`, url], { stdio: ["ignore", "ignore", "pipe"] });
+    let err = "";
+    child.stderr.on("data", (d) => { err += d; });
+    child.on("error", (e) => reject(httpError(500, `Couldn't start pg_dump (is PostgreSQL installed?): ${e.message}`)));
+    child.on("exit", (code) => (code === 0 ? resolve() : reject(httpError(500, `The backup failed: ${err.trim() || `pg_dump exited with ${code}`}`))));
+  });
+}
 const KEEP = 30; // newest backups kept, older ones are deleted
 const AUTO_EVERY_MS = 24 * 3600 * 1000;
 
@@ -40,15 +74,16 @@ function prune() {
   for (const old of listBackups().slice(KEEP)) fs.rmSync(path.join(DIR, old.name), { force: true });
 }
 
-export async function createBackup(prisma: Db): Promise<string> {
+// (prisma stays a parameter so the callers don't change; pg_dump reads the database itself)
+export async function createBackup(_prisma: Db): Promise<string> {
   fs.mkdirSync(DIR, { recursive: true });
-  const name = `thought-studio-${stamp()}.db`;
+  const name = `thought-studio-${stamp()}.dump`;
   const file = path.join(DIR, name);
   if (fs.existsSync(file)) {
     throw httpError(429, "A backup was just made a second ago. Try again in a moment.");
   }
-  // VACUUM INTO writes a complete, consistent copy even while the app is using the database
-  await prisma.$executeRawUnsafe(`VACUUM INTO '${file.replace(/\\/g, "/").replace(/'/g, "''")}'`);
+  // pg_dump writes a complete, consistent copy even while the app is using the database
+  await pgDump(file);
   prune();
   return name;
 }

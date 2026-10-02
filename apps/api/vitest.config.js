@@ -9,7 +9,7 @@ export default defineConfig({
     testTimeout: 20000,
     // the unit tests import API modules, which check the settings on import (src/config.ts). These make that check pass
     // without a .env file (as in CI). The test API itself gets its own settings from test/support/stack.js.
-    env: { DATABASE_URL: "file:./unit-tests-never-open-this.db", NOTIFY_DRY_RUN: "1" },
+    env: { DATABASE_URL: "postgresql://unit-tests-never-open-this@127.0.0.1:1/never", NOTIFY_DRY_RUN: "1" },
     hookTimeout: 60000,
   },
 });

@@ -10,7 +10,8 @@
   "scripts": {
     "postinstall": "prisma generate",
     "generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:new-migration": "prisma migrate dev --create-only",
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint ."

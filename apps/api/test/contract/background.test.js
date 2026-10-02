@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import { PrismaClient } from "@hyperfocus/db";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { fake, get, ok, patch, post } from "../support/api.js";
@@ -9,10 +9,11 @@ import { fake, get, ok, patch, post } from "../support/api.js";
 // because the API (correctly) refuses to schedule anything in the past.
 
 let db;
-beforeAll(() => { db = new DatabaseSync(path.join(inject("tmpDir"), "test.db")); });
-afterAll(() => db?.close());
+beforeAll(() => { db = new PrismaClient({ datasourceUrl: inject("databaseUrl") }); }); // this run's own test schema
+afterAll(() => db?.$disconnect());
 
-const setTime = (table, column, id, date) => db.prepare(`UPDATE ${table} SET ${column} = ? WHERE id = ?`).run(date.getTime(), id);
+// (through Prisma, like the app: a raw UPDATE would send the date in this computer's time zone)
+const setTime = (model, column, id, date) => db[model].update({ where: { id }, data: { [column]: date } });
 
 async function until(check, ms = 45000) {
   const end = Date.now() + ms;
@@ -47,8 +48,8 @@ describe("background jobs", { timeout: 60000 }, () => {
     };
     const due = await make("Scheduled hello");
     const old = await make("Too late");
-    setTime("Post", "scheduledAt", due.id, new Date(Date.now() - 1000));
-    setTime("Post", "scheduledAt", old.id, new Date(Date.now() - 3 * 3600000));
+    await setTime("post", "scheduledAt", due.id, new Date(Date.now() - 1000));
+    await setTime("post", "scheduledAt", old.id, new Date(Date.now() - 3 * 3600000));
 
     const done = await until(async () => {
       const [a, b] = await Promise.all([ok(get(`/api/posts/${due.id}`)), ok(get(`/api/posts/${old.id}`))]);
@@ -64,7 +65,7 @@ describe("background jobs", { timeout: 60000 }, () => {
   // P2-21: the automatic backup is a background job too; on start-up there is no backup yet, so it makes one right away
   it("makes the automatic backup at start-up", async () => {
     const log = path.join(inject("tmpDir"), "api.log");
-    const line = await until(() => fs.readFileSync(log, "utf8").match(/Automatic backup: (thought-studio-[\d_-]+\.db)/));
+    const line = await until(() => fs.readFileSync(log, "utf8").match(/Automatic backup: (thought-studio-[\d_-]+\.dump)/));
     expect((await ok(get("/api/backups"))).backups.map((b) => b.name)).toContain(line[1]);
   });
 });

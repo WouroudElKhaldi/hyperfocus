@@ -7,5 +7,6 @@ export default async function setup({ provide }) {
   provide("aiUrl", stack.aiUrl);
   provide("n8nUrl", stack.n8nUrl);
   provide("tmpDir", stack.tmpDir);
+  provide("databaseUrl", stack.databaseUrl);
   return stack.stop;
 }
