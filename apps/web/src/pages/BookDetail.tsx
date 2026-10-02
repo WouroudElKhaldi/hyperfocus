@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import More from "../components/More.tsx";
-import { Cover, ICON, STATUS, bookPath, parse } from "../components/bookParts.tsx";
+import { Cover, ICON, STATUS, bookPath, bookSlug, parse } from "../components/bookParts.tsx";
 import type { Book, BookLink, BookMessage } from "../types.ts";
 
 /** A message on screen. One being sent has a temporary id. */
@@ -81,7 +81,7 @@ function Ask({ book }: { book: Book }) {
 export default function BookDetail() {
   const toast = useToast();
   const nav = useNavigate();
-  const { slug } = useParams();
+  const { slug } = useParams({ from: "/books/$slug" });
   const bookId = parseInt(slug ?? "", 10);
   const [book, setBook] = useState<Book | null>(null);
   const [missing, setMissing] = useState(false);
@@ -96,7 +96,7 @@ export default function BookDetail() {
     if (!Number.isInteger(bookId)) { setMissing(true); return; }
     api.get(`/books/${bookId}`).then((b) => {
       setBook(b); setNotes(b.notes); setF({ title: b.title, author: b.author });
-      if (slug !== bookPath(b).split("/").pop()) nav(bookPath(b), { replace: true }); // tidy the address to /books/12-clean-code
+      if (slug !== bookSlug(b)) nav({ to: "/books/$slug", params: { slug: bookSlug(b) }, replace: true }); // tidy the address to /books/12-clean-code
     }).catch(() => setMissing(true));
   }, [bookId]);
 
@@ -114,12 +114,12 @@ export default function BookDetail() {
     if (!f.title.trim()) return;
     const b = await patch({ title: f.title, author: f.author });
     setEditing(false);
-    nav(bookPath(b), { replace: true });
+    nav({ to: "/books/$slug", params: { slug: bookSlug(b) }, replace: true });
   };
   const remove = async () => {
     if (!confirm(`Remove "${book.title}" from your list?`)) return;
     await api.del(`/books/${book.id}`);
-    nav("/books");
+    nav({ to: "/books" });
   };
 
   const links = res?.links || [];

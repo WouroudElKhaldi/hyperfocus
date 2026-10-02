@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import type { ApiError } from "../api.ts";
 
 // What a detail page shows when its item can't be loaded, instead of "Loading…" forever:

@@ -76,6 +76,35 @@ test.describe("app-wide", () => {
     await expect(page.getByLabel("Next track")).toBeVisible();
   });
 
+  // P3-04: typed routes (TanStack Router)
+  test("an address that isn't a page says so kindly, with a way back", async ({ page }) => {
+    await page.goto("/no-such-page");
+    await expect(page.getByRole("heading", { level: 1, name: "This page doesn't exist" })).toBeVisible();
+    await page.getByRole("link", { name: "Back to Today" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("the menu moves between pages without reloading, and marks where you are", async ({ page, isMobile }) => {
+    test.skip(!!isMobile, "the phone menu is a tab bar");
+    await page.goto("/");
+    await page.evaluate(() => { window.__sameDocument = true; });
+    await page.locator(".sidebar").getByRole("link", { name: "Tasks", exact: true }).click();
+    await expect(page).toHaveURL(/\/tasks$/);
+    await expect(page.locator("main h1").first()).toBeVisible();
+    expect(await page.evaluate(() => window.__sameDocument), "no full page reload").toBe(true);
+    await expect(page.locator(".sidebar").getByRole("link", { name: "Tasks", exact: true })).toHaveClass(/active/);
+    await expect(page.locator(".sidebar").getByRole("link", { name: "Today", exact: true })).not.toHaveClass(/active/);
+  });
+
+  test("old links still open: a book by id and title, a post by id", async ({ page, request }) => {
+    const book = await (await request.post("/api/books", { data: { title: "Deep Work" } })).json();
+    await page.goto(`/books/${book.id}-deep-work`);
+    await expect(page.getByRole("heading", { name: "Deep Work" })).toBeVisible();
+    const post = await (await request.post("/api/posts", { data: { thought: "Old link check" } })).json();
+    await page.goto(`/posts/${post.id}`);
+    await expect(page.locator("main h1").first()).toBeVisible();
+  });
+
   // P3-01: shadcn/ui colors are mapped onto the app's tokens, so they follow every palette and light/dark
   test("Tailwind/shadcn colors follow the chosen palette and mode", async ({ page }) => {
     for (const mode of ["light", "dark"]) {

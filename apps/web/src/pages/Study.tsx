@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import More from "../components/More.tsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { api, studyMins, studySecs, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import type { Post, PostIdea, StudySession } from "../types.ts";
@@ -198,13 +198,13 @@ export default function Study() {
   };
   const takeIdea = async (idea: PostIdea) => {
     const p = await api.post("/posts", { thought: idea.thought });
-    nav(`/posts/${p.id}`);
+    nav({ to: "/posts/$id", params: { id: String(p.id) } });
   };
   const remove = async (s: StudySession) => { if (confirm("Delete this session?")) { await api.del(`/study/${s.id}`); load(); } };
   const toPost = async (s: StudySession) => {
     const thought = `${[s.course, s.part].filter(Boolean).join(" - ")}\n\n${s.notes}`.trim();
     const p = await api.post("/posts", { thought });
-    nav(`/posts/${p.id}`);
+    nav({ to: "/posts/$id", params: { id: String(p.id) } });
   };
 
   const days: { k: string; label: string; items: StudySession[] }[] = [];

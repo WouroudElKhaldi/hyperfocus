@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { type ApiError, api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import LoadProblem, { isId, notFound } from "../components/LoadProblem.tsx";
@@ -88,7 +88,7 @@ function Schedule({ post, blockedReason, flush, onChange }: ScheduleProps) {
 }
 
 export default function PostEditor() {
-  const { id } = useParams();
+  const { id } = useParams({ from: "/posts/$id" });
   const nav = useNavigate();
   const toast = useToast();
   const [post, setPost] = useState<Post | null>(null);
@@ -204,7 +204,7 @@ export default function PostEditor() {
   };
 
   const markPosted = async () => setPost(await api.post(`/posts/${id}/mark-posted`));
-  const remove = async () => { if (confirm("Delete this post?")) { await api.del(`/posts/${id}`); nav("/posts"); } };
+  const remove = async () => { if (confirm("Delete this post?")) { await api.del(`/posts/${id}`); nav({ to: "/posts" }); } };
 
   if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel="Back to posts" onRetry={() => setAttempt((a) => a + 1)} />;
   if (!post) return <p className="muted">Loading…</p>;

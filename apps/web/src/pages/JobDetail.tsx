@@ -1,5 +1,5 @@
 import { type ChangeEvent, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { type ApiError, api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import { STATUS, dayOf, statusChip } from "./Jobs.tsx";
@@ -12,7 +12,7 @@ type Form = Record<(typeof EDIT)[number], string>;
 const formOf = (j: Job) => Object.fromEntries(EDIT.map((k) => [k, j[k] ?? ""] as const)) as Form;
 
 export default function JobDetail() {
-  const { id } = useParams();
+  const { id } = useParams({ from: "/jobs/$id" });
   const nav = useNavigate();
   const toast = useToast();
   const [job, setJob] = useState<JobData | null>(null);
@@ -38,11 +38,11 @@ export default function JobDetail() {
   const link = async (emailId: number | string, jobId: number | null) => {
     try { await api.put(`/emails/${emailId}/job`, { jobId }); setPick(""); load(); api.get("/emails").then(setEmails); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
-  const write = async () => { const m = await api.post(`/jobs/${id}/email`); nav(`/emails/${m.id}`); };
+  const write = async () => { const m = await api.post(`/jobs/${id}/email`); nav({ to: "/emails/$id", params: { id: String(m.id) } }); };
   const remove = async () => {
     if (!confirm("Delete this job? Your emails stay, they just won't be linked to it.")) return;
     await api.del(`/jobs/${id}`);
-    nav("/jobs");
+    nav({ to: "/jobs" });
   };
 
   if (loadErr) return <LoadProblem error={loadErr} what="job" back="/jobs" backLabel="Back to jobs" onRetry={() => load(true)} />;
@@ -77,7 +77,7 @@ export default function JobDetail() {
         <div className="job-emails">
           {job.emails.map((m) => (
             <div className="job-email" key={m.id}>
-              <Link to={`/emails/${m.id}`}><b>{m.subject || "(no subject)"}</b></Link>
+              <Link to="/emails/$id" params={{ id: String(m.id) }}><b>{m.subject || "(no subject)"}</b></Link>
               <span className="muted">To: {m.toAddr || "—"}</span>
               <span className={"chip " + (m.status === "sent" ? "posted" : m.status === "failed" ? "failed" : "")}>{m.status === "sent" ? `✓ Sent ${when(m.sentAt)}` : m.status === "failed" ? "⚠️ Not sent" : "Draft"}</span>
               <button className="ghost" onClick={() => link(m.id, null)} aria-label="Unlink this email">Unlink</button>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import MyReminders from "../components/MyReminders.tsx";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { api, KINDS, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import More from "../components/More.tsx";

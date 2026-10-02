@@ -1,9 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import More from "../components/More.tsx";
-import { Cover, ICON, Pills, STATUS, bookPath, parse, short } from "../components/bookParts.tsx";
+import { Cover, ICON, Pills, STATUS, bookPath, bookSlug, parse, short } from "../components/bookParts.tsx";
 import type { Book } from "../types.ts";
 
 // Top-level so the inputs inside keep focus while the page re-renders.
@@ -35,7 +35,7 @@ function BookCard({ book, onChange, onDelete }: { book: Book; onChange: (b: Book
   return (
     <div className="card book">
       <div className="book-head">
-        <Link to={bookPath(book)} className="book-cover-link" aria-label={`Open ${book.title}`}><Cover title={book.title} /></Link>
+        <Link to="/books/$slug" params={{ slug: bookSlug(book) }} className="book-cover-link" aria-label={`Open ${book.title}`}><Cover title={book.title} /></Link>
         <div className="book-meta">
           {editing ? (
             <div className="book-edit">
@@ -48,7 +48,7 @@ function BookCard({ book, onChange, onDelete }: { book: Book; onChange: (b: Book
             </div>
           ) : (
             <>
-              <Link to={bookPath(book)} className="book-title">{book.title}</Link>
+              <Link to="/books/$slug" params={{ slug: bookSlug(book) }} className="book-title">{book.title}</Link>
               {book.author && <div className="muted tiny">{book.author}</div>}
             </>
           )}
@@ -63,7 +63,7 @@ function BookCard({ book, onChange, onDelete }: { book: Book; onChange: (b: Book
       </div>
 
       <div className="book-actions">
-        <Link className="btn primary" to={bookPath(book)}>Open</Link>
+        <Link className="btn primary" to="/books/$slug" params={{ slug: bookSlug(book) }}>Open</Link>
         <button disabled={busy} onClick={find}>{busy ? "Searching… (up to 30s)" : res ? "Search again" : "Find links and PDFs"}</button>
       </div>
 

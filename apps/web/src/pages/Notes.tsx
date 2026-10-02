@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { api, KINDS, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import More from "../components/More.tsx";
@@ -36,9 +36,9 @@ export default function Notes() {
   };
   // a note that already has a post opens that post instead of making a second one
   const toPost = async (n: Note) => {
-    if (n.postIds.length) return nav(`/posts/${n.postIds.at(-1)}`);
+    if (n.postIds.length) return nav({ to: "/posts/$id", params: { id: String(n.postIds.at(-1)) } });
     const p = await api.post("/posts", { thought: n.body, noteId: n.id });
-    nav(`/posts/${p.id}`);
+    nav({ to: "/posts/$id", params: { id: String(p.id) } });
   };
   const toTask = async (n: Note) => {
     await api.post("/tasks", { title: n.title || n.body.slice(0, 80) });
@@ -106,7 +106,7 @@ export default function Notes() {
               <div className="pre" style={{ marginTop: "var(--s-2)" }}>{n.body}</div>
               <div className="row" style={{ marginTop: "var(--s-3)" }}>
                 {n.posted
-                  ? <Link className="btn" to={`/posts/${n.postIds.at(-1)}`}>View the post</Link>
+                  ? <Link className="btn" to="/posts/$id" params={{ id: String(n.postIds.at(-1)) }}>View the post</Link>
                   : <button className="primary" onClick={() => toPost(n)}>{n.postIds.length ? "Continue the post" : "Make LinkedIn post"}</button>}
                 <button onClick={() => toTask(n)}>To task</button>
                 <More label="More" className="inline">

@@ -8,6 +8,9 @@ import { SECURITY_HEADERS } from "./security-headers.mjs";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   // "@/…" is src/ (the shadcn/ui convention, see components.json)
+  // scan every page up front: otherwise the first visit to a lazily loaded page can find new dependencies, make Vite
+  // re-optimise and reload mid-session (it once crashed the dev server during the browser tests, P3-04)
+  optimizeDeps: { entries: ["index.html", "src/**/*.tsx"] },
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {
     port: Number(process.env.WEB_PORT) || 5173,

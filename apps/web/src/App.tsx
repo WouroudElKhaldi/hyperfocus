@@ -1,6 +1,6 @@
 import { type KeyboardEvent, type PointerEvent, Suspense, createContext, lazy, useCallback, useContext, useEffect, useState } from "react";
 import { BRAND } from "./brand.ts";
-import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { Link, type LinkProps, Outlet, useRouterState } from "@tanstack/react-router";
 import { api } from "./api.ts";
 import Icon from "./components/Icon.tsx";
 import Stuck from "./components/Stuck.tsx";
@@ -9,32 +9,9 @@ import PetWidget, { PetCelebration } from "./components/PetWidget.tsx";
 import Quotes from "./components/Quotes.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
-import Today from "./pages/Today.tsx";
-import Tasks from "./pages/Tasks.tsx";
 
-// Pages and the music player load the first time they are needed, so the app opens fast and stays light.
+// The music player loads the first time it is needed, so the app opens fast and stays light (pages: see router.tsx).
 const MusicPlayer = lazy(() => import("./components/MusicPlayer.tsx"));
-const Notes = lazy(() => import("./pages/Notes.tsx"));
-const Goals = lazy(() => import("./pages/Goals.tsx"));
-const Skills = lazy(() => import("./pages/Skills.tsx"));
-const Review = lazy(() => import("./pages/Review.tsx"));
-const Wins = lazy(() => import("./pages/Wins.tsx"));
-const Backup = lazy(() => import("./pages/Backup.tsx"));
-const Books = lazy(() => import("./pages/Books.tsx"));
-const BookDetail = lazy(() => import("./pages/BookDetail.tsx"));
-const Study = lazy(() => import("./pages/Study.tsx"));
-const Calendar = lazy(() => import("./pages/Calendar.tsx"));
-const Posts = lazy(() => import("./pages/Posts.tsx"));
-const PostEditor = lazy(() => import("./pages/PostEditor.tsx"));
-const Emails = lazy(() => import("./pages/Emails.tsx"));
-const EmailEditor = lazy(() => import("./pages/EmailEditor.tsx"));
-const Jobs = lazy(() => import("./pages/Jobs.tsx"));
-const JobDetail = lazy(() => import("./pages/JobDetail.tsx"));
-const Chat = lazy(() => import("./pages/Chat.tsx"));
-const Pet = lazy(() => import("./pages/Pet.tsx"));
-const Profile = lazy(() => import("./pages/Profile.tsx"));
-// the design system page (P3-02): development only, so it never ships in the built app
-const DevUi = import.meta.env.DEV ? lazy(() => import("./pages/DevUi.tsx")) : null;
 
 /** Shows a short message at the bottom of the screen. "err" makes it an error. */
 export type Toast = (msg: string, kind?: "ok" | "err") => void;
@@ -42,7 +19,7 @@ const ToastCtx = createContext<Toast>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
 // The menu, grouped by what you use it for. `tab` marks the shortcuts shown in the phone tab bar.
-type NavItem = { to: string; icon: string; label: string; tab?: boolean };
+type NavItem = { to: LinkProps["to"] & string; icon: string; label: string; tab?: boolean };
 type NavGroup = { group: string; items: NavItem[] };
 const NAV: NavGroup[] = [
   { group: "Plan", items: [
@@ -72,7 +49,6 @@ const NAV: NavGroup[] = [
   ] },
 ];
 const ALL = NAV.flatMap((g) => g.items);
-const navCls = ({ isActive }: { isActive: boolean }) => "nav" + (isActive ? " active" : "");
 
 // Sidebar size and which groups are folded are remembered in this browser.
 const SB = { min: 190, max: 380, def: 240, rail: 68 };
@@ -98,7 +74,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(() => lsGet<unknown>("sb-collapsed", false) === true);
   const [folded, setFolded] = useState<Record<string, boolean>>(() => lsGet("sb-folded", {})); // { Plan: true } means that group is folded
   const [resizing, setResizing] = useState(false);
-  const location = useLocation();
+  const location = useRouterState({ select: (s) => s.location });
 
   const show = useCallback<Toast>((msg, kind = "ok") => {
     const id = Date.now();
@@ -172,9 +148,9 @@ export default function App() {
                     <div className={"nav-items" + (isFolded ? "" : " open")}>
                       <div className="nav-items-inner">
                         {g.items.map((i) => (
-                          <NavLink key={i.to} to={i.to} end={i.to === "/"} className={navCls} title={collapsed ? i.label : undefined} tabIndex={isFolded ? -1 : 0}>
+                          <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav" activeProps={{ className: "active" }} title={collapsed ? i.label : undefined} tabIndex={isFolded ? -1 : 0}>
                             <Icon name={i.icon} /> <span className="nav-text">{i.label}</span>
-                          </NavLink>
+                          </Link>
                         ))}
                       </div>
                     </div>
@@ -204,30 +180,7 @@ export default function App() {
           <main className="main" id="main">
             <div className="page" key={location.pathname}>
               <Suspense fallback={<div className="empty">Loading…</div>}>
-              <Routes location={location}>
-                <Route path="/" element={<Today />} />
-                <Route path="/notes" element={<Notes />} />
-                <Route path="/tasks" element={<Tasks />} />
-                <Route path="/goals" element={<Goals />} />
-                <Route path="/skills" element={<Skills />} />
-                <Route path="/review" element={<Review />} />
-                <Route path="/wins" element={<Wins />} />
-                <Route path="/backup" element={<Backup />} />
-                <Route path="/books" element={<Books />} />
-                <Route path="/books/:slug" element={<BookDetail />} />
-                <Route path="/study" element={<Study />} />
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/posts" element={<Posts />} />
-                <Route path="/posts/:id" element={<PostEditor />} />
-                <Route path="/emails" element={<Emails />} />
-                <Route path="/emails/:id" element={<EmailEditor />} />
-                <Route path="/jobs" element={<Jobs />} />
-                <Route path="/jobs/:id" element={<JobDetail />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/pet" element={<Pet />} />
-                <Route path="/profile" element={<Profile />} />
-                {DevUi ? <Route path="/dev/ui" element={<DevUi />} /> : null}
-              </Routes>
+              <Outlet />
               </Suspense>
             </div>
           </main>
@@ -235,9 +188,9 @@ export default function App() {
 
         <nav className="tabbar" aria-label="Quick menu">
           {ALL.filter((i) => i.tab).map((i) => (
-            <NavLink key={i.to} to={i.to} end={i.to === "/"} className={({ isActive }) => "tab" + (isActive ? " active" : "")}>
+            <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="tab" activeProps={{ className: "active" }}>
               <Icon name={i.icon} size={22} /><span>{i.label.replace("Talk it out", "Talk")}</span>
-            </NavLink>
+            </Link>
           ))}
           <button className={"tab" + (sheet ? " active" : "")} onClick={() => setSheet(!sheet)} aria-expanded={sheet}>
             <Icon name="more" size={22} /><span>More</span>
@@ -250,7 +203,7 @@ export default function App() {
               <PetWidget compact />
               <div className="more-grid">
                 {ALL.map((i) => (
-                  <NavLink key={i.to} to={i.to} end={i.to === "/"} className={navCls}><Icon name={i.icon} /> <span>{i.label}</span></NavLink>
+                  <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{i.label}</span></Link>
                 ))}
               </div>
               <div className="more-appearance"><span>Light or dark</span><ThemeSwitch /></div>

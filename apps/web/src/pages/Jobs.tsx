@@ -1,5 +1,5 @@
 import { type SyntheticEvent, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import type { Job, JobListItem } from "../types.ts";
@@ -25,7 +25,7 @@ export default function Jobs() {
   const add = async () => {
     try {
       const j = await api.post("/jobs", form);
-      nav(`/jobs/${j.id}`);
+      nav({ to: "/jobs/$id", params: { id: String(j.id) } });
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
   const setStatus = async (e: SyntheticEvent, j: Job, status: string) => {
@@ -71,7 +71,7 @@ export default function Jobs() {
 
       {shown.length === 0 && <div className="empty">{jobs.length ? "Nothing in this filter." : "No jobs yet. Press “New job” when you find one."}</div>}
       {shown.map((j) => (
-        <Link to={`/jobs/${j.id}`} className="card email-row" key={j.id}>
+        <Link to="/jobs/$id" params={{ id: String(j.id) }} className="card email-row" key={j.id}>
           <div className="email-main">
             <div className="row" style={{ gap: "var(--s-2)" }}>
               <b>{j.title || "(no title)"}</b><span className="muted">at {j.company}</span>

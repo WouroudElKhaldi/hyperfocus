@@ -1,10 +1,10 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { RouterProvider } from "@tanstack/react-router";
 import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/figtree";
-import App from "./App.tsx";
 import { createQueryClient, refreshOnDataChanged } from "./api/query.ts";
+import { router } from "./router.tsx";
 import { applyTheme, getTheme } from "./theme.ts";
 import "./tailwind.css"; // Tailwind + shadcn tokens (P3-01), before the existing styles so they keep the last word
 import "./styles.css";
@@ -20,8 +20,6 @@ const root = document.getElementById("root");
 if (!root) throw new Error("index.html has no #root element");
 createRoot(root).render(
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </QueryClientProvider>,
 );

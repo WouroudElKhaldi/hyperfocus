@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import More from "../components/More.tsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import type { Post, Review as ReviewData } from "../types.ts";
@@ -54,7 +54,7 @@ export default function Review() {
   const toPost = async () => {
     if (!current) return;
     const p = await api.post("/posts", { thought: current.content.postIdea });
-    nav(`/posts/${p.id}`);
+    nav({ to: "/posts/$id", params: { id: String(p.id) } });
   };
 
   const c = current?.content, s = current?.stats;

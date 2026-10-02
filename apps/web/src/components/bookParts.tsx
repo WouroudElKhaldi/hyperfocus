@@ -15,7 +15,9 @@ export const short = (l: BookLink) => `${KIND[l.kind] || "Link"}${l.source ? " Â
 
 // a readable address for a book: /books/12-clean-code (only the number matters, the words are for people)
 export const slugOf = (title: string) => String(title || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50);
-export const bookPath = (b: { id: number; title: string }) => `/books/${b.id}${slugOf(b.title) ? "-" + slugOf(b.title) : ""}`;
+/** The book part of its address: 12-clean-code (the id first, so a renamed book still opens). */
+export const bookSlug = (b: { id: number; title: string }) => `${b.id}${slugOf(b.title) ? `-${slugOf(b.title)}` : ""}`;
+export const bookPath = (b: { id: number; title: string }) => `/books/${bookSlug(b)}`;
 
 export function Pills({ items }: { items: BookLink[] }) {
   return (

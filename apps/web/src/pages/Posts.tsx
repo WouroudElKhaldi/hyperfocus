@@ -1,5 +1,5 @@
 import { type MouseEvent, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { api } from "../api.ts";
 import { useToast } from "../App.tsx";
 import type { Post } from "../types.ts";
@@ -29,7 +29,7 @@ export default function Posts() {
   const changeView = (v: string) => { setView(v); save("posts-view", v); };
   const create = async () => {
     const p = await api.post("/posts", { thought: "(write your raw thought here)" });
-    nav(`/posts/${p.id}`);
+    nav({ to: "/posts/$id", params: { id: String(p.id) } });
   };
   const remove = async (e: MouseEvent, p: Post) => {
     e.preventDefault(); e.stopPropagation();
@@ -74,9 +74,9 @@ export default function Posts() {
             </thead>
             <tbody>
               {shown.map((p) => (
-                <tr key={p.id} onClick={() => nav(`/posts/${p.id}`)}>
+                <tr key={p.id} onClick={() => nav({ to: "/posts/$id", params: { id: String(p.id) } })}>
                   <td><span className={"chip " + p.status}>{statusLabel(p)}</span></td>
-                  <td className="ptitle"><Link to={`/posts/${p.id}`} onClick={(e) => e.stopPropagation()}>{titleOf(p)}</Link></td>
+                  <td className="ptitle"><Link to="/posts/$id" params={{ id: String(p.id) }} onClick={(e) => e.stopPropagation()}>{titleOf(p)}</Link></td>
                   <td className="num muted">{textOf(p).length}</td>
                   <td className="muted nowrap">{when(p)}</td>
                   <td className="nowrap"><button className="ghost" title="Delete" onClick={(e) => remove(e, p)}>✕</button></td>
@@ -90,7 +90,7 @@ export default function Posts() {
       {shown.length > 0 && view === "cards" && (
         <div className="mini-grid">
           {shown.map((p) => (
-            <Link to={`/posts/${p.id}`} key={p.id} className="mini-card">
+            <Link to="/posts/$id" params={{ id: String(p.id) }} key={p.id} className="mini-card">
               <div className="row" style={{ justifyContent: "space-between" }}>
                 <span className={"chip " + p.status}>{statusLabel(p)}</span>
                 <span className="muted">{when(p)}</span>

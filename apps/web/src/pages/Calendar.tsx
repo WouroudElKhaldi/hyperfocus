@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import More from "../components/More.tsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { api, studyMins, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import MonthView from "../components/calendar/MonthView.tsx";
@@ -228,12 +228,12 @@ export default function Calendar() {
           {data && view !== "month" && (
             <TimeGrid days={days} byDay={byDay} today={today} selected={selected} now={now}
               onSelect={pickDay} onNewAt={openNew} onOpenEvent={openEvent} onMoveEvent={moveEvent}
-              onOpenStudy={() => nav("/study")} onOpenPost={(id) => nav(`/posts/${id}`)} />
+              onOpenStudy={() => nav({ to: "/study" })} onOpenPost={(id) => nav({ to: "/posts/$id", params: { id: String(id) } })} />
           )}
         </div>
         <SidePanel day={selected} info={info} upcoming={upcoming} onShift={shiftSelected} onNew={openNew} onOpenEvent={openEvent}
           onToggleTask={toggleTask} onMoveTask={moveTask} onAddTask={addTask} onMoveGoal={moveGoal}
-          onOpenStudy={() => nav("/study")} onOpenPost={(id) => nav(`/posts/${id}`)} onPickDay={pickDay} />
+          onOpenStudy={() => nav({ to: "/study" })} onOpenPost={(id) => nav({ to: "/posts/$id", params: { id: String(id) } })} onPickDay={pickDay} />
       </div>
 
       {editor && <EventEditor key={editor.id ?? "new"} value={editor} onSave={saveEvent} onCancel={() => setEditor(null)} onDelete={deleteEvent} />}

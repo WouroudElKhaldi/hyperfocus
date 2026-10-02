@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { usePet } from "../hooks/usePet.ts";
 import { initialsOf, useProfile } from "../hooks/useProfile.ts";
 import { effectiveTheme, setTheme } from "../theme.ts";
@@ -55,16 +55,16 @@ export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: bool
         <Icon name="sidebar" size={19} />
       </button>
 
-      <NavLink to="/" className="tb-brand" aria-label="Home"><span className="tb-brand-mark" aria-hidden="true" /><b>Hyperfocus</b></NavLink>
+      <Link activeProps={{ className: "active" }} to="/" className="tb-brand" aria-label="Home"><span className="tb-brand-mark" aria-hidden="true" /><b>Hyperfocus</b></Link>
 
       <div className="tb-hello">
         <b>{greeting()}{name ? `, ${name}` : ""}</b>
-        <small>{name ? today : <NavLink to="/profile">Add your name</NavLink>}</small>
+        <small>{name ? today : <Link activeProps={{ className: "active" }} to="/profile">Add your name</Link>}</small>
       </div>
 
       <div className="tb-right">
         {pet && (pet.pet ? (
-          <NavLink to="/pet" className="pet-chip" title={`${pet.pet.name} · Age ${pet.age} ${pet.stageName} · ${pet.xp} points`}>
+          <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip" title={`${pet.pet.name} · Age ${pet.age} ${pet.stageName} · ${pet.xp} points`}>
             <PetArt species={pet.pet.species} gender={pet.pet.gender} color={pet.pet.color} stage={pet.stage} mood={pet.mood} outfit={pet.outfit} pattern={pet.pet.pattern} aura={pet.pet.aura} legend={pet.legend} eggProgress={pet.progress} size={38} animate={false} />
             <span className="pc-text">
               <b>{pet.xp} points</b>
@@ -72,14 +72,14 @@ export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: bool
             </span>
             <span className="xpbar mini pc-bar"><span style={{ width: `${Math.round(pet.progress * 100)}%` }} /></span>
             {gain > 0 && <span className="xp-float" aria-live="polite">+{gain}</span>}
-          </NavLink>
+          </Link>
         ) : (
-          <NavLink to="/pet" className="pet-chip empty"><span aria-hidden="true">🥚</span><span className="pc-text"><b>Get a companion</b></span></NavLink>
+          <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip empty"><span aria-hidden="true">🥚</span><span className="pc-text"><b>Get a companion</b></span></Link>
         ))}
         <ThemeSwitch />
-        <NavLink to="/profile" className="avatar" style={{ background: profile?.avatar || "#7447e6" }} title={name ? `${name}'s profile` : "Your profile"} aria-label="Your profile">
+        <Link activeProps={{ className: "active" }} to="/profile" className="avatar" style={{ background: profile?.avatar || "#7447e6" }} title={name ? `${name}'s profile` : "Your profile"} aria-label="Your profile">
           {initialsOf(name)}
-        </NavLink>
+        </Link>
       </div>
     </header>
   );

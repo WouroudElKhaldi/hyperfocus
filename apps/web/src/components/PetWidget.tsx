@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useState } from "react";
 import type { PetState } from "../types.ts";
-import { NavLink } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { usePet } from "../hooks/usePet.ts";
 import PetArt from "./PetArt.tsx";
 
@@ -14,22 +14,22 @@ export default function PetWidget({ compact = false }: { compact?: boolean }) {
 
   if (!s.pet) {
     return (
-      <NavLink to="/pet" className={"pet-widget empty" + (compact ? " compact" : "")} title="Get your companion">
+      <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget empty" + (compact ? " compact" : "")} title="Get your companion">
         <span className="pw-egg" aria-hidden="true">🥚</span>
         <span className="pw-text"><b>Get your companion</b><small>A pet that grows with you</small></span>
-      </NavLink>
+      </Link>
     );
   }
   const p = s.pet;
   return (
-    <NavLink to="/pet" className={"pet-widget" + (compact ? " compact" : "")} title={`${p.name} · Age ${s.age} ${s.stageName} · ${s.xp} points`}>
+    <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget" + (compact ? " compact" : "")} title={`${p.name} · Age ${s.age} ${s.stageName} · ${s.xp} points`}>
       <PetArt species={p.species} gender={p.gender} color={p.color} stage={s.stage} mood={s.mood} outfit={s.outfit} pattern={p.pattern} aura={p.aura} legend={s.legend} eggProgress={s.progress} size={compact ? 40 : 48} />
       <span className="pw-text">
         <b>{p.name}</b>
         <small>Age {s.age} · {s.xp} points</small>
         <span className="xpbar mini"><span style={{ width: `${Math.round(s.progress * 100)}%` }} /></span>
       </span>
-    </NavLink>
+    </Link>
   );
 }
 
@@ -54,7 +54,7 @@ export function PetCelebration() {
         <h2>{party.stage === 1 ? `${party.pet.name} hatched!` : `${party.pet.name} grew up a little!`}</h2>
         <p className="muted">{party.stage === 1 ? "That's all the things you finished, coming to life." : `Now age ${party.age}: a ${party.stageName.toLowerCase()}. Look what you did.`}</p>
         <div className="row" style={{ justifyContent: "center" }}>
-          <NavLink to="/pet" className="btn primary" onClick={() => setParty(null)}>Say hi</NavLink>
+          <Link activeProps={{ className: "active" }} to="/pet" className="btn primary" onClick={() => setParty(null)}>Say hi</Link>
           <button className="ghost" onClick={() => setParty(null)}>Later</button>
         </div>
       </div>

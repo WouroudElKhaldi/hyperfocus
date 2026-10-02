@@ -1,5 +1,5 @@
 import { type MouseEvent, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { api } from "../api.ts";
 import { useToast } from "../App.tsx";
 import type { Email, EmailListItem, EmailTemplate } from "../types.ts";
@@ -22,8 +22,8 @@ export default function Emails() {
   };
   useEffect(() => { load(); }, []);
 
-  const create = async () => nav(`/emails/${(await api.post("/emails")).id}`);
-  const applyTemplate = async (t: EmailTemplate) => nav(`/emails/${(await api.post(`/email-templates/${t.id}/use`)).id}`);
+  const create = async () => nav({ to: "/emails/$id", params: { id: String((await api.post("/emails")).id) } });
+  const applyTemplate = async (t: EmailTemplate) => nav({ to: "/emails/$id", params: { id: String((await api.post(`/email-templates/${t.id}/use`)).id) } });
   const rename = async (t: EmailTemplate) => {
     const name = window.prompt("Template name", t.name);
     if (!name?.trim()) return;
@@ -81,7 +81,7 @@ export default function Emails() {
         <>
           {shown.length === 0 && <div className="empty">{emails.length ? "Nothing here." : "No emails yet. Press “New email” to write your first one."}</div>}
           {shown.map((m) => (
-            <Link to={`/emails/${m.id}`} className="card email-row" key={m.id}>
+            <Link to="/emails/$id" params={{ id: String(m.id) }} className="card email-row" key={m.id}>
               <div className="email-main">
                 <div className="row" style={{ gap: "var(--s-2)" }}>
                   <span className={"chip " + (m.status === "sent" ? "posted" : m.status === "failed" ? "failed" : "")}>{STATUS[m.status] || m.status}</span>

@@ -1,5 +1,5 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { type ApiError, api, errorOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import RichEditor, { type RichEditorHandle } from "../components/RichEditor.tsx";
@@ -27,7 +27,7 @@ async function uploadFile(emailId: string | undefined, file: File, inline: boole
 }
 
 export default function EmailEditor() {
-  const { id } = useParams();
+  const { id } = useParams({ from: "/emails/$id" });
   const nav = useNavigate();
   const toast = useToast();
   const editor = useRef<RichEditorHandle>(null);
@@ -158,9 +158,9 @@ export default function EmailEditor() {
     clearTimeout(timer.current);
     loaded.current = false;
     await api.del(`/emails/${id}`);
-    nav("/emails");
+    nav({ to: "/emails" });
   };
-  const duplicate = async () => { const c = await api.post(`/emails/${id}/duplicate`); nav(`/emails/${c.id}`); };
+  const duplicate = async () => { const c = await api.post(`/emails/${id}/duplicate`); nav({ to: "/emails/$id", params: { id: String(c.id) } }); };
 
   if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel="Back to email" onRetry={() => setAttempt((a) => a + 1)} />;
   if (!email) return <p className="muted">Loading…</p>;
@@ -208,7 +208,7 @@ export default function EmailEditor() {
                 <option value="">Not linked to a job</option>
                 {jobs.map((j) => <option key={j.id} value={j.id}>{j.title || "(no title)"} at {j.company}</option>)}
               </select>
-              {email.jobId && <Link to={`/jobs/${email.jobId}`}>Open job →</Link>}
+              {email.jobId && <Link to="/jobs/$id" params={{ id: String(email.jobId) }}>Open job →</Link>}
             </span>
           </label>
           <label>Subject<input value={f.subject} onChange={set("subject")} disabled={locked} placeholder="What is it about?" /></label>
