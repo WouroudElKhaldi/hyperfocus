@@ -31,8 +31,8 @@ import type { EventBus } from "./events.ts";
 import { type Db, httpError } from "./types.ts";
 
 // The composition root (P2-01). Everything a route needs comes in through `deps`, so tests can pass fakes and nothing
-// reaches for globals. Routes move here from Express one module at a time (P2-06 … P2-21); until then Express answers
-// everything this app doesn't have a route for (see http/strangler.ts).
+// reaches for globals. Every API route lives here (Express is gone since P2-22); src/server.ts puts CORS and, in the demo,
+// the website in front of it.
 //
 // Routes are declared with createRoute() and Zod schemas (P2-02): the same schema checks the request, types the
 // handler and documents the route. The documentation is served at /api/docs (and the raw spec at /api/openapi.json).
@@ -86,7 +86,7 @@ export function createApp(deps: AppDeps) {
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
 
-  // ---------- modules (moved from Express) ----------
+  // ---------- modules ----------
   app.route("/", notesRouter(deps));
   app.route("/", tasksRouter(deps));
   app.route("/", remindersRouter(deps));
@@ -113,7 +113,7 @@ export function createApp(deps: AppDeps) {
     info: {
       title: "Hyperfocus API",
       version: "0.1.0",
-      description: "The routes served by the new Hono app. Routes not listed here are still answered by the older Express code (they move over during Phase 2).",
+      description: "Every route of the Hyperfocus API. Errors are problem+json (RFC 9457) with the message in `error` too.",
     },
   });
   app.get("/api/docs", Scalar({ url: "/api/openapi.json", pageTitle: "Hyperfocus API" }));

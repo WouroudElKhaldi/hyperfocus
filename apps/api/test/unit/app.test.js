@@ -1,11 +1,13 @@
-import { PassThrough, Readable } from "node:stream";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { createRoute, z } from "@hono/zod-openapi";
 import { Hono } from "hono";
 import { pino } from "pino";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.ts";
 import { problemResponse } from "../../src/http/problem.ts";
-import { honoFirst, routeOwner } from "../../src/http/strangler.ts";
+import { createServer } from "../../src/server.ts";
 import { httpError } from "../../src/types.ts";
 
 // The Hono app (P2-01), tested in-process with app.request(): no server, no network.
@@ -109,51 +111,48 @@ describe("OpenAPI and docs (P2-02)", () => {
   });
 });
 
-describe("the strangler (Hono first, then Express)", () => {
-  const owns = routeOwner(make());
-  it("knows which routes Hono has (HEAD counts as GET), and leaves the rest to Express", () => {
-    expect(owns("GET", "/api/health")).toBe(true);
-    expect(owns("HEAD", "/api/health")).toBe(true);
-    expect(owns("POST", "/api/health")).toBe(false);
-    expect(owns("GET", "/api/not-on-hono")).toBe(false);
-    expect(owns("GET", "/api/health/extra")).toBe(false);
-  });
-  it("handles a record path next to a deeper one and a fixed name (P2-09: RegExpRouter refused this)", () => {
-    const app = new Hono();
-    for (const [m, p] of [["patch", "/x/:id"], ["post", "/x/:id/plan"], ["post", "/x/bulk"]]) app.on(m.toUpperCase(), p, (c) => c.text("ok"));
-    const has = routeOwner(app);
-    expect([has("PATCH", "/x/3"), has("POST", "/x/3/plan"), has("POST", "/x/bulk"), has("GET", "/x/3")]).toEqual([true, true, true, false]);
+describe("the HTTP server (P2-22: Hono only, Express is gone)", () => {
+  it("lets pages on this computer call the API (CORS), and nobody else", async () => {
+    const server = createServer(make());
+    const local = await server.request("/api/health", { headers: { Origin: "http://localhost:5173" } });
+    expect(local.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
+    const other = await server.request("/api/health", { headers: { Origin: "https://evil.example" } });
+    expect(other.headers.get("access-control-allow-origin")).toBeNull();
+    const preflight = await server.request("/api/tasks", { method: "OPTIONS", headers: { Origin: "http://127.0.0.1:4000", "Access-Control-Request-Method": "PATCH" } });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-methods")).toMatch(/PATCH/);
   });
 
-  // a minimal Express-like request and response, so the middleware can run without a server
-  const fakeReq = (method, url, body = "") => Object.assign(Readable.from(body ? [Buffer.from(body)] : []), { method, path: url.split("?")[0], originalUrl: url, headers: { host: "test", "x-request-id": "via-express" } });
-  const fakeRes = () => {
-    const res = new PassThrough();
-    const chunks = [];
-    res.on("data", (c) => chunks.push(c));
-    Object.assign(res, { statusCode: 0, sent: {}, status(s) { res.statusCode = s; return res; }, setHeader(k, v) { res.sent[k] = v; } });
-    res.done = new Promise((ok) => res.on("finish", () => ok(Buffer.concat(chunks).toString())));
-    return res;
-  };
-
-  it("answers a Hono route through Express's request and response", async () => {
-    const res = fakeRes();
-    let passed = false;
-    honoFirst(make())(fakeReq("GET", "/api/health"), res, () => { passed = true; });
-    const body = await res.done;
-    expect(passed).toBe(false);
-    expect(res.statusCode).toBe(200);
-    expect(res.sent["x-request-id"]).toBe("via-express");
-    expect(JSON.parse(body)).toEqual({ ok: true, ai: true, n8n: true, demo: false });
+  it("answers an address the API doesn't have with a problem+json 404", async () => {
+    const r = await createServer(make()).request("/api/nope", { method: "POST" });
+    expect(r.status).toBe(404);
+    expect(r.headers.get("content-type")).toMatch(/application\/problem\+json/);
+    expect((await r.json()).error).toBe("There is no POST /api/nope in the API.");
   });
 
-  it("passes other routes to Express without touching the body", async () => {
-    const req = fakeReq("POST", "/api/not-on-hono", '{"title":"x"}');
-    let passed = false;
-    honoFirst(make())(req, fakeRes(), () => { passed = true; });
-    expect(passed).toBe(true);
-    const chunks = [];
-    for await (const c of req) chunks.push(c);
-    expect(Buffer.concat(chunks).toString()).toBe('{"title":"x"}'); // still all there for express.json()
+  it("in the demo, serves the website with its security headers, and index.html for the app's own addresses", async () => {
+    const dist = fs.mkdtempSync(path.join(os.tmpdir(), "hf-dist-"));
+    try {
+      fs.writeFileSync(path.join(dist, "index.html"), "<!doctype html><title>Hyperfocus</title>");
+      fs.mkdirSync(path.join(dist, "assets"));
+      fs.writeFileSync(path.join(dist, "assets", "app.js"), "console.log(1)");
+      const server = createServer(make({ demo: true }), { demo: true, webDist: dist });
+      const js = await server.request("/assets/app.js");
+      expect(js.status).toBe(200);
+      expect(await js.text()).toBe("console.log(1)");
+      expect(js.headers.get("content-security-policy")).toMatch(/default-src 'self'/);
+      const page = await server.request("/tasks/12"); // a website address: the single-page app takes it from here
+      expect(page.status).toBe(200);
+      expect(await page.text()).toMatch(/<title>Hyperfocus/);
+      expect(page.headers.get("x-content-type-options")).toBe("nosniff");
+      expect((await server.request("/api/health")).status).toBe(200);
+      expect((await server.request("/api/nope")).status).toBe(404); // never index.html for an API address
+    } finally {
+      fs.rmSync(dist, { recursive: true, force: true });
+    }
+  });
+
+  it("outside the demo, serves only the API", async () => {
+    expect((await createServer(make(), { demo: false, webDist: "/does/not/matter" }).request("/tasks")).status).toBe(404);
   });
 });

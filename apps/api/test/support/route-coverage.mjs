@@ -17,11 +17,8 @@ const stubConfig = { deepseek: {}, gmail: {} };
 const hono = createApp({ config: stubConfig, prisma: {}, log: pino({ level: "silent" }) });
 const honoRoutes = hono.routes.filter((r) => r.method !== "ALL").map((r) => ({ method: r.method, path: r.path }));
 
-// Express routes are still found in the source: app.get("/api/...", ...) in the files Express uses
-const expressRoutes = [...read("src", ".ts").matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p }));
-
 const seen = new Set();
-const routes = [...honoRoutes, ...expressRoutes].filter((r) => !seen.has(`${r.method} ${r.path}`) && seen.add(`${r.method} ${r.path}`));
+const routes = honoRoutes.filter((r) => !seen.has(`${r.method} ${r.path}`) && seen.add(`${r.method} ${r.path}`));
 
 // every call in the tests, with ${...} expressions turned into a placeholder
 const tests = read("test/contract", ".test.js");

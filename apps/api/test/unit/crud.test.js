@@ -2,7 +2,6 @@ import { OpenAPIHono, z } from "@hono/zod-openapi";
 import { describe, expect, it } from "vitest";
 import { crudRouter, parseId } from "../../src/http/crud.ts";
 import { problemResponse } from "../../src/http/problem.ts";
-import { routeOwner } from "../../src/http/strangler.ts";
 
 // The CRUD router factory (P2-03), tested in-process against a fake store kept in memory.
 
@@ -68,12 +67,8 @@ describe("CRUD router factory", () => {
 
   it("only builds the routes the store provides, so porting never adds a route", () => {
     const { app } = setup(["list", "create"]);
-    const owns = routeOwner(app);
-    expect(owns("GET", "/api/things")).toBe(true);
-    expect(owns("POST", "/api/things")).toBe(true);
-    expect(owns("GET", "/api/things/1")).toBe(false);
-    expect(owns("PATCH", "/api/things/1")).toBe(false);
-    expect(owns("DELETE", "/api/things/1")).toBe(false);
+    const routes = app.routes.filter((r) => r.method !== "ALL").map((r) => `${r.method} ${r.path}`);
+    expect([...new Set(routes)].sort()).toEqual(["GET /api/things", "POST /api/things"]); // (a route is listed once per handler, validators included)
   });
 
   it("documents the routes in OpenAPI", () => {
