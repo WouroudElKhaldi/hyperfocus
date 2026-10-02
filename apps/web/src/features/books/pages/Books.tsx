@@ -1,30 +1,22 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { api, errorOf } from "../../../api.ts";
-import { useToast } from "../../../App.tsx";
 import More from "../../../components/More.tsx";
 import { Cover, ICON, Pills, STATUS, bookPath, bookSlug, parse, short } from "../components/bookParts.tsx";
 import type { Book } from "../../../types.ts";
+import { useAddBook, useBookChanges, useBooks, useDeleteBook } from "../api.ts";
 
 // Top-level so the inputs inside keep focus while the page re-renders.
-function BookCard({ book, onChange, onDelete }: { book: Book; onChange: (b: Book) => void; onDelete: () => void }) {
-  const toast = useToast();
-  const [busy, setBusy] = useState(false);
+function BookCard({ book, onDelete }: { book: Book; onDelete: () => void }) {
+  const change = useBookChanges(book.id);
+  const busy = change.find.isPending;
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({ title: book.title, author: book.author });
   const res = useMemo(() => parse(book.result), [book.result]);
 
-  const patch = async (body: Partial<Book>) => onChange(await api.patch(`/books/${book.id}`, body));
-  const find = async () => {
-    setBusy(true);
-    try { onChange(await api.post(`/books/${book.id}/find`)); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
-  const saveEdit = async () => {
-    if (!f.title.trim()) return;
-    await patch({ title: f.title, author: f.author });
-    setEditing(false);
+  const patch = (body: Parameters<typeof change.update.mutate>[0], onDone?: () => void) => change.update.mutate(body, { onSuccess: () => onDone?.() });
+  const find = () => change.find.mutate();
+  const saveEdit = () => {
+    if (f.title.trim()) patch({ title: f.title, author: f.author }, () => setEditing(false));
   };
 
   const good = res?.links.filter((l) => ["free", "borrow", "preview", "buy"].includes(l.kind)) || [];
@@ -79,28 +71,19 @@ function BookCard({ book, onChange, onDelete }: { book: Book; onChange: (b: Book
 }
 
 export default function Books() {
-  const toast = useToast();
-  const [books, setBooks] = useState<Book[]>([]);
+  const books = useBooks().data ?? [];
+  const addBook = useAddBook();
+  const deleteBook = useDeleteBook();
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => { api.get("/books").then(setBooks).catch((e) => toast(e.message, "err")); }, []);
-
-  const add = async (e: FormEvent) => {
+  const add = (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    try {
-      const b = await api.post("/books", { title, author });
-      setBooks([b, ...books]); setTitle(""); setAuthor("");
-    } catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
+    addBook.mutate({ title, author }, { onSuccess: () => { setTitle(""); setAuthor(""); } });
   };
-  const replace = (b: Book) => setBooks((l) => l.map((x) => (x.id === b.id ? b : x)));
-  const remove = async (b: Book) => {
-    if (!confirm(`Remove "${b.title}" from your list?`)) return;
-    await api.del(`/books/${b.id}`);
-    setBooks((l) => l.filter((x) => x.id !== b.id));
-  };
+  const remove = (b: Book) => { if (confirm(`Remove "${b.title}" from your list?`)) deleteBook.mutate(b.id); };
 
   const shown = books.filter((b) => filter === "all" || b.status === filter);
   const count = (k: string) => books.filter((b) => k === "all" || b.status === k).length;
@@ -124,7 +107,7 @@ export default function Books() {
 
       {shown.length === 0 && <div className="empty">{books.length ? "Nothing here." : "No books yet. What do you want to read next?"}</div>}
       <div className="book-grid">
-        {shown.map((b) => <BookCard key={b.id} book={b} onChange={replace} onDelete={() => remove(b)} />)}
+        {shown.map((b) => <BookCard key={b.id} book={b} onDelete={() => remove(b)} />)}
       </div>
     </>
   );

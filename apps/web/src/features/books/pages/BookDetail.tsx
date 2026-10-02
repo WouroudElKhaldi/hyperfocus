@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { api, errorOf } from "../../../api.ts";
+import { errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
+import LoadProblem, { notFound } from "../../../components/LoadProblem.tsx";
 import More from "../../../components/More.tsx";
+import { useAskBook, useBook, useBookChanges, useBookChat, useClearBookChat, useDeleteBook } from "../api.ts";
 import { Cover, ICON, STATUS, bookPath, bookSlug, parse } from "../components/bookParts.tsx";
-import type { Book, BookLink, BookMessage } from "../../../types.ts";
+import type { Book, BookLink } from "../../../types.ts";
 
-/** A message on screen. One being sent has a temporary id. */
-type Msg = Pick<BookMessage, "role" | "content"> & { id: number | string };
 
 const QUESTIONS = [
   "Give me a 5-minute overview",
@@ -21,32 +21,25 @@ const ORDER = ["free", "borrow", "preview", "buy", "info"];
 const GROUP: Record<string, string> = { free: "Free to read or download", borrow: "Borrow for free", preview: "Previews", buy: "Buy it", info: "Learn more" };
 
 function Ask({ book }: { book: Book }) {
-  const toast = useToast();
-  const [msgs, setMsgs] = useState<Msg[] | null>(null);
+  const msgs = useBookChat(book.id).data ?? null;
+  const ask = useAskBook(book.id);
+  const clearChat = useClearBookChat(book.id);
+  const busy = ask.isPending;
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { api.get(`/books/${book.id}/chat`).then(setMsgs).catch((e) => { toast(e.message, "err"); setMsgs([]); }); }, [book.id]);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, busy]);
 
-  const send = async (q = text) => {
+  // the question shows at once; if the AI fails it goes back into the box (and the reason shows in a toast)
+  const send = (q = text) => {
     const question = q.trim();
     if (!question || busy) return;
-    setText(""); setBusy(true);
-    const tmp: Msg = { id: `tmp${Date.now()}`, role: "user", content: question };
-    setMsgs((m) => [...(m ?? []), tmp]);
-    try {
-      const out = await api.post(`/books/${book.id}/ask`, { question });
-      setMsgs((m) => [...(m ?? []).filter((x) => x.id !== tmp.id), out.user, out.assistant]);
-    } catch (caught) { const e = errorOf(caught);
-      setMsgs((m) => (m ?? []).filter((x) => x.id !== tmp.id)); setText(question); toast(e.message, "err");
-    }
-    setBusy(false); box.current?.focus();
+    setText("");
+    ask.mutate(question, { onError: () => setText(question), onSettled: () => box.current?.focus() });
   };
-  const clear = async () => { await api.del(`/books/${book.id}/chat`); setMsgs([]); setConfirm(false); };
+  const clear = () => clearChat.mutate(undefined, { onSuccess: () => setConfirm(false) });
 
   return (
     <section className="card book-ask" aria-label="Ask the AI about this book">
@@ -83,43 +76,39 @@ export default function BookDetail() {
   const nav = useNavigate();
   const { slug } = useParams({ from: "/books/$slug" });
   const bookId = parseInt(slug ?? "", 10);
-  const [book, setBook] = useState<Book | null>(null);
-  const [missing, setMissing] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const bookQuery = useBook(bookId);
+  const book = bookQuery.data ?? null;
+  const change = useBookChanges(bookId);
+  const deleteBook = useDeleteBook();
+  const busy = change.find.isPending;
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({ title: "", author: "" });
   const [notes, setNotes] = useState("");
   const res = useMemo(() => parse(book?.result ?? ""), [book?.result]);
 
+  // fill the fields once the book has loaded, and tidy the address to /books/12-clean-code
   useEffect(() => {
-    setBook(null); setMissing(false);
-    if (!Number.isInteger(bookId)) { setMissing(true); return; }
-    api.get(`/books/${bookId}`).then((b) => {
-      setBook(b); setNotes(b.notes); setF({ title: b.title, author: b.author });
-      if (slug !== bookSlug(b)) nav({ to: "/books/$slug", params: { slug: bookSlug(b) }, replace: true }); // tidy the address to /books/12-clean-code
-    }).catch(() => setMissing(true));
-  }, [bookId]);
+    if (!book) return;
+    setNotes(book.notes); setF({ title: book.title, author: book.author });
+    if (slug !== bookSlug(book)) nav({ to: "/books/$slug", params: { slug: bookSlug(book) }, replace: true });
+  }, [book?.id]);
 
-  if (missing) return <><h1>Book not found</h1><p className="sub">It may have been removed.</p><Link className="btn primary" to="/books">Back to my books</Link></>;
+  if (!Number.isInteger(bookId) || bookQuery.error)
+    return <LoadProblem error={bookQuery.error ? errorOf(bookQuery.error) : notFound} what="book" back="/books" backLabel="Back to my books" onRetry={() => bookQuery.refetch()} />;
   if (!book) return <div className="empty">Loading…</div>;
 
-  const patch = async (body: Partial<Book>) => { const b = await api.patch(`/books/${book.id}`, body); setBook(b); return b; };
-  const find = async () => {
-    setBusy(true);
-    try { setBook(await api.post(`/books/${book.id}/find`)); toast("Search done."); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
-  const saveEdit = async () => {
+  const patch = (body: Parameters<typeof change.update.mutate>[0], onDone?: (b: Book) => void) => change.update.mutate(body, { onSuccess: (b) => onDone?.(b) });
+  const find = () => change.find.mutate(undefined, { onSuccess: () => toast("Search done.") });
+  const saveEdit = () => {
     if (!f.title.trim()) return;
-    const b = await patch({ title: f.title, author: f.author });
-    setEditing(false);
-    nav({ to: "/books/$slug", params: { slug: bookSlug(b) }, replace: true });
+    patch({ title: f.title, author: f.author }, (b) => {
+      setEditing(false);
+      nav({ to: "/books/$slug", params: { slug: bookSlug(b) }, replace: true });
+    });
   };
-  const remove = async () => {
+  const remove = () => {
     if (!confirm(`Remove "${book.title}" from your list?`)) return;
-    await api.del(`/books/${book.id}`);
-    nav({ to: "/books" });
+    deleteBook.mutate(book.id, { onSuccess: () => nav({ to: "/books" }) });
   };
 
   const links = res?.links || [];
@@ -199,7 +188,7 @@ export default function BookDetail() {
           <section className="card">
             <h2>My notes</h2>
             <textarea className="book-notes" placeholder="Why I want to read it, what I learned…" value={notes} onChange={(e) => setNotes(e.target.value)}
-              onBlur={() => notes !== book.notes && patch({ notes }).then(() => toast("Notes saved"))} aria-label="My notes" />
+              onBlur={() => notes !== book.notes && patch({ notes }, () => toast("Notes saved"))} aria-label="My notes" />
           </section>
         </div>
 

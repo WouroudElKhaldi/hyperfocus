@@ -512,3 +512,47 @@ test.describe("Goals, Skills, Study and Review keep their data", () => {
     await expect(page.getByRole("checkbox", { name: "Done: Finish one task" }).first()).toBeVisible();
   });
 });
+
+// P3-10: Books on the shared cache: a change on a book's page is already on the list, the AI question comes back if it fails.
+test.describe("Books keep their data", () => {
+  test("a status and notes set on the book's page show on the list without a reload", async ({ page }) => {
+    await page.goto("/books");
+    await page.getByPlaceholder("Book title…").fill("E2E Cached Book");
+    await page.getByPlaceholder("Book title…").press("Enter");
+    await page.locator(".book").filter({ hasText: "E2E Cached Book" }).getByRole("link", { name: "Open", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "E2E Cached Book" })).toBeVisible();
+    await page.getByLabel("Reading status").selectOption("reading");
+    await page.getByLabel("My notes").fill("E2E notes on the book");
+    await page.getByLabel("My notes").blur();
+    await expect(page.getByText("Notes saved")).toBeVisible();
+    await page.getByRole("link", { name: "← All books" }).click();
+    await expect(page.locator(".book").filter({ hasText: "E2E Cached Book" }).getByLabel("Reading status")).toHaveValue("reading");
+    await page.locator(".book").filter({ hasText: "E2E Cached Book" }).getByRole("link", { name: "Open", exact: true }).click();
+    await expect(page.getByLabel("My notes")).toHaveValue("E2E notes on the book");
+  });
+
+  test.describe(() => {
+    test.use({ allowedConsoleErrors: [/status of (404|500)/] });
+    test("a question the AI can't answer goes back into the box", async ({ page }) => {
+      const res = await page.request.post("/api/books", { data: { title: "E2E Ask Book" } });
+      const { id } = await res.json();
+      await page.route(`**/api/books/${id}/ask`, (route) => route.fulfill({ status: 500, json: { error: "The AI is busy" } }));
+      await page.goto(`/books/${id}`);
+      await page.getByPlaceholder("Ask about this book…").fill("Is it good?");
+      await page.getByRole("button", { name: "Ask", exact: true }).click();
+      await expect(page.getByText("The AI is busy")).toBeVisible();
+      await expect(page.getByPlaceholder("Ask about this book…")).toHaveValue("Is it good?");
+      await expect(page.locator(".book-chat-log .msg")).toHaveCount(0);
+    });
+
+    test("a book that fails to load offers a retry", async ({ page }) => {
+      let fail = true;
+      await page.route("**/api/books/4321", (route) => (fail ? route.fulfill({ status: 500, json: { error: "Database is busy" } }) : route.continue()));
+      await page.goto("/books/4321");
+      await expect(page.getByRole("heading", { name: "Couldn't load this book" })).toBeVisible();
+      fail = false;
+      await page.getByRole("button", { name: "Try again" }).click();
+      await expect(page.getByRole("heading", { name: "Book not found" })).toBeVisible();
+    });
+  });
+});
