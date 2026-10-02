@@ -1,0 +1,73 @@
+# Every push to main and every pull request: install → typecheck → lint → API tests (unit + contract) → route check → browser tests.
+# Nothing here talks to real services: the API tests run against a throwaway database with a fake AI and a fake n8n,
+# and Gmail is switched off (see apps/api/test/support/stack.js), so no secrets are needed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# a newer push to the same branch cancels the run that is still going
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, lint and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # the pnpm version comes from "packageManager" in package.json
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Restore the Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: API tests (unit + contract)
+        run: pnpm test:api
+
+      - name: Every API route has a contract test
+        run: pnpm --filter @hyperfocus/api test:routes
+
+      # CI uses Playwright's own Chromium (locally the tests use your installed Chrome, see playwright.config.js)
+      - name: Install the browser for the browser tests
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: pnpm test:e2e
+
+      - name: Keep the browser test report when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/report
+            e2e/results
+          retention-days: 14
