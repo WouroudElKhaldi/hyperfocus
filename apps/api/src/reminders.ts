@@ -51,7 +51,7 @@ export async function checkReminders(prisma: Db): Promise<void> {
 }
 
 // ---------- reminders she wrote herself ----------
-export const REMINDER_REPEATS = ["none", "daily", "weekdays", "weekly"];
+export { REMINDER_REPEATS } from "@hyperfocus/shared/constants"; // one list for the API and the website
 
 // the next time a repeating reminder should fire, strictly after `from`
 export function nextOccurrence(at: Date, repeat: string, from = new Date()): Date {

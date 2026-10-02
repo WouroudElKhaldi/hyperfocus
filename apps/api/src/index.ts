@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { type ChatThread, type Event, type Post, type Prisma, PrismaClient, type Reminder, type Review, type StudySession } from "@hyperfocus/db";
+import { type ChatThread, type Event, type Post, type Prisma, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
 import type { Request } from "express";
 import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
@@ -14,7 +14,7 @@ import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { companionReply, isCrisis } from "./chat.ts";
 import type { AiMessage } from "./ai.ts";
-import { checkReminders, checkMyReminders, REMINDER_REPEATS } from "./reminders.ts";
+import { checkReminders, checkMyReminders } from "./reminders.ts";
 import { buildCalendar, buildIcs, parseEventText, planStudyBlocks, CATEGORIES, REPEATS, DAY_RE, TIME_RE, toMin } from "./calendar.ts";
 import { createBackup, listBackups, backupPath, backupDir, startAutoBackup } from "./backup.ts";
 import { registerMail } from "./mail.ts";
@@ -441,38 +441,7 @@ app.patch("/api/pet", wrap(async (req, res) => {
   res.json(await petState(prisma));
 }));
 
-// ---------- My reminders ----------
-type ReminderFields = Partial<Pick<Reminder, "title" | "at" | "repeat" | "note" | "done">>;
-function cleanReminder(b: UncheckedJson, partial?: false): Cleaned<ReminderFields & Pick<Reminder, "title" | "at">>;
-function cleanReminder(b: UncheckedJson, partial: true): Cleaned<ReminderFields>;
-function cleanReminder(b: UncheckedJson, partial = false): Cleaned<ReminderFields> {
-  const d: ReminderFields = {};
-  if (!partial || b.title !== undefined) { const t = String(b.title ?? "").trim().slice(0, 120); if (!t) return { error: "Say what to remind you about." }; d.title = t; }
-  if (!partial || b.at !== undefined) { const at = new Date(b.at); if (!b.at || Number.isNaN(at.getTime())) return { error: "Pick a day and time." }; d.at = at; }
-  if (b.repeat !== undefined) { if (!REMINDER_REPEATS.includes(b.repeat)) return { error: "That repeat isn't available." }; d.repeat = b.repeat; }
-  if (b.note !== undefined) d.note = String(b.note).trim().slice(0, 300);
-  return { data: d };
-}
-app.get("/api/reminders", wrap(async (_, res) => {
-  const since = new Date(Date.now() - 7 * 86400000);
-  const rows = await prisma.reminder.findMany({ where: { OR: [{ done: false }, { lastFiredAt: { gte: since } }] }, orderBy: [{ done: "asc" }, { at: "asc" }] });
-  res.json(rows);
-}));
-app.post("/api/reminders", wrap(async (req, res) => {
-  const c = cleanReminder(req.body);
-  if (c.error !== undefined) return res.status(400).json({ error: c.error });
-  res.json(await prisma.reminder.create({ data: c.data }));
-}));
-app.patch("/api/reminders/:id", wrap(async (req, res) => {
-  const c = cleanReminder(req.body, true);
-  if (c.error !== undefined) return res.status(400).json({ error: c.error });
-  if (c.data.at && c.data.at > new Date()) c.data.done = false; // moving it to the future re-arms it
-  res.json(await prisma.reminder.update({ where: { id: id(req) }, data: c.data }));
-}));
-app.delete("/api/reminders/:id", wrap(async (req, res) => {
-  await prisma.reminder.deleteMany({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
+// My reminders moved to Hono: src/modules/reminders (P2-13)
 
 // ---------- Support chat ----------
 // Conversations are saved as threads. A "temporary" chat is sent with its own history and is never written to the database.

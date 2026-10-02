@@ -32,4 +32,11 @@ describe("my reminders", () => {
     expect(await ok(del(`/api/reminders/${a.id}`))).toEqual({ ok: true });
     expect(await ok(del(`/api/reminders/${a.id}`))).toEqual({ ok: true });
   });
+
+  // P2-13: changing a reminder that doesn't exist is "not found" (it used to be a 500)
+  it("answers 404 when changing a reminder that doesn't exist", async () => {
+    const r = await patch("/api/reminders/999999", { note: "x" });
+    expect(r.status).toBe(404);
+    expect(r.body.error).toBe("Reminder not found.");
+  });
 });

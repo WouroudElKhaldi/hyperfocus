@@ -10,3 +10,7 @@ export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 /** Pet points for finishing a task, by priority. The API awards these and the website shows them. */
 export const TASK_PRIORITY_POINTS = { low: 2, normal: 4, high: 8, urgent: 14 } as const satisfies Record<TaskPriority, number>;
+
+/** How a reminder you write yourself can repeat. */
+export const REMINDER_REPEATS = ["none", "daily", "weekdays", "weekly"] as const;
+export type ReminderRepeat = (typeof REMINDER_REPEATS)[number];

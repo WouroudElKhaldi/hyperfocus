@@ -6,6 +6,7 @@ import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
 import { defaultHook } from "./http/validation.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
+import { remindersRouter } from "./modules/reminders/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
 import type { EventBus } from "./events.ts";
 import type { Db } from "./types.ts";
@@ -59,6 +60,7 @@ export function createApp(deps: AppDeps) {
   // ---------- modules (moved from Express) ----------
   app.route("/", notesRouter(deps));
   app.route("/", tasksRouter(deps));
+  app.route("/", remindersRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {
