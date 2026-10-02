@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { type ApiError, api, errorOf } from "../../../api.ts";
+import { api, errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
 import LoadProblem, { isId, notFound } from "../../../components/LoadProblem.tsx";
 import type { PolishResult, Post, RewriteResult } from "../../../types.ts";
+import { useDeletePost, usePost, usePostStatus } from "../api.ts";
 
 const LIMIT = 3000;
 const QUICK = ["Make it shorter", "Stronger hook", "More personal", "Simpler words", "Add a question at the end"];
@@ -18,28 +19,21 @@ const fmtWhen = (d: string | null) => new Date(d ?? 0).toLocaleString([], { week
 const STATUS: Record<string, string> = { draft: "Draft", scheduled: "⏰ Scheduled", posting: "Sending…", posted: "✓ Posted", failed: "⚠️ Failed", missed: "⚠️ Missed" };
 
 // Top-level so the date input keeps focus while the editor re-renders.
-type ScheduleProps = { post: Post; blockedReason: string; flush: () => Promise<unknown>; onChange: (p: Post) => void };
-function Schedule({ post, blockedReason, flush, onChange }: ScheduleProps) {
+type ScheduleProps = { post: Post; blockedReason: string; status: ReturnType<typeof usePostStatus> };
+function Schedule({ post, blockedReason, status }: ScheduleProps) {
   const toast = useToast();
   const [when, setWhen] = useState(() => toLocalInput(post.status === "scheduled" && post.scheduledAt ? post.scheduledAt : tomorrowAt(9)));
   const [changing, setChanging] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const busy = status.schedule.isPending;
 
-  const schedule = async () => {
+  // the latest text is saved first, so what gets posted is what you see
+  const schedule = () => {
     if (!when || Number.isNaN(new Date(when).getTime())) return toast("Pick a date and time first.", "err");
-    setBusy(true);
-    try {
-      await flush(); // make sure the latest text is what gets posted
-      onChange(await api.post(`/posts/${post.id}/schedule`, { scheduledAt: new Date(when).toISOString() }));
-      setChanging(false);
-      toast("Scheduled ⏰ It will post by itself at that time.");
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
+    status.schedule.mutate(new Date(when).toISOString(), {
+      onSuccess: () => { setChanging(false); toast("Scheduled ⏰ It will post by itself at that time."); },
+    });
   };
-  const cancel = async () => {
-    try { onChange(await api.post(`/posts/${post.id}/unschedule`)); toast("Schedule cancelled. It's a draft again."); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
+  const cancel = () => status.unschedule.mutate(undefined, { onSuccess: () => toast("Schedule cancelled. It's a draft again.") });
 
   if (post.status === "posted") return null;
 
@@ -91,7 +85,6 @@ export default function PostEditor() {
   const { id } = useParams({ from: "/posts/$id" });
   const nav = useNavigate();
   const toast = useToast();
-  const [post, setPost] = useState<Post | null>(null);
   const [thought, setThought] = useState("");
   const [draft, setDraft] = useState("");
   const [history, setHistory] = useState<string[]>([]);
@@ -104,32 +97,29 @@ export default function PostEditor() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(true);
   const loaded = useRef(false);
-  const [loadErr, setLoadErr] = useState<ApiError | null>(null);
-  const [attempt, setAttempt] = useState(0); // bumped by "Try again"
+  // while it is scheduled or being sent, the post looks again every 15 s (only its status shows; your text stays yours)
+  const [live, setLive] = useState(false);
+  const postQuery = usePost(id, live);
+  const post = postQuery.data ?? null;
+  const loadErr = !isId(id) ? notFound : postQuery.error ? errorOf(postQuery.error) : null;
+  const status = usePostStatus(Number(id), () => ({ thought, draft }));
+  const deletePost = useDeletePost();
 
+  // the text is filled in once, when the post first loads
   useEffect(() => {
-    setLoadErr(null);
-    if (!isId(id)) { setLoadErr(notFound); return; }
-    api.get(`/posts/${id}`).then((p) => {
-      setPost(p); setThought(p.thought); setDraft(p.draft);
-      setTimeout(() => (loaded.current = true), 0);
-    }).catch(setLoadErr);
-  }, [id, attempt]);
+    if (!post) return;
+    setThought(post.thought); setDraft(post.draft);
+    setTimeout(() => (loaded.current = true), 0);
+  }, [post?.id]);
 
-  // while it is scheduled, keep the status fresh (only the status fields, never the text you're editing)
+  const lastStatus = useRef(post?.status);
   useEffect(() => {
-    if (!post || !["scheduled", "posting"].includes(post.status)) return;
-    const t = setInterval(async () => {
-      try {
-        const p = await api.get(`/posts/${id}`);
-        if (p.status !== post.status) {
-          setPost((cur) => (cur ? { ...cur, status: p.status, postedAt: p.postedAt, scheduledAt: p.scheduledAt, attempts: p.attempts, lastError: p.lastError } : cur));
-          if (p.status === "posted") toast("Your scheduled post just went live on LinkedIn 🎉");
-        }
-      } catch { /* server briefly unavailable, try again next tick */ }
-    }, 15000);
-    return () => clearInterval(t);
-  }, [post?.status, id]);
+    if (!post) return;
+    setLive(["scheduled", "posting"].includes(post.status));
+    if (post.status === "posted" && lastStatus.current && ["scheduled", "posting"].includes(lastStatus.current))
+      toast("Your scheduled post just went live on LinkedIn 🎉");
+    lastStatus.current = post.status;
+  }, [post?.status]);
 
   // autosave 800ms after typing stops
   useEffect(() => {
@@ -188,25 +178,23 @@ export default function PostEditor() {
       return;
     }
     if (!confirm("Post this to LinkedIn now?")) return;
-    setBusy(true);
-    try {
-      await api.patch(`/posts/${id}`, { thought, draft });
-      setPost(await api.post(`/posts/${id}/publish`));
-      toast("Posted to LinkedIn! 🎉 Proud of you.");
-    } catch (caught) { const e = errorOf(caught);
-      if (e.code === "n8n_not_configured") {
-        await navigator.clipboard.writeText(draft).catch(() => {});
-        window.open("https://www.linkedin.com/feed/?shareActive=true", "_blank");
-        toast("n8n isn't connected yet, so I copied your post. Paste it in LinkedIn, then hit “Mark as posted”.");
-      } else toast(e.message, "err");
-    }
-    setBusy(false);
+    status.publish.mutate(undefined, {
+      onSuccess: () => toast("Posted to LinkedIn! 🎉 Proud of you."),
+      onError: (caught) => {
+        const e = errorOf(caught);
+        if (e.code === "n8n_not_configured") {
+          navigator.clipboard.writeText(draft).catch(() => {});
+          window.open("https://www.linkedin.com/feed/?shareActive=true", "_blank");
+          toast("n8n isn't connected yet, so I copied your post. Paste it in LinkedIn, then hit “Mark as posted”.");
+        } else toast(e.message, "err");
+      },
+    });
   };
 
-  const markPosted = async () => setPost(await api.post(`/posts/${id}/mark-posted`));
-  const remove = async () => { if (confirm("Delete this post?")) { await api.del(`/posts/${id}`); nav({ to: "/posts" }); } };
+  const markPosted = () => status.markPosted.mutate();
+  const remove = () => { if (confirm("Delete this post?")) deletePost.mutate(Number(id), { onSuccess: () => nav({ to: "/posts" }) }); };
 
-  if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel="Back to posts" onRetry={() => setAttempt((a) => a + 1)} />;
+  if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel="Back to posts" onRetry={() => postQuery.refetch()} />;
   if (!post) return <p className="muted">Loading…</p>;
   const posted = post.status === "posted";
 
@@ -293,8 +281,7 @@ export default function PostEditor() {
           {!posted && (
             <Schedule
               post={post}
-              flush={() => api.patch(`/posts/${id}`, { thought, draft })}
-              onChange={(p) => setPost(p)}
+              status={status}
               blockedReason={
                 !draft.trim() ? "Write the draft first." :
                 draft.length > LIMIT ? "The draft is over LinkedIn's 3000 character limit." :
@@ -308,7 +295,7 @@ export default function PostEditor() {
             <button className="ghost" onClick={() => { navigator.clipboard.writeText(draft); toast("Copied"); }}>Copy</button>
             <span className="grow" />
             {!posted && <button className="ghost" onClick={markPosted}>Mark as posted</button>}
-            <button className="primary big" disabled={busy || posted || !draft.trim() || draft.length > LIMIT} onClick={publish}>
+            <button className="primary big" disabled={busy || status.publish.isPending || posted || !draft.trim() || draft.length > LIMIT} onClick={publish}>
               {posted ? "✓ Posted" : hasMention ? "🚀 Copy & open LinkedIn" : "🚀 POST"}
             </button>
           </div>

@@ -556,3 +556,39 @@ test.describe("Books keep their data", () => {
     });
   });
 });
+
+// P3-11: Posts on the shared cache: a post's status changes show on the list, the editor's text is never overwritten.
+test.describe("Posts keep their data", () => {
+  test.beforeEach(({ page }) => page.on("dialog", (d) => d.accept())); // "Post this to LinkedIn now?", "Delete this post?"
+
+  test("write, let the AI draft, schedule, cancel, then publish; the list follows", async ({ page }) => {
+    await page.goto("/posts");
+    await page.getByRole("button", { name: "+ New post" }).click();
+    await expect(page).toHaveURL(/\/posts\/\d+/);
+    await page.getByPlaceholder(/Type your raw thoughts/).fill("E2E post thought");
+    await page.getByRole("button", { name: /Turn into a LinkedIn post/ }).click();
+    await expect(page.getByPlaceholder(/Your draft will appear here/)).toHaveValue("Fake draft from the AI.");
+    await page.getByRole("button", { name: "Tomorrow 9:00" }).click();
+    await page.getByRole("button", { name: "📅 Schedule" }).click();
+    await expect(page.getByText(/⏰ Scheduled for/)).toBeVisible();
+    await page.getByRole("button", { name: "Cancel schedule" }).click();
+    await expect(page.getByText("Schedule cancelled.")).toBeVisible();
+    await page.getByRole("button", { name: "🚀 POST" }).click();
+    await expect(page.getByText("Posted to LinkedIn! 🎉")).toBeVisible();
+    await expect(page.getByPlaceholder(/Type your raw thoughts/)).toHaveValue("E2E post thought"); // still what was typed
+    await page.goto("/posts");
+    await page.getByRole("button", { name: /^Posted \(/ }).click();
+    await expect(page.getByText("Fake draft from the AI.").first()).toBeVisible();
+  });
+
+  test("a post deleted from the list is gone at once", async ({ page }) => {
+    await page.request.post("/api/posts", { data: { thought: "E2E post to delete" } });
+    await page.goto("/posts");
+    const row = page.locator("tr, .post-card, a").filter({ hasText: "E2E post to delete" }).first();
+    await row.getByTitle("Delete").click();
+    await expect(page.getByText("E2E post to delete")).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "LinkedIn posts" })).toBeVisible();
+    await expect(page.getByText("E2E post to delete")).toHaveCount(0);
+  });
+});

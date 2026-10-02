@@ -1,8 +1,7 @@
-import { type MouseEvent, useEffect, useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { api } from "../../../api.ts";
-import { useToast } from "../../../App.tsx";
 import type { Post } from "../../../types.ts";
+import { useCreatePost, useDeletePost, usePosts } from "../api.ts";
 
 const FILTERS: [string, string][] = [["all", "All"], ["draft", "Drafts"], ["scheduled", "Scheduled"], ["posted", "Posted"]];
 const textOf = (p: Post) => (p.draft || p.thought).trim();
@@ -17,25 +16,19 @@ function save(key: string, value: string) {
 }
 
 export default function Posts() {
-  const toast = useToast();
   const nav = useNavigate();
-  const [posts, setPosts] = useState<Post[]>([]);
+  const posts = usePosts().data ?? [];
+  const createPost = useCreatePost();
+  const deletePost = useDeletePost();
   const [view, setView] = useState(() => load("posts-view", "table"));
   const [filter, setFilter] = useState("all");
 
-  const refresh = () => api.get("/posts").then(setPosts).catch((e) => toast(e.message, "err"));
-  useEffect(() => { refresh(); }, []);
-
   const changeView = (v: string) => { setView(v); save("posts-view", v); };
-  const create = async () => {
-    const p = await api.post("/posts", { thought: "(write your raw thought here)" });
-    nav({ to: "/posts/$id", params: { id: String(p.id) } });
-  };
-  const remove = async (e: MouseEvent, p: Post) => {
+  const create = () =>
+    createPost.mutate("(write your raw thought here)", { onSuccess: (p) => nav({ to: "/posts/$id", params: { id: String(p.id) } }) });
+  const remove = (e: MouseEvent, p: Post) => {
     e.preventDefault(); e.stopPropagation();
-    if (!confirm("Delete this post?")) return;
-    await api.del(`/posts/${p.id}`);
-    refresh();
+    if (confirm("Delete this post?")) deletePost.mutate(p.id);
   };
 
   const shown = posts.filter((p) => filter === "all" || p.status === filter);
