@@ -17,6 +17,9 @@ import { buildCalendar, buildIcs, parseEventText, planStudyBlocks, CATEGORIES, R
 import { createBackup, listBackups, backupPath, backupDir, startAutoBackup } from "./backup.ts";
 import { registerMail } from "./mail.ts";
 import { registerJobs } from "./jobs.ts";
+import { createApp } from "./app.ts";
+import { honoFirst } from "./http/strangler.ts";
+import { log } from "./log.ts";
 import { activeMs, errorInfo, type UncheckedJson, type Wrap } from "./types.ts";
 import { rewritePost, taskSteps, organize, analyzeGoal, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
@@ -29,6 +32,9 @@ if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_
 const n8nUrl = () => config.n8nWebhookUrl;
 const app = express();
 app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
+// The new Hono app answers the routes it already has; Express answers the rest (P2-01, the strangler). It must come before
+// express.json(), so the requests Express answers still have an unread body.
+app.use(honoFirst(createApp({ config, prisma, log })));
 app.use(express.json({ limit: "1mb" }));
 
 // In the demo nothing can reach your real backups (they live in the project folder) or pop up notifications on this computer.
@@ -43,10 +49,6 @@ const wrap: Wrap = (fn) => (req, res) => {
   });
 };
 const id = (req: Request) => Number(req.params.id);
-
-app.get("/api/health", (_, res) =>
-  res.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!n8nUrl(), demo: DEMO }),
-);
 
 // ---------- Notes ----------
 app.get("/api/notes", wrap(async (req, res) => {

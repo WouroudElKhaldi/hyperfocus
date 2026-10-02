@@ -13,7 +13,8 @@ export async function api(method, path, body, { headers = {}, raw } = {}) {
   const res = await fetch(base() + path, init);
   const text = await res.text();
   let parsed = text;
-  if ((res.headers.get("content-type") || "").includes("application/json")) parsed = text ? JSON.parse(text) : null;
+  // any JSON type: application/json, and application/problem+json for errors from the Hono routes
+  if (/[/+]json\b/.test(res.headers.get("content-type") || "")) parsed = text ? JSON.parse(text) : null;
   return { status: res.status, body: parsed, headers: res.headers };
 }
 

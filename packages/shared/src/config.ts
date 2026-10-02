@@ -16,6 +16,10 @@ const url = (what: string) =>
 // Any non-empty value switches a flag on (DEMO_MODE=1, DEMO_MODE=yes...), exactly as the app has always read it.
 const flag = text.transform((v) => v !== "");
 
+/** How much the API logs. "info" logs one line per request handled by the new (Hono) routes. */
+export const LOG_LEVELS = ["silent", "error", "warn", "info", "debug"] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
 const schema = z.object({
   DATABASE_URL: text.refine((v) => v !== "", {
     message: 'DATABASE_URL is missing. For the local SQLite database use DATABASE_URL="file:./dev.db" (the path is relative to packages/db/prisma).',
@@ -34,6 +38,7 @@ const schema = z.object({
   GMAIL_APP_KEY: text,
   SETTINGS_FILE: text,
   BACKUP_DIR: text,
+  LOG_LEVEL: text.refine((v) => v === "" || LOG_LEVELS.includes(v as LogLevel), { message: `LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}` }),
 });
 
 /** The API's settings, already checked. Secrets are empty strings when not set (and always empty in the demo). */
@@ -52,6 +57,7 @@ export type ApiConfig = {
   /** Overrides for tests and other setups. Empty = the default place. */
   settingsFile: string;
   backupDir: string;
+  logLevel: LogLevel;
 };
 
 export type ConfigResult = { ok: true; config: ApiConfig } | { ok: false; problems: string[] };
@@ -76,6 +82,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       gmail: { user: e.GMAIL_USER, appKey: demo ? "" : e.GMAIL_APP_KEY.replace(/\s+/g, "") },
       settingsFile: e.SETTINGS_FILE,
       backupDir: e.BACKUP_DIR,
+      logLevel: (e.LOG_LEVEL || "info") as LogLevel, // checked above
     },
   };
 }

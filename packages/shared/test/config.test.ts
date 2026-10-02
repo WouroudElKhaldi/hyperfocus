@@ -28,6 +28,7 @@ describe("API settings", () => {
       gmail: { user: "", appKey: "" },
       settingsFile: "",
       backupDir: "",
+      logLevel: "info",
     });
   });
 
@@ -78,6 +79,11 @@ describe("API settings", () => {
     expect(c.deepseek.url).toBe("http://127.0.0.1:5555/chat/completions");
     expect(c.notifyDryRun).toBe(true);
     expect([c.settingsFile, c.backupDir]).toEqual(["/tmp/s.json", "/tmp/b"]);
+  });
+
+  it("checks the log level", () => {
+    expect(ok({ DATABASE_URL: DB, LOG_LEVEL: "debug" }).logLevel).toBe("debug");
+    expect(problems({ DATABASE_URL: DB, LOG_LEVEL: "loud" })).toEqual([expect.stringContaining("LOG_LEVEL must be one of")]);
   });
 
   it("ignores settings it doesn't know (like GMAIL_APP_NAME)", () => {
