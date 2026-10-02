@@ -65,20 +65,16 @@ export function nextOccurrence(at: Date, repeat: string, from = new Date()): Dat
   return d;
 }
 
-let busy = false;
 // Fires every reminder that is due. A one-off is finished afterwards; a repeating one moves to its next time.
 // If the app was off when it was due, it still fires once when the app starts (and says when it was set for).
+// (A background job runs it every 20 seconds; the scheduler never runs it twice at once.)
 export async function checkMyReminders(prisma: Db, now = new Date()): Promise<void> {
-  if (busy) return;
-  busy = true;
-  try {
-    const due = await prisma.reminder.findMany({ where: { done: false, at: { lte: now } }, orderBy: { at: "asc" } });
-    for (const r of due) {
-      const late = now.getTime() - r.at.getTime() > 5 * 60000;
-      const body = r.note || (late ? `This was set for ${new Date(r.at).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "Your reminder");
-      const out = await notify(`⏰ ${r.title}`, body);
-      if (!out.ok) console.error("Reminder notification failed:", out.error);
-      await prisma.reminder.update({ where: { id: r.id }, data: r.repeat === "none" ? { done: true, lastFiredAt: now } : { at: nextOccurrence(r.at, r.repeat, now), lastFiredAt: now } });
-    }
-  } finally { busy = false; }
+  const due = await prisma.reminder.findMany({ where: { done: false, at: { lte: now } }, orderBy: { at: "asc" } });
+  for (const r of due) {
+    const late = now.getTime() - r.at.getTime() > 5 * 60000;
+    const body = r.note || (late ? `This was set for ${new Date(r.at).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "Your reminder");
+    const out = await notify(`⏰ ${r.title}`, body);
+    if (!out.ok) console.error("Reminder notification failed:", out.error);
+    await prisma.reminder.update({ where: { id: r.id }, data: r.repeat === "none" ? { done: true, lastFiredAt: now } : { at: nextOccurrence(r.at, r.repeat, now), lastFiredAt: now } });
+  }
 }

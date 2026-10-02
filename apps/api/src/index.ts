@@ -7,12 +7,11 @@ import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@hyperfocus/db";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
-import { checkReminders, checkMyReminders } from "./reminders.ts";
-import { startAutoBackup } from "./backup.ts";
 import { gmailAppPassword } from "./modules/emails/mail-provider.ts";
 import { createApp } from "./app.ts";
 import { n8nPublisher } from "./modules/posts/publisher.ts";
-import { failInterrupted, postScheduler } from "./modules/posts/scheduler.ts";
+import { backgroundJobs } from "./jobs/index.ts";
+import { inProcessScheduler } from "./jobs/scheduler.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
 import { ai } from "./ai.ts";
@@ -74,16 +73,7 @@ const port = config.port;
 app.listen(port, "127.0.0.1", () => {
   console.log(`API on http://localhost:${port}${DEMO ? " (DEMO MODE)" : ""}`);
   if (DEMO) return; // no scheduler, reminders or automatic backups in the demo
-  const runScheduler = postScheduler({ prisma, publisher, events });
-  failInterrupted(prisma)
-    .then(runScheduler) // then catch up on anything that came due while the app was closed
-    .catch((e) => console.error("Startup error:", e.message));
-  startAutoBackup(prisma);
-  const tick = () => checkReminders(prisma).catch((e) => console.error("Reminder check failed:", e.message));
-  setTimeout(tick, 15000);
-  setInterval(tick, 60000);
-  const mine = () => checkMyReminders(prisma).catch((e) => console.error("My reminders check failed:", e.message));
-  setTimeout(mine, 5000);
-  setInterval(mine, 20000);
-  setInterval(runScheduler, 30000);
+  const scheduler = inProcessScheduler({ log });
+  for (const job of backgroundJobs({ prisma, publisher, events })) scheduler.add(job);
+  scheduler.start();
 });

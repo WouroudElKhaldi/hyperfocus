@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -58,5 +59,12 @@ describe("background jobs", { timeout: 60000 }, () => {
     const sent = (await fake.requests("n8n")).map((r) => r.body);
     expect(sent).toContainEqual({ postId: due.id, text: "Scheduled hello" });
     expect(sent.some((b) => b.postId === old.id)).toBe(false); // a missed post is never sent
+  });
+
+  // P2-21: the automatic backup is a background job too; on start-up there is no backup yet, so it makes one right away
+  it("makes the automatic backup at start-up", async () => {
+    const log = path.join(inject("tmpDir"), "api.log");
+    const line = await until(() => fs.readFileSync(log, "utf8").match(/Automatic backup: (thought-studio-[\d_-]+\.db)/));
+    expect((await ok(get("/api/backups"))).backups.map((b) => b.name)).toContain(line[1]);
   });
 });

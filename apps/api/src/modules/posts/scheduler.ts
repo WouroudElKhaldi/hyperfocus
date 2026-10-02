@@ -4,8 +4,8 @@ import { type Db, errorInfo } from "../../types.ts";
 import type { SocialPublisher } from "./publisher.ts";
 import { MAX_ATTEMPTS, afterFailure, autoPostProblem, dueAction } from "./rules.ts";
 
-// The scheduled-post sender (P2-15: moved from the Express file, behaviour unchanged). It runs every 30 seconds; P2-21
-// puts it behind a scheduler interface and P4-05 on a job queue.
+// The scheduled-post sender (P2-15: moved from the Express file, behaviour unchanged). A background job (src/jobs) runs it
+// every 30 seconds; the scheduler never runs it twice at once.
 
 type Deps = { prisma: Db; publisher: SocialPublisher; events: EventBus };
 
@@ -17,10 +17,7 @@ export const failInterrupted = (prisma: Db) =>
   });
 
 export function postScheduler({ prisma, publisher, events }: Deps) {
-  let busy = false;
   return async function runScheduler() {
-    if (busy) return;
-    busy = true;
     try {
       const now = new Date();
       const due = await prisma.post.findMany({ where: { status: "scheduled", scheduledAt: { lte: now } } });
@@ -56,8 +53,6 @@ export function postScheduler({ prisma, publisher, events }: Deps) {
       }
     } catch (e) {
       console.error("Scheduler error:", errorInfo(e).message);
-    } finally {
-      busy = false;
     }
   };
 }

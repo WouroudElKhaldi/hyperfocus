@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.ts";
-import { type Db, errorInfo, httpError } from "./types.ts";
+import { type Db, httpError } from "./types.ts";
 
 // Backups are consistent snapshots of the SQLite database, stored in <project>/backups.
 // BACKUP_DIR lets tests (and other setups) keep backups somewhere else
@@ -53,18 +53,11 @@ export async function createBackup(prisma: Db): Promise<string> {
   return name;
 }
 
-// Makes a backup on start-up and then every 6 hours, but only when the newest one is more than a day old.
-export function startAutoBackup(prisma: Db): void {
-  const check = async () => {
-    try {
-      const newest = listBackups()[0];
-      if (!newest || Date.now() - new Date(newest.createdAt).getTime() > AUTO_EVERY_MS) {
-        console.log("Automatic backup:", await createBackup(prisma));
-      }
-    } catch (e) {
-      console.error("Automatic backup failed:", errorInfo(e).message);
-    }
-  };
-  check();
-  setInterval(check, 6 * 3600 * 1000);
+// The automatic backup (a background job, see src/jobs): makes one when the newest backup is more than a day old.
+export async function backupIfDue(prisma: Db): Promise<string | null> {
+  const newest = listBackups()[0];
+  if (newest && Date.now() - new Date(newest.createdAt).getTime() <= AUTO_EVERY_MS) return null;
+  const name = await createBackup(prisma);
+  console.log("Automatic backup:", name);
+  return name;
 }
