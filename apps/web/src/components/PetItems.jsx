@@ -168,7 +168,7 @@ export function NewFace({ id, gid, ey, k }) {
   }
 }
 
-export function NewNeck({ id, gid }) {
+export function NewNeck({ id }) {
   switch (id) {
     case "dogtags":
       return (

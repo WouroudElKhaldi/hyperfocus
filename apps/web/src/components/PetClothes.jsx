@@ -50,7 +50,6 @@ function Cloth({ gid, id, fill, dark = mix(fill, "#000000", 0.32), sleeve = "sho
 const buttons = (xs, y, fill = "#fff", stroke) => xs.map((x, i) => <circle key={i} cx={x} cy={y[i] ?? y} r="2.100" fill={fill} stroke={stroke} strokeWidth=".8" />);
 const dotsAt = (pts, r, fill, op = 1) => <g fill={fill} opacity={op}>{pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={r} />)}</g>;
 const crewRib = (fill) => <path d="M66 141 Q100 160 134 141" fill="none" stroke={mix(fill, "#ffffff", 0.5)} strokeWidth="4.800" strokeLinecap="round" />;
-const vNeck = (rib) => <path d="M80 141 L100 168 L120 141" fill="none" stroke={rib} strokeWidth="4.200" strokeLinecap="round" strokeLinejoin="round" />;
 
 export default function Clothes({ id, gid }) {
   const p = { gid, id };

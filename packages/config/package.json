@@ -1,0 +1,7 @@
+{
+  "name": "@hyperfocus/config",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared TypeScript configs for every Hyperfocus package.",
+  "files": ["tsconfig.base.json", "tsconfig.node.json", "tsconfig.react.json"]
+}

@@ -211,7 +211,8 @@ export default function EmailEditor() {
         </div>
 
         {locked
-          ? <div className="email-read" dangerouslySetInnerHTML={{ __html: email.html }} />
+          ? // biome-ignore lint/security/noDangerouslySetInnerHtml: email HTML is sanitised by the API (cleanHtml in mail.js) on every save
+            <div className="email-read" dangerouslySetInnerHTML={{ __html: email.html }} />
           : <RichEditor key={id} ref={editor} html={email.html} onChange={setHtml} onImage={onImage} onError={(m) => toast(m, "err")} />}
 
         {(attached.length > 0 || !locked) && (

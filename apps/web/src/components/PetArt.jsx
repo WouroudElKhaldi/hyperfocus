@@ -49,7 +49,7 @@ function Egg({ color, progress, animate, gid }) {
 
 // ---------- species ----------
 // Each returns layers: back (tail, wings), ears (hidden under big hats), gills (always), under (drawn before the face), face (nose, whiskers).
-function species(sp, { color, dark, light, age, male }) {
+function species(sp, { color, dark, age, male }) {
   const ear = EAR_SCALE[age], tail = TAIL_SCALE[age];
   const edge = mix(color, "#000000", 0.32);
   const innerEar = male ? mix(color, "#000000", 0.24) : "#ffb3c7";
@@ -173,7 +173,7 @@ function species(sp, { color, dark, light, age, male }) {
 }
 
 // ---------- face ----------
-function Face({ mood, age, color, dark, gender }) {
+function Face({ mood, age, color, gender }) {
   const male = gender === "boy", female = gender === "girl";
   const k = EYE_SCALE[age] * (male ? 0.95 : female ? 1.04 : 1), ey = EYE_Y[age];
   const brow = mix(color, "#000000", 0.55);

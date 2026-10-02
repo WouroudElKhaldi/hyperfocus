@@ -10,7 +10,7 @@
 
 ## Progress
 
-Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (Phase 0 committed as e5fd23f).
+Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd).
 
 | Date | Task | What was done | Proof |
 |---|---|---|---|
@@ -27,6 +27,10 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P1-01 | `server/` → `apps/api/`, `client/` → `apps/web/` (git renames, so history is kept; `.env` and `dev.db` moved with them). npm → **pnpm 12.8.1** workspace (pinned with `packageManager`) and **Turborepo** (`turbo.json`, replaces `concurrently`). Every path updated: API code (root `.env`, backups, security headers, demo build), PowerShell scripts, tests, configs, README. New commands: `pnpm bootstrap` (not `pnpm setup`, which is a built-in pnpm command), `pnpm dev`, `pnpm test`. pnpm-specific fixes: `postinstall: prisma generate` (pnpm skipped generation, so the API couldn't start), build-script approvals and the `deepmerge-ts` override moved to `pnpm-workspace.yaml`. Test stack now shuts its fakes down if the API fails to start (it used to hang). | 170/170 API · 59/59 browser · 125/125 routes · `pnpm dev` checked in the browser against your real DB · autostart commands checked · data fingerprint unchanged |
 
+| 2026-10-02 | ✅ P1-02 | `packages/config`: strict shared tsconfigs for **TypeScript 7** (base, `node` for the API, `react` for the web). Includes `erasableSyntaxOnly`, so Node 24 can later run `.ts` directly with no build step (P1-05). Apps have `tsconfig.json` + `@types/*`. **Biome 2.5** in `biome.jsonc` (2-space, 120 cols). Every relaxed rule has a comment naming the task that tightens it. Commands: `pnpm lint` (apps + root files via Turbo), `pnpm typecheck`, `pnpm format`, `pnpm check` (lint + typecheck + tests). Fixed what lint found: `isNaN` on Dates done properly (Biome's own suggested fix would have silently broken date validation), 2 handlers misnamed as hooks (`useTemplate`, `useIdea`) renamed, unused imports/vars/params and a dead `vNeck` drawing removed, safe `innerHTML` documented. | Lint 0 errors (540 deferred warnings) · typecheck passes · 170/170 API · 59/59 browser (×4 runs) |
+
+**TypeScript baseline for P1-05/P1-06** (strict `checkJs`): API **950** errors (633 implicit `any` params), web **1,847**. Measure with `npx tsc --noEmit --checkJs` in each app.
+
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
 
 **Known issues found (recorded as tests, fixed later in the phase named):**
@@ -36,7 +40,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 - Vite's first-ever run re-optimises dependencies and restarts once. One E2E run hit it; cached since.
 - ⚠️ `scripts/stop-all.ps1` force-kills **whatever** listens on ports 4000/5173, including other projects' dev servers (your `var_platform` uses 5173). It should check the process belongs to Hyperfocus. Fix with P5-13 (local mode); until then, be careful running it.
 - Windows: `pnpm bootstrap`/`pnpm install` fail with `EPERM` while the app is running (the API locks Prisma's engine file). Stop the app first. Killing `pnpm dev` without Ctrl+C can leave the API and Vite running in the background.
-- Decision needed: Turborepo wrote `AGENTS.md` (instructions for AI agents to read Turbo's bundled docs) and re-adds it on each run. Either commit it, or set `"agentGuidance": false` in `turbo.json` and delete it.
+- Flaky (seen once, not reproduced in 4 runs, cold cache included): the Vite dev server exited mid-run during the browser suite (`ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL`). It happened on the first run right after a dependency install. Playwright retries once in CI. Watch for it in P1-08.
+- `AGENTS.md` is written by Turborepo (instructions for AI agents to read its bundled docs) and was committed with P1-01. To opt out, set `"agentGuidance": false` in `turbo.json` and delete it.
 
 ## 0. How to read this file
 
@@ -184,7 +189,7 @@ hyperfocus/
 | ID | Task | Size | Depends | Acceptance |
 |---|---|---|---|---|
 | ✅ P1-01 | Create a branch, switch to **pnpm workspaces + Turborepo**, move `client→apps/web`, `server→apps/api`. No code changes yet. | M | P0-01 | `pnpm dev` runs both. All P0 tests green. |
-| P1-02 | `packages/config`: strict `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Biome config | S | P1-01 | `pnpm lint` and `pnpm typecheck` wired through Turbo |
+| ✅ P1-02 | `packages/config`: strict `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Biome config | S | P1-01 | `pnpm lint` and `pnpm typecheck` wired through Turbo |
 | P1-03 | `packages/db`: move Prisma schema, export the typed client | S | P1-01 | API imports `@hyperfocus/db` |
 | P1-04 | `packages/shared`: set up Zod. Add the first schemas (Task, Step, Note) as a pilot. | S | P1-01 | Imported by both apps |
 | P1-05 | Convert **apps/api** JS → TS file by file, behaviour unchanged (`tsx watch` in dev, `tsup` build) | L | P1-02 | 0 `any` in new code (`// TODO(types)` allowed temporarily). Tests green. |

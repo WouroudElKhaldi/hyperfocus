@@ -9,7 +9,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:routes": "node test/support/route-coverage.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint ."
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
@@ -20,7 +22,10 @@
     "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
+    "@hyperfocus/config": "workspace:*",
+    "@types/node": "^24.19.0",
     "prisma": "^6.0.0",
+    "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }
 }

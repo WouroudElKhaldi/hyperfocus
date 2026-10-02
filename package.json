@@ -9,10 +9,17 @@
     "build": "turbo run build",
     "test": "turbo run test && playwright test",
     "test:api": "turbo run test --filter=./apps/api",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lint": "turbo run lint //#lint:root",
+    "lint:root": "biome lint e2e scripts playwright.config.js",
+    "typecheck": "turbo run typecheck",
+    "format": "biome format --write",
+    "check": "turbo run lint //#lint:root typecheck test"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
     "@playwright/test": "^1.63.0",
-    "turbo": "^2.11.6"
+    "turbo": "^2.11.6",
+    "typescript": "^7.0.2"
   }
 }

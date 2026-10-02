@@ -1,0 +1,46 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  // Lint + format for the whole repo. Run: pnpm lint · pnpm format
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "ignoreUnknown": false },
+  // Formatting is applied file by file as code is converted to TypeScript (P1-05/P1-06), so the history stays readable.
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "javascript": { "formatter": { "quoteStyle": "double" } },
+  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      // Deferred, not ignored: these are warnings until the task in brackets fixes them. Their fixes change behaviour,
+      // so they're done by hand with tests, not auto-applied. Turn each back to "error" when its task is done.
+      "a11y": {
+        "useButtonType": "warn", // [P3] a <button> without type submits forms; adding type="button" blindly breaks real submit buttons
+        "useSemanticElements": "warn", // [P3-02] accessibility review
+        "noStaticElementInteractions": "warn", // [P3-02]
+        "useKeyWithClickEvents": "warn", // [P3-02]
+        "noAutofocus": "warn", // [P3-02]
+        "useAriaPropsSupportedByRole": "warn", // [P3-02]
+        "useFocusableInteractive": "warn", // [P3-02]
+        "noAriaHiddenOnFocusable": "warn" // [P3-02]
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "warn" // [P3-07..16] changing hook dependencies changes when effects run
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn", // [P3]
+        "useIterableCallbackReturn": "warn", // [P1-05/06]
+        "noAssignInExpressions": "warn", // [P1-05/06]
+        "noUndeclaredEnvVars": "off" // [P1-10] env vars move into one validated config module, then this goes back on
+      },
+      "style": {
+        "useTemplate": "warn", // [P1-05/06] fixed while converting each file
+        "useExponentiationOperator": "warn", // [P1-05/06]
+        "noDescendingSpecificity": "warn" // [P3-01] the hand-written CSS is replaced by Tailwind
+      },
+      "complexity": {
+        "useOptionalChain": "warn", // [P1-05/06]
+        "noImportantStyles": "warn" // [P3-01]
+      }
+    }
+  }
+}

@@ -24,7 +24,7 @@ function Schedule({ post, blockedReason, flush, onChange }) {
   const [busy, setBusy] = useState(false);
 
   const schedule = async () => {
-    if (!when || isNaN(new Date(when))) return toast("Pick a date and time first.", "err");
+    if (!when || Number.isNaN(new Date(when).getTime())) return toast("Pick a date and time first.", "err");
     setBusy(true);
     try {
       await flush(); // make sure the latest text is what gets posted

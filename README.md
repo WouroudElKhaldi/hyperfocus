@@ -17,6 +17,9 @@ If port 5173 is taken, run with another one: `WEB_PORT=5174 pnpm dev` (PowerShel
 pnpm test       # everything: API tests, then browser tests
 pnpm test:api   # API + unit tests only (fast)
 pnpm test:e2e   # browser tests only (uses your installed Chrome)
+pnpm lint       # Biome linter (config and the reason for every relaxed rule: biome.jsonc)
+pnpm typecheck  # TypeScript, strict (shared configs in packages/config)
+pnpm check      # lint + typecheck + tests, what CI runs
 ```
 Tests run against a throwaway database with fake AI and n8n, so they never touch your data, spend credits or post anything.
 

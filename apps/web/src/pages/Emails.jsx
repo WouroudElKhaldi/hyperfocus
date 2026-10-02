@@ -22,7 +22,7 @@ export default function Emails() {
   useEffect(() => { load(); }, []);
 
   const create = async () => nav(`/emails/${(await api.post("/emails")).id}`);
-  const useTemplate = async (t) => nav(`/emails/${(await api.post(`/email-templates/${t.id}/use`)).id}`);
+  const applyTemplate = async (t) => nav(`/emails/${(await api.post(`/email-templates/${t.id}/use`)).id}`);
   const rename = async (t) => {
     const name = window.prompt("Template name", t.name);
     if (!name?.trim()) return;
@@ -69,7 +69,7 @@ export default function Emails() {
                 <div className="muted">{t.subject || "(no subject)"} — {t.preview || "(empty)"}{t.files > 0 && ` · 📎 ${t.files}`}</div>
               </div>
               <div className="row">
-                <button className="primary" onClick={() => useTemplate(t)}>Use</button>
+                <button className="primary" onClick={() => applyTemplate(t)}>Use</button>
                 <button className="ghost" onClick={() => rename(t)}>Rename</button>
                 <button className="ghost danger" onClick={() => removeTemplate(t)}>Delete</button>
               </div>

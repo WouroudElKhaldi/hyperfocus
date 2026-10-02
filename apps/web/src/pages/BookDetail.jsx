@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useToast } from "../App.jsx";
 import More from "../components/More.jsx";
-import { Cover, ICON, KIND, STATUS, bookPath, parse, slugOf } from "../components/bookParts.jsx";
+import { Cover, ICON, STATUS, bookPath, parse } from "../components/bookParts.jsx";
 
 const QUESTIONS = [
   "Give me a 5-minute overview",

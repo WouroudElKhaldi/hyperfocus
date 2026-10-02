@@ -13,7 +13,7 @@ const routes = [...read("src", ".js").matchAll(/app\.(get|post|put|patch|delete)
 const tests = read("test/contract", ".test.js");
 const calls = [];
 const alias = { get: "GET", post: "POST", put: "PUT", patch: "PATCH", del: "DELETE" };
-for (const [, fn, quote, p] of tests.matchAll(/\b(get|post|put|patch|del)\(\s*([`"])(\/api[^`"]*)\2/g)) calls.push({ method: alias[fn], path: p });
+for (const [, fn, , p] of tests.matchAll(/\b(get|post|put|patch|del)\(\s*([`"])(\/api[^`"]*)\2/g)) calls.push({ method: alias[fn], path: p });
 for (const [, m, p] of tests.matchAll(/\bapi\(\s*"(\w+)",\s*[`"](\/api[^`"]*)[`"]/g)) calls.push({ method: m, path: p });
 for (const [, p] of tests.matchAll(/upload\(\s*[`"](\/api[^`"]*)[`"]/g)) calls.push({ method: "POST", path: p });
 

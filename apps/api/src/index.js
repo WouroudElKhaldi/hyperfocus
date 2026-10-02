@@ -248,7 +248,7 @@ async function runScheduler() {
 // ---------- Study log ----------
 const parseDate = (v) => {
   const d = new Date(v);
-  return isNaN(d) ? null : d;
+  return Number.isNaN(d.getTime()) ? null : d;
 };
 app.get("/api/study", wrap(async (_, res) => {
   res.json(await prisma.studySession.findMany({ orderBy: { startedAt: "desc" } }));

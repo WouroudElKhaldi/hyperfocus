@@ -186,7 +186,7 @@ export default function Study() {
     catch (e) { toast(e.message, "err"); }
     setIdeaBusy(null);
   };
-  const useIdea = async (idea) => {
+  const takeIdea = async (idea) => {
     const p = await api.post("/posts", { thought: idea.thought });
     nav(`/posts/${p.id}`);
   };
@@ -315,7 +315,7 @@ export default function Study() {
                       {ideas[s.id].map((i, n) => (
                         <div key={n} className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start", marginBottom: "var(--s-2)" }}>
                           <div className="grow"><b>{i.angle}</b><div className="muted pre">{i.thought}</div></div>
-                          <button className="primary" onClick={() => useIdea(i)}>Use this</button>
+                          <button className="primary" onClick={() => takeIdea(i)}>Use this</button>
                         </div>
                       ))}
                       <button className="ghost" onClick={() => setIdeas((m) => { const c = { ...m }; delete c[s.id]; return c; })}>Hide</button>

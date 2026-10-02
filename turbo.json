@@ -3,9 +3,30 @@
   "ui": "stream",
   "envMode": "loose",
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "dev": { "cache": false, "persistent": true },
-    "test": { "cache": false },
-    "db:push": { "cache": false }
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "cache": false
+    },
+    "db:push": {
+      "cache": false
+    },
+    "lint": {},
+    "//#lint:root": {},
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ]
+    }
   }
 }
