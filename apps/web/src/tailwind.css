@@ -15,6 +15,21 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "tw-animate-css";
 
+/* shadcn/ui components expect Tailwind's reset (preflight), which this app doesn't load (see above). This is the part
+   they rely on, for them only (they all carry data-slot), in the base layer so their own classes still win. Without it
+   a button with no background (like the "link" variant) shows the browser's grey button face. (P3-02) */
+@layer base {
+  [data-slot]:is(button, input, textarea, select) {
+    font: inherit;
+    color: inherit;
+    background-color: transparent;
+    border: 0 solid;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 /* `dark:` follows the app's own setting: the "dark" choice, or "auto" while the system is dark */
 @custom-variant dark {
   &:where([data-theme="dark"], [data-theme="dark"] *) {

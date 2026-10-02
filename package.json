@@ -19,6 +19,7 @@
     "check": "turbo run lint //#lint:root typecheck test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.15",
     "@playwright/test": "^1.63.0",
     "lefthook": "^2.1.15",

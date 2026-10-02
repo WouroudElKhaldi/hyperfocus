@@ -25,7 +25,7 @@
   --accent-soft: #ece4ff;
   --on-accent: #ffffff;
 
-  --ok: #1d8659;      --ok-soft: #e0f5ea;
+  --ok: #1a7951;      --ok-soft: #e0f5ea; /* (P3-02) was #1d8659: 4.0:1 on --ok-soft, below WCAG AA; now 4.7:1 */
   --warn: #946400;    --warn-soft: #fff2cf;
   --bad: #c2345c;     --bad-soft: #fde8ef;
   --info: #3456b4;    --info-soft: #e6edff;
@@ -138,28 +138,30 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: var
 .faded { opacity: .72; }
 
 /* ---------- controls ---------- */
-input, textarea, select {
+/* (P3-02) these element styles skip shadcn/ui components, which all carry data-slot and style themselves;
+   :where() adds no specificity, so the rest of this file cascades exactly as before */
+input:where(:not([data-slot])), textarea:where(:not([data-slot])), select:where(:not([data-slot])) {
   width: 100%; font: inherit; color: inherit; background: var(--surface-2);
   border: 1.5px solid var(--line); border-radius: 10px; padding: var(--s-2) var(--s-3); outline: none;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-input:focus, textarea:focus, select:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+input:where(:not([data-slot])):focus, textarea:where(:not([data-slot])):focus, select:where(:not([data-slot])):focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 ::placeholder { color: color-mix(in srgb, var(--muted) 75%, transparent); }
-textarea { resize: vertical; min-height: 84px; }
+textarea:where(:not([data-slot])) { resize: vertical; min-height: 84px; }
 select { width: auto; max-width: 100%; }
 input[type="checkbox"], input[type="radio"] { width: auto; }
 input[type="date"], input[type="time"], input[type="datetime-local"] { width: auto; }
 .check { width: 20px; height: 20px; accent-color: var(--accent); flex: none; margin-top: var(--s-0); cursor: pointer; }
 
-button, .btn {
+button:where(:not([data-slot])), .btn {
   font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
   border: 1px solid transparent; border-radius: 10px; padding: var(--s-2) var(--s-3); line-height: 1.3;
   background: var(--accent-soft); color: var(--accent-strong);
   transition: background .15s, transform .12s, box-shadow .15s, opacity .15s;
 }
-button:hover:not(:disabled), .btn:hover { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); transform: translateY(-1px); }
-button:active:not(:disabled), .btn:active { transform: translateY(0) scale(.97); }
-button:disabled { opacity: .5; cursor: not-allowed; }
+button:where(:not([data-slot])):hover:not(:disabled), .btn:hover { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); transform: translateY(-1px); }
+button:where(:not([data-slot])):active:not(:disabled), .btn:active { transform: translateY(0) scale(.97); }
+button:where(:not([data-slot])):disabled { opacity: .5; cursor: not-allowed; }
 button.primary, .btn.primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
 button.primary:hover:not(:disabled), .btn.primary:hover { background: var(--accent-hover); }
 button.ghost { background: transparent; color: var(--muted); padding: var(--s-1) var(--s-2); }

@@ -32,6 +32,8 @@ const JobDetail = lazy(() => import("./pages/JobDetail.tsx"));
 const Chat = lazy(() => import("./pages/Chat.tsx"));
 const Pet = lazy(() => import("./pages/Pet.tsx"));
 const Profile = lazy(() => import("./pages/Profile.tsx"));
+// the design system page (P3-02): development only, so it never ships in the built app
+const DevUi = import.meta.env.DEV ? lazy(() => import("./pages/DevUi.tsx")) : null;
 
 /** Shows a short message at the bottom of the screen. "err" makes it an error. */
 export type Toast = (msg: string, kind?: "ok" | "err") => void;
@@ -223,6 +225,7 @@ export default function App() {
                 <Route path="/chat" element={<Chat />} />
                 <Route path="/pet" element={<Pet />} />
                 <Route path="/profile" element={<Profile />} />
+                {DevUi ? <Route path="/dev/ui" element={<DevUi />} /> : null}
               </Routes>
               </Suspense>
             </div>
