@@ -4,9 +4,8 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { type ChatThread, type Post, PrismaClient } from "@hyperfocus/db";
+import { type ChatThread, PrismaClient } from "@hyperfocus/db";
 import type { Request } from "express";
-import { remind } from "./notify.ts";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { companionReply, isCrisis } from "./chat.ts";
@@ -16,18 +15,20 @@ import { startAutoBackup } from "./backup.ts";
 import { registerMail } from "./mail.ts";
 import { registerJobs } from "./jobs.ts";
 import { createApp } from "./app.ts";
+import { n8nPublisher } from "./modules/posts/publisher.ts";
+import { failInterrupted, postScheduler } from "./modules/posts/scheduler.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
-import { activeMs, errorInfo, parseDate, type UncheckedJson, type Wrap } from "./types.ts";
-import { ai, rewritePost, taskSteps, organize, polishDraft, stuckHelp, postIdeas } from "./ai.ts";
+import { activeMs, errorInfo, type UncheckedJson, type Wrap } from "./types.ts";
+import { ai, taskSteps, organize, stuckHelp } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
 const DEMO = config.demo;
 const prisma = new PrismaClient({ datasourceUrl: config.databaseUrl });
 if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_API_KEY", "GMAIL_APP_KEY"]) delete process.env[k];
-// The one place the LinkedIn webhook address is read. In the demo it is always empty.
-const n8nUrl = () => config.n8nWebhookUrl;
+// Where finished posts go: LinkedIn through the n8n webhook (empty in the demo, so nothing can be posted).
+const publisher = n8nPublisher(config.n8nWebhookUrl);
 // Domain events (P2-04): routes say what happened, subscribers react. The pet earns its XP this way.
 const events = new EventBus((event, err) => log.error({ err, event }, "an event subscriber failed"));
 petEarnsXp(events, prisma);
@@ -35,7 +36,7 @@ const app = express();
 app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
 // The new Hono app answers the routes it already has; Express answers the rest (P2-01, the strangler). It must come before
 // express.json(), so the requests Express answers still have an unread body.
-app.use(honoFirst(createApp({ config, prisma, log, events, ai })));
+app.use(honoFirst(createApp({ config, prisma, log, events, ai, publisher })));
 app.use(express.json({ limit: "1mb" }));
 
 // The demo switch for the routes Express still answers (email, until P2-16). Hono has its own (app.ts).
@@ -55,146 +56,11 @@ const id = (req: Request) => Number(req.params.id);
 
 // Tasks and steps moved to Hono: src/modules/tasks (P2-07)
 
-// ---------- Posts ----------
-app.get("/api/posts", wrap(async (_, res) => {
-  res.json(await prisma.post.findMany({ orderBy: { updatedAt: "desc" } }));
-}));
-app.get("/api/posts/:id", wrap(async (req, res) => {
-  const p = await prisma.post.findUnique({ where: { id: id(req) } });
-  p ? res.json(p) : res.status(404).json({ error: "Not found" });
-}));
-app.post("/api/posts", wrap(async (req, res) => {
-  const { thought, noteId } = req.body;
-  if (!thought?.trim()) return res.status(400).json({ error: "Write your thought first." });
-  res.json(await prisma.post.create({ data: { thought, draft: req.body.draft ?? "", noteId: noteId ?? null } }));
-}));
-app.patch("/api/posts/:id", wrap(async (req, res) => {
-  const { thought, draft } = req.body;
-  res.json(await prisma.post.update({ where: { id: id(req) }, data: { thought, draft } }));
-}));
-app.delete("/api/posts/:id", wrap(async (req, res) => {
-  await prisma.post.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-
-app.post("/api/posts/:id/publish", wrap(async (req, res) => {
-  const post = await prisma.post.findUnique({ where: { id: id(req) } });
-  if (!post?.draft.trim()) return res.status(400).json({ error: "The draft is empty." });
-  if (post.status === "posted") return res.status(409).json({ error: "This post is already posted." });
-  if (post.status === "posting") return res.status(409).json({ error: "This post is being sent right now." });
-  if (!n8nUrl()) return res.status(409).json({ error: "n8n_not_configured" });
-  const r = await sendToN8n(post);
-  if (!r.ok) return res.status(502).json({ error: r.error });
-  const posted = await prisma.post.update({ where: { id: post.id }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
-  await events.publish("PostPublished", { postId: post.id });
-  res.json(posted);
-}));
-app.post("/api/posts/:id/mark-posted", wrap(async (req, res) => {
-  const posted = await prisma.post.update({ where: { id: id(req) }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
-  await events.publish("PostPublished", { postId: posted.id });
-  res.json(posted);
-}));
-
-// ---------- Scheduled posting ----------
-const MENTION = /(^|\s)@[\p{L}\d_]/u; // LinkedIn's API can't create real tags, so these must be posted by hand
-const CATCH_UP_MS = 2 * 3600 * 1000; // if the app was closed at the scheduled time, still post when reopened within 2h
-const RETRY_GAP_MS = 2 * 60 * 1000;
-const MAX_ATTEMPTS = 3;
-
-type SendResult = { ok: true; retry?: undefined; error?: undefined } | { ok: false; retry: boolean; error: string };
-async function sendToN8n(post: Pick<Post, "id" | "draft">): Promise<SendResult> {
-  const hook = n8nUrl();
-  if (!hook) return { ok: false, retry: false, error: "n8n_not_configured" };
-  try {
-    const r = await fetch(hook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId: post.id, text: post.draft }),
-      signal: AbortSignal.timeout(30000),
-    });
-    if (r.ok) return { ok: true };
-    return { ok: false, retry: true, error: `n8n answered ${r.status}. Is the workflow published, and is LinkedIn still connected?` };
-  } catch (e) {
-    // a timeout is ambiguous: LinkedIn may already have the post, so never retry automatically
-    if (errorInfo(e).name === "TimeoutError") return { ok: false, retry: false, error: "n8n did not answer in time. Check your LinkedIn profile before trying again, it may have posted." };
-    return { ok: false, retry: true, error: "Can't reach n8n. Is it running?" };
-  }
-}
-
-app.post("/api/posts/:id/schedule", wrap(async (req, res) => {
-  const post = await prisma.post.findUnique({ where: { id: id(req) } });
-  if (!post) return res.status(404).json({ error: "Post not found." });
-  const when = parseDate(req.body.scheduledAt);
-  if (!when) return res.status(400).json({ error: "Pick a valid date and time." });
-  if (when.getTime() < Date.now() + 60000) return res.status(400).json({ error: "Pick a time at least a minute from now." });
-  if (post.status === "posted") return res.status(409).json({ error: "This post is already posted." });
-  if (post.status === "posting") return res.status(409).json({ error: "This post is being sent right now." });
-  if (!post.draft.trim()) return res.status(400).json({ error: "The draft is empty." });
-  if (post.draft.length > 3000) return res.status(400).json({ error: "The draft is over LinkedIn's 3000 character limit." });
-  if (MENTION.test(post.draft)) return res.status(400).json({ error: "Posts that tag someone (@name) can't be auto-posted, because the tag would come out as plain text. Post it by hand on LinkedIn." });
-  if (!n8nUrl()) return res.status(400).json({ error: "Auto-posting needs n8n connected (N8N_WEBHOOK_URL)." });
-  res.json(await prisma.post.update({ where: { id: post.id }, data: { status: "scheduled", scheduledAt: when, attempts: 0, lastError: "", lastAttemptAt: null } }));
-}));
-app.post("/api/posts/:id/unschedule", wrap(async (req, res) => {
-  const post = await prisma.post.findUnique({ where: { id: id(req) } });
-  if (post?.status === "posting") return res.status(409).json({ error: "It's being sent right now, too late to cancel." });
-  res.json(await prisma.post.update({ where: { id: id(req) }, data: { status: "draft", scheduledAt: null, attempts: 0, lastError: "" } }));
-}));
-
-let schedulerBusy = false;
-async function runScheduler() {
-  if (schedulerBusy) return;
-  schedulerBusy = true;
-  try {
-    const now = new Date();
-    const due = await prisma.post.findMany({ where: { status: "scheduled", scheduledAt: { lte: now } } });
-    for (const p of due) {
-      if (!p.attempts && now.getTime() - (p.scheduledAt?.getTime() ?? 0) > CATCH_UP_MS) {
-        await prisma.post.update({ where: { id: p.id }, data: { status: "missed", lastError: "The app wasn't running at the scheduled time, and it's been too long to post it automatically. Reschedule or post it yourself." } });
-        remind(`missed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The app was closed at the scheduled time. Open it to reschedule or post it yourself.");
-        continue;
-      }
-      if (p.lastAttemptAt && now.getTime() - p.lastAttemptAt.getTime() < RETRY_GAP_MS) continue;
-      // claim it first so the same post can never be sent twice
-      const claim = await prisma.post.updateMany({ where: { id: p.id, status: "scheduled" }, data: { status: "posting", lastAttemptAt: now } });
-      if (claim.count !== 1) continue;
-      if (!p.draft.trim() || p.draft.length > 3000 || MENTION.test(p.draft)) {
-        await prisma.post.update({ where: { id: p.id }, data: { status: "failed", lastError: "The draft changed after scheduling (empty, too long, or it now tags someone), so it wasn't auto-posted." } });
-        remind(`changed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The draft changed after scheduling. Open the post to check it.");
-        continue;
-      }
-      const r = await sendToN8n(p);
-      if (r.ok) {
-        await prisma.post.update({ where: { id: p.id }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
-        console.log(`Auto-posted post ${p.id}`);
-        await events.publish("PostPublished", { postId: p.id });
-        remind(`posted:${p.id}`, "🎉 Your post is live on LinkedIn", (p.draft.split("\n")[0] || "").slice(0, 100));
-      } else {
-        const attempts = p.attempts + 1;
-        const again = r.retry && attempts < MAX_ATTEMPTS;
-        await prisma.post.update({ where: { id: p.id }, data: { status: again ? "scheduled" : "failed", attempts, lastError: r.error } });
-        console.error(`Auto-post ${p.id} failed (${attempts}/${MAX_ATTEMPTS}): ${r.error}`);
-        if (!again) remind(`failed:${p.id}:${attempts}`, "⚠️ Your scheduled post didn't go out", r.error.slice(0, 160));
-      }
-    }
-  } catch (e) {
-    console.error("Scheduler error:", errorInfo(e).message);
-  } finally {
-    schedulerBusy = false;
-  }
-}
+// Posts, their scheduler and the AI helpers for posts moved to Hono: src/modules/posts (P2-15)
 
 // The study log and timer moved to Hono: src/modules/study (P2-10)
 
 // Settings and the test notification moved to Hono: src/modules/settings (P2-20)
-
-app.post("/api/ai/post-ideas", wrap(async (req, res) => {
-  const { course = "", part = "", notes = "" } = req.body;
-  if (notes.trim().length < 15) return res.status(400).json({ error: "Write a few more notes first, so there's something to build a post from." });
-  res.json({ ideas: await postIdeas({ course, part, notes: notes.slice(0, 4000) }) });
-}));
-
-// Wins moved to Hono: src/modules/wins (P2-14)
 
 // ---------- "I'm stuck" helper ----------
 app.post("/api/stuck", wrap(async (req, res) => {
@@ -306,16 +172,6 @@ app.post("/api/chat", wrap(async (req, res) => {
 // Goals, their actions and logs moved to Hono: src/modules/goals (P2-08)
 
 // ---------- AI ----------
-app.post("/api/ai/rewrite", wrap(async (req, res) => {
-  const { thought, draft, instruction } = req.body;
-  if (!thought?.trim()) return res.status(400).json({ error: "No thought to rewrite." });
-  res.json(await rewritePost({ thought, draft, instruction }));
-}));
-app.post("/api/ai/polish", wrap(async (req, res) => {
-  const text = req.body.text ?? req.body.draft;
-  if (!text?.trim()) return res.status(400).json({ error: "There is nothing to polish." });
-  res.json(await polishDraft(text));
-}));
 app.post("/api/ai/steps", wrap(async (req, res) => res.json({ steps: await taskSteps(req.body.task) })));
 app.post("/api/ai/organize", wrap(async (req, res) => res.json({ items: await organize(req.body.text) })));
 
@@ -334,8 +190,8 @@ const port = config.port;
 app.listen(port, "127.0.0.1", () => {
   console.log(`API on http://localhost:${port}${DEMO ? " (DEMO MODE)" : ""}`);
   if (DEMO) return; // no scheduler, reminders or automatic backups in the demo
-  prisma.post
-    .updateMany({ where: { status: "posting" }, data: { status: "failed", lastError: "The app stopped while this was being sent. Check your LinkedIn profile before posting it again, it may already be there." } })
+  const runScheduler = postScheduler({ prisma, publisher, events });
+  failInterrupted(prisma)
     .then(runScheduler) // then catch up on anything that came due while the app was closed
     .catch((e) => console.error("Startup error:", e.message));
   startAutoBackup(prisma);

@@ -115,7 +115,7 @@ describe("the strangler (Hono first, then Express)", () => {
     expect(owns("GET", "/api/health")).toBe(true);
     expect(owns("HEAD", "/api/health")).toBe(true);
     expect(owns("POST", "/api/health")).toBe(false);
-    expect(owns("GET", "/api/posts")).toBe(false);
+    expect(owns("GET", "/api/not-on-hono")).toBe(false);
     expect(owns("GET", "/api/health/extra")).toBe(false);
   });
   it("handles a record path next to a deeper one and a fixed name (P2-09: RegExpRouter refused this)", () => {
@@ -148,7 +148,7 @@ describe("the strangler (Hono first, then Express)", () => {
   });
 
   it("passes other routes to Express without touching the body", async () => {
-    const req = fakeReq("POST", "/api/posts", '{"title":"x"}');
+    const req = fakeReq("POST", "/api/not-on-hono", '{"title":"x"}');
     let passed = false;
     honoFirst(make())(req, fakeRes(), () => { passed = true; });
     expect(passed).toBe(true);

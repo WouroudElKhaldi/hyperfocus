@@ -71,4 +71,20 @@ describe("posts", () => {
     const empty = await ok(post("/api/posts", { thought: "t" }));
     expect(await err({ scheduledAt: inMinutes(30) }, empty.id)).toBe("The draft is empty.");
   });
+
+  // P2-15: a post that doesn't exist is a 404 everywhere (several of these used to be a 500, publishing said "The draft is empty.")
+  it("answers 404 for a post that doesn't exist", async () => {
+    for (const r of [
+      await patch("/api/posts/999999", { draft: "x" }), await del("/api/posts/999999"), await post("/api/posts/999999/publish"),
+      await post("/api/posts/999999/mark-posted"), await post("/api/posts/999999/unschedule"), await get("/api/posts/abc"),
+    ]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("Post not found.");
+    }
+  });
+
+  it("the AI helpers check their input", async () => {
+    expect((await post("/api/ai/rewrite", { thought: 5 })).status).toBe(400);
+    expect((await post("/api/ai/post-ideas", {})).body.error).toMatch(/a few more notes/);
+  });
 });

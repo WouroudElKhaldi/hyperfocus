@@ -78,6 +78,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-14 | **Wins and the weekly review run on Hono** (`src/modules/wins`, `src/modules/reviews`). Wins: the timeline (her wins plus finished tasks, published posts and study of 5+ minutes, 180 days, newest first), adding and deleting a win, and AI talking points through the gateway. Weekly review: `review.ts` moved to `modules/reviews/week.ts` (git rename); the numbers still come only from her data and the AI only writes them up. New shared schemas `Win`, `WinItem`, `CreateWinInput`, `WinsSummary`, `Review` with the old messages ("Write what you did.", "Log a few more wins first…"). `WinLogged` and `ReviewWritten` kept. P2 fix: deleting a missing win or review is a 404 (was a 500). | 1 new 404 contract test · the existing timeline, summary and review contract tests unchanged · full API suite **231/231** · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-15 | **LinkedIn posts run on Hono** (`src/modules/posts`): drafts (CRUD factory), publish now, mark as posted by hand, schedule and unschedule, plus the AI helpers for posts (rewrite, polish, post ideas) through the gateway. **`SocialPublisher` port** (`publisher.ts`) with the **n8n adapter** (the old `sendToN8n`, same messages and the same "never retry a timeout, it may already be live" rule); it comes in through `deps`, so LinkedIn's own API per user (P5-09) can replace it later. The auto-posting rules are pure functions in `rules.ts` (what can be auto-posted; send / wait / missed for a due post; retry or give up), and the scheduler (`scheduler.ts`) uses them and the port; it still runs every 30 s until P2-21. New shared schemas `Post`, `CreatePostInput`, `UpdatePostInput`, `SchedulePostInput`, `RewriteInput`, `PolishInput`, `PostIdeasInput` with the old messages. P2 fix: a missing post is a 404 "Post not found." everywhere (changing, deleting, marking or unscheduling one was a 500; publishing one said "The draft is empty."). | **11 new unit tests** (auto-post rules incl. tags in any alphabet and emails not counting as tags, the scheduler's decision at the 2-hour and 2-minute limits, retries, the n8n adapter's success/failure/timeout) · 2 new contract tests (404 in 6 cases; AI input checks) · the background test (a due post is auto-posted, an overdue one is marked missed and never sent) still passes · full API suite **241/241** · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -268,7 +270,7 @@ hyperfocus/
 | ✅ P2-12 | Port module: **calendar/events** (+ parse, plan, ics, repeats, skip) | L | P2-05 | Repeat logic unit-tested |
 | ✅ P2-13 | Port module: **reminders** | S | P2-03 | " |
 | ✅ P2-14 | Port module: **wins + reviews** | M | P2-05 | " |
-| P2-15 | Port module: **posts** (+ schedule, publish via `SocialPublisher` port, n8n adapter) | M | P2-05 | " |
+| ✅ P2-15 | Port module: **posts** (+ schedule, publish via `SocialPublisher` port, n8n adapter) | M | P2-05 | " |
 | P2-16 | Port module: **emails + templates + attachments** (behind a `MailProvider` port, Gmail app-password adapter for now) | L | P2-03 | " |
 | P2-17 | Port module: **jobs (applications)** | S | P2-16 | " |
 | P2-18 | Port module: **chat** (threads, crisis safeguard kept and tested) | M | P2-05 | Crisis path has explicit tests |
