@@ -1,41 +1,34 @@
-import { type MouseEvent, useEffect, useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { api } from "../../../api.ts";
-import { useToast } from "../../../App.tsx";
-import type { Email, EmailListItem, EmailTemplate } from "../../../types.ts";
+import type { EmailListItem, EmailTemplate } from "../../../types.ts";
+import { useDeleteEmail, useDeleteTemplate, useEmails, useNewEmail, useRenameTemplate, useTemplates } from "../api.ts";
 
 const TABS: [string, string][] = [["all", "All"], ["draft", "Drafts"], ["sent", "Sent"], ["failed", "Not sent"], ["templates", "Templates"]];
 const day = (d: string) => new Date(d).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS: Record<string, string> = { draft: "Draft", sent: "✓ Sent", failed: "⚠️ Not sent", sending: "Sending…" };
 
 export default function Emails() {
-  const toast = useToast();
   const nav = useNavigate();
-  const [emails, setEmails] = useState<EmailListItem[]>([]);
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const emails = useEmails().data ?? [];
+  const templates = useTemplates().data ?? [];
+  const newEmail = useNewEmail();
+  const deleteEmail = useDeleteEmail();
+  const renameTemplate = useRenameTemplate();
+  const deleteTemplate = useDeleteTemplate();
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
 
-  const load = () => {
-    api.get("/emails").then(setEmails).catch((e) => toast(e.message, "err"));
-    api.get("/email-templates").then(setTemplates).catch((e) => toast(e.message, "err"));
-  };
-  useEffect(() => { load(); }, []);
-
-  const create = async () => nav({ to: "/emails/$id", params: { id: String((await api.post("/emails")).id) } });
-  const applyTemplate = async (t: EmailTemplate) => nav({ to: "/emails/$id", params: { id: String((await api.post(`/email-templates/${t.id}/use`)).id) } });
-  const rename = async (t: EmailTemplate) => {
+  const open = (m: { id: number }) => nav({ to: "/emails/$id", params: { id: String(m.id) } });
+  const create = () => newEmail.mutate(undefined, { onSuccess: open });
+  const applyTemplate = (t: EmailTemplate) => newEmail.mutate(t.id, { onSuccess: open });
+  const rename = (t: EmailTemplate) => {
     const name = window.prompt("Template name", t.name);
-    if (!name?.trim()) return;
-    await api.patch(`/email-templates/${t.id}`, { name }).catch((e) => toast(e.message, "err"));
-    load();
+    if (name?.trim()) renameTemplate.mutate({ id: t.id, name });
   };
-  const removeTemplate = async (t: EmailTemplate) => { if (confirm(`Delete the template “${t.name}”?`)) { await api.del(`/email-templates/${t.id}`); load(); } };
-  const remove = async (e: MouseEvent, m: EmailListItem) => {
+  const removeTemplate = (t: EmailTemplate) => { if (confirm(`Delete the template “${t.name}”?`)) deleteTemplate.mutate(t.id); };
+  const remove = (e: MouseEvent, m: EmailListItem) => {
     e.preventDefault(); e.stopPropagation();
-    if (!confirm(m.status === "sent" ? "Delete this from your sent list? The email itself stays in your Gmail." : "Delete this email?")) return;
-    await api.del(`/emails/${m.id}`);
-    load();
+    if (confirm(m.status === "sent" ? "Delete this from your sent list? The email itself stays in your Gmail." : "Delete this email?")) deleteEmail.mutate(m.id);
   };
 
   const needle = q.trim().toLowerCase();

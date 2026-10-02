@@ -1,9 +1,11 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { type ApiError, api, errorOf } from "../../../api.ts";
+import { api, errorOf } from "../../../api.ts";
+import { useApi } from "../../../api/hooks.ts";
+import { useDeleteEmail, useEmail, useEmailChanges, useMailStatus } from "../api.ts";
 import { useToast } from "../../../App.tsx";
 import RichEditor, { type RichEditorHandle } from "../components/RichEditor.tsx";
-import type { Attachment, Email, JobListItem, MailStatus } from "../../../types.ts";
+import type { Attachment } from "../../../types.ts";
 import LoadProblem, { isId, notFound } from "../../../components/LoadProblem.tsx";
 
 const size = (n: number) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -33,7 +35,6 @@ export default function EmailEditor() {
   const editor = useRef<RichEditorHandle>(null);
   const loaded = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [email, setEmail] = useState<Email | null>(null);
   const [f, setF] = useState<Draft>({ toAddr: "", ccAddr: "", bccAddr: "", subject: "" });
   const [html, setHtml] = useState("");
   const [files, setFiles] = useState<Attachment[]>([]);
@@ -42,26 +43,26 @@ export default function EmailEditor() {
   const [busy, setBusy] = useState("");
   const [fixes, setFixes] = useState<string[]>([]);
   const [history, setHistory] = useState<(Draft & { html: string })[]>([]); // the text before each "fix my English", so it can be undone
-  const [status, setStatus] = useState<MailStatus | null>(null);
-  const [jobs, setJobs] = useState<JobListItem[]>([]);
-  const [loadErr, setLoadErr] = useState<ApiError | null>(null);
-  const [attempt, setAttempt] = useState(0); // bumped by "Try again"
+  const emailQuery = useEmail(id);
+  const email = emailQuery.data ?? null;
+  const loadErr = !isId(id) ? notFound : emailQuery.error ? errorOf(emailQuery.error) : null;
+  const status = useMailStatus().data ?? null;
+  const jobs = useApi("/jobs").data ?? [];
+  const change = useEmailChanges(id);
+  const deleteEmail = useDeleteEmail();
 
+  // the fields are filled in once, when the email first loads (after that they are yours, and autosave)
   useEffect(() => {
     loaded.current = false;
-    setEmail(null); setHistory([]); setFixes([]); setLoadErr(null);
-    if (!isId(id)) { setLoadErr(notFound); return; }
-    api.get(`/emails/${id}`).then((e) => {
-      setEmail(e); setHtml(e.html); setFiles(e.attachments);
-      setF({ toAddr: e.toAddr, ccAddr: e.ccAddr, bccAddr: e.bccAddr, subject: e.subject });
-      setShowCc(!!(e.ccAddr || e.bccAddr));
-      setSaved(true);
-      // the first edit event after loading is not a change
-      setTimeout(() => { loaded.current = true; }, 0);
-    }).catch(setLoadErr);
-    api.get("/emails/status").then(setStatus).catch(() => {});
-    api.get("/jobs").then(setJobs).catch(() => {});
-  }, [id, attempt]);
+    setHistory([]); setFixes([]);
+    if (!email) return;
+    setHtml(email.html); setFiles(email.attachments);
+    setF({ toAddr: email.toAddr, ccAddr: email.ccAddr, bccAddr: email.bccAddr, subject: email.subject });
+    setShowCc(!!(email.ccAddr || email.bccAddr));
+    setSaved(true);
+    // the first edit event after loading is not a change
+    setTimeout(() => { loaded.current = true; }, 0);
+  }, [email?.id]);
 
   const locked = !!email && (email.status === "sent" || email.status === "sending");
   const current = () => ({ ...f, html: editor.current?.getHtml() ?? html });
@@ -115,54 +116,38 @@ export default function EmailEditor() {
     setFixes([]);
   };
 
-  const saveTemplate = async () => {
+  const saveTemplate = () => {
     const name = window.prompt("Template name", f.subject || "");
     if (name === null) return;
-    try {
-      await api.post(`/emails/${id}/save-template`, { name: name || f.subject || "Untitled template", subject: f.subject, html: current().html });
-      toast("Saved as a template 📌");
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+    change.saveTemplate.mutate({ name: name || f.subject || "Untitled template", subject: f.subject, html: current().html }, { onSuccess: () => toast("Saved as a template 📌") });
   };
 
-  const send = async () => {
+  const send = () => {
     const d = current();
     if (!d.toAddr.trim()) return toast("Add who it's for in “To”.", "err");
     if (!d.subject.trim() && !confirm("This email has no subject. Send it anyway?")) return;
     if (!confirm(`Send this email to ${d.toAddr.trim()}${d.ccAddr.trim() ? ` (cc ${d.ccAddr.trim()})` : ""}?`)) return;
     setBusy("send");
     clearTimeout(timer.current);
-    try {
-      const out = await api.post(`/emails/${id}/send`, d);
-      loaded.current = false;
-      setEmail({ ...out.email, attachments: files });
-      toast("Sent ✉️");
-    } catch (caught) { const e = errorOf(caught);
-      toast(e.message, "err");
-      api.get(`/emails/${id}`).then(setEmail).catch(() => {});
-    }
-    setBusy("");
+    change.send.mutate(d, {
+      onSuccess: () => { loaded.current = false; toast("Sent ✉️"); },
+      onError: (caught) => toast(errorOf(caught).message, "err"),
+      onSettled: () => setBusy(""),
+    });
   };
 
   // linking works even after sending, that is how a sent email proves an application
-  const setJob = async (jobId: string) => {
-    try {
-      const out = await api.put(`/emails/${id}/job`, { jobId });
-      setEmail((m) => (m ? { ...m, jobId: out.jobId } : m));
-      api.get("/jobs").then(setJobs);
-      toast(out.jobId ? "Linked to the job 💼" : "Unlinked from the job");
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
+  const setJob = (jobId: string) => change.linkJob.mutate(jobId, { onSuccess: (out) => toast(out.jobId ? "Linked to the job 💼" : "Unlinked from the job") });
 
-  const remove = async () => {
+  const remove = () => {
     if (!confirm("Delete this email for good?")) return;
     clearTimeout(timer.current);
     loaded.current = false;
-    await api.del(`/emails/${id}`);
-    nav({ to: "/emails" });
+    deleteEmail.mutate(Number(id), { onSuccess: () => nav({ to: "/emails" }) });
   };
-  const duplicate = async () => { const c = await api.post(`/emails/${id}/duplicate`); nav({ to: "/emails/$id", params: { id: String(c.id) } }); };
+  const duplicate = () => change.duplicate.mutate(undefined, { onSuccess: (c) => nav({ to: "/emails/$id", params: { id: String(c.id) } }) });
 
-  if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel="Back to email" onRetry={() => setAttempt((a) => a + 1)} />;
+  if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel="Back to email" onRetry={() => emailQuery.refetch()} />;
   if (!email) return <p className="muted">Loading…</p>;
   const set = (k: keyof Draft) => (e: ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
   const attached = files.filter((a) => !a.inline);
