@@ -742,8 +742,12 @@ exports[`response shapes of read endpoints > GET /api/reviews (item) 1`] = `
 exports[`response shapes of read endpoints > GET /api/settings 1`] = `
 {
   "breakEveryMin": "number",
+  "focusMode": "boolean",
+  "font": "string",
   "morningAt": "string",
+  "motion": "string",
   "reminders": "boolean",
+  "textSize": "string",
 }
 `;
 

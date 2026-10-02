@@ -874,3 +874,42 @@ test.describe("phone layout @phone", () => {
     }
   });
 });
+
+// P3-18: the accessibility settings take effect at once, everywhere, and are kept on the server (a new browser gets them).
+test.describe("accessibility settings", () => {
+  const DEFAULTS = { motion: "auto", font: "default", textSize: "normal", focusMode: false };
+  test.afterEach(({ request }) => request.patch("/api/settings", { data: DEFAULTS })); // never leak into other tests
+
+  test("calm motion, easy-read font, larger text and focus mode apply at once and follow you to a new browser", async ({ page, browser }) => {
+    await page.goto("/backup");
+    const html = page.locator("html");
+    await page.getByRole("radiogroup", { name: "Movement" }).getByRole("radio", { name: "Always calm" }).click();
+    await expect(html).toHaveAttribute("data-motion", "reduce");
+    await page.getByRole("radiogroup", { name: "Font" }).getByRole("radio", { name: "Easy to read" }).click();
+    await expect(html).toHaveAttribute("data-font", "readable");
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain("Atkinson Hyperlegible");
+    await page.getByRole("radiogroup", { name: "Text size" }).getByRole("radio", { name: "Larger" }).click();
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("20px");
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).fontSize)).toBe("18.75px"); // 15px × 1.25
+    // (the box follows the saved setting, so it shows ticked a moment after the click: click, then wait for it)
+    await page.getByRole("checkbox", { name: /^Focus mode/ }).click();
+    await expect(page.getByRole("checkbox", { name: /^Focus mode/ })).toBeChecked();
+    await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeHidden();
+    // movement really stops: the page's blocks no longer rise in
+    await page.goto("/");
+    await expect.poll(() => page.locator("main .page > *").first().evaluate((e) => Number.parseFloat(getComputedStyle(e).animationDuration))).toBeLessThan(0.001);
+
+    // a new browser, with nothing saved in it, gets the same settings from the server
+    const fresh = await browser.newContext();
+    const other = await fresh.newPage();
+    await other.goto("/");
+    await expect(other.locator("html")).toHaveAttribute("data-text", "larger");
+    await expect(other.locator("html")).toHaveAttribute("data-font", "readable");
+    await expect(other.getByRole("complementary", { name: "Sidebar" })).toBeHidden();
+    await fresh.close();
+
+    // focus mode always has a way out
+    await page.getByRole("button", { name: "Focus mode · Exit" }).click();
+    await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeVisible();
+  });
+});

@@ -1,13 +1,15 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { Settings as SharedSettings } from "@hyperfocus/shared";
 import { config } from "./config.ts";
 import { compact } from "./types.ts";
 
 // Windows desktop notifications sent by the server, so they work even when the browser is closed.
 const SETTINGS_FILE = config.settingsFile || fileURLToPath(new URL("../settings.json", import.meta.url));
-export type Settings = { reminders: boolean; breakEveryMin: number; morningAt: string; sent: Record<string, number> };
-const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", sent: {} };
+export type Settings = SharedSettings & { sent: Record<string, number> };
+// the accessibility settings (P3-18) start as the app always looked: motion follows the computer, usual fonts and size
+const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", motion: "auto", font: "default", textSize: "normal", focusMode: false, sent: {} };
 
 export function getSettings(): Settings {
   try {

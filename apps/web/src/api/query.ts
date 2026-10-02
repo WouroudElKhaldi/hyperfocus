@@ -41,9 +41,25 @@ export function createQueryClient() {
  * that came from the API is then refreshed, so both kinds of pages always agree. Returns the function that stops it.
  */
 export function refreshOnDataChanged(client: QueryClient) {
-  const refresh = () => void client.invalidateQueries({ queryKey: ["api"] });
+  // While changes are still on their way, a refresh would read the server before it has them and put the old values
+  // back on screen (clicking quickly through settings could undo a click). So it waits until every change is done.
+  let waiting = false;
+  const refreshAll = () => void client.invalidateQueries({ queryKey: ["api"] });
+  const refresh = () => {
+    if (client.isMutating()) waiting = true;
+    else refreshAll();
+  };
+  const stopWatching = client.getMutationCache().subscribe(() => {
+    if (waiting && !client.isMutating()) {
+      waiting = false;
+      refreshAll();
+    }
+  });
   window.addEventListener("data-changed", refresh);
-  return () => window.removeEventListener("data-changed", refresh);
+  return () => {
+    window.removeEventListener("data-changed", refresh);
+    stopWatching();
+  };
 }
 
 /**

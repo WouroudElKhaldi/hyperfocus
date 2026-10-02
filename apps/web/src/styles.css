@@ -72,7 +72,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  font-family: var(--font-body); font-size: .9375rem; line-height: 1.5; /* 15px, in rem so "larger text" scales it (P3-18) */
   -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
 }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; text-wrap: balance; margin: 0; }
@@ -511,7 +511,7 @@ button.big { padding: var(--s-2) var(--s-5); font-size: .98rem; border-radius: 1
   .legend { margin-left: 0; }
 }
 @media (max-width: 560px) {
-  body { font-size: 14.5px; }
+  body { font-size: .90625rem; }
   .card { padding: var(--s-3); border-radius: 14px; }
   input, textarea, select { font-size: 16px; } /* stops phones from zooming in when a field is focused */
   .cal-title { font-size: 1.1rem; }

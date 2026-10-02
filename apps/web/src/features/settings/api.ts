@@ -12,14 +12,20 @@ const SETTINGS = keyOf("/settings");
 export const useSettings = () => useApi("/settings", { meta: { silent: true } });
 export const useBackups = () => useApi("/backups");
 
-/** Changes a setting: shown at once, and back to how it was if the server says no. */
+/**
+ * Changes a setting: shown at once, and back to how it was if the server says no. Several quick changes (clicking
+ * through the options) never undo each other: the saved settings are only read back once the last change is done.
+ */
 export function useSaveSettings() {
   const client = useQueryClient();
   return useMutation({
+    mutationKey: ["save-settings"],
     mutationFn: (change: BodyOf<"patch", "/settings">) => api.patch("/settings", change),
     onMutate: (change) => optimistic<Settings | undefined>(client, SETTINGS, (s) => (s ? ({ ...s, ...change } as Settings) : s)),
     onError: (_error, _change, undo) => undo?.(),
-    onSuccess: (s) => client.setQueryData(SETTINGS, s),
+    onSettled: () => {
+      if (client.isMutating({ mutationKey: ["save-settings"] }) === 1) return client.invalidateQueries({ queryKey: SETTINGS });
+    },
   });
 }
 

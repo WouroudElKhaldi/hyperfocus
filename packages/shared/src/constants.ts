@@ -25,3 +25,11 @@ export type PetGender = (typeof PET_GENDERS)[number];
 
 /** The pet's ages: 0 is the egg, 9 the last form (a legend is age 9 with a glow). */
 export const PET_AGE_COUNT = 10;
+
+/** Accessibility settings (P3-18): movement, font and text size. "auto" motion follows the computer's setting. */
+export const MOTION_CHOICES = ["auto", "reduce"] as const;
+export const FONT_CHOICES = ["default", "readable"] as const;
+export const TEXT_SIZES = ["normal", "large", "larger"] as const;
+export type MotionChoice = (typeof MOTION_CHOICES)[number];
+export type FontChoice = (typeof FONT_CHOICES)[number];
+export type TextSize = (typeof TEXT_SIZES)[number];

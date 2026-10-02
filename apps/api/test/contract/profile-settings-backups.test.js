@@ -21,12 +21,20 @@ describe("profile", () => {
 });
 
 describe("settings & notifications", () => {
+  it("keeps the accessibility settings (P3-18), and ignores values that aren't one of the choices", async () => {
+    expect(await ok(get("/api/settings"))).toMatchObject({ motion: "auto", font: "default", textSize: "normal", focusMode: false });
+    const u = await ok(patch("/api/settings", { motion: "reduce", font: "readable", textSize: "larger", focusMode: true }));
+    expect(u).toMatchObject({ motion: "reduce", font: "readable", textSize: "larger", focusMode: true });
+    expect(await ok(patch("/api/settings", { motion: "wild", font: "comic", textSize: 3, focusMode: "yes" }))).toMatchObject({ motion: "reduce", font: "readable", textSize: "larger", focusMode: true });
+    await ok(patch("/api/settings", { motion: "auto", font: "default", textSize: "normal", focusMode: false }));
+  });
+
   it("reads defaults and saves clamped values (never exposing the internal 'sent' log)", async () => {
     const s = await ok(get("/api/settings"));
     expect(s).toMatchObject({ reminders: expect.any(Boolean), breakEveryMin: expect.any(Number), morningAt: expect.any(String) });
     expect(s.sent).toBeUndefined();
     const u = await ok(patch("/api/settings", { reminders: false, breakEveryMin: 5, morningAt: "07:30", sent: { hack: 1 } }));
-    expect(u).toEqual({ reminders: false, breakEveryMin: 15, morningAt: "07:30" });
+    expect(u).toEqual({ reminders: false, breakEveryMin: 15, morningAt: "07:30", motion: "auto", font: "default", textSize: "normal", focusMode: false });
     expect((await ok(patch("/api/settings", { breakEveryMin: 999, morningAt: "25:00" })))).toMatchObject({ breakEveryMin: 180, morningAt: "07:30" });
   });
 

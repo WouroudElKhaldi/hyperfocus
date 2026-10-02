@@ -6,6 +6,7 @@ import Icon from "./components/Icon.tsx";
 import Stuck from "./components/Stuck.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import { PetCelebration, PetWidget } from "./features/pet/index.ts";
+import { useA11y } from "./features/settings/index.ts";
 import Quotes from "./components/Quotes.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
@@ -72,6 +73,7 @@ export default function App() {
   const [toast, setToast] = useState<{ msg: string; kind: string; id: number } | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [sheet, setSheet] = useState(false);
+  useA11y(); // the accessibility settings (P3-18), kept in step with what is saved
   const [sbWidth, setSbWidth] = useState(() => clampW(lsGet("sb-width", SB.def)));
   const [collapsed, setCollapsed] = useState(() => lsGet<unknown>("sb-collapsed", false) === true);
   const [folded, setFolded] = useState<Record<string, boolean>>(() => lsGet("sb-folded", {})); // { Plan: true } means that group is folded

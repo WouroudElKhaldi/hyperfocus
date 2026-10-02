@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PetArt, usePet } from "../features/pet/index.ts";
 import { initialsOf, useProfile } from "../features/profile/index.ts";
+import { useA11y, useSaveSettings } from "../features/settings/index.ts";
 import { effectiveTheme, setTheme } from "../theme.ts";
 import Icon from "./Icon.tsx";
 
@@ -29,6 +30,8 @@ export function ThemeSwitch() {
 
 export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: boolean; onToggleSidebar: () => void }) {
   const profile = useProfile();
+  const focusMode = !!useA11y()?.focusMode;
+  const saveSettings = useSaveSettings();
   const pet = usePet();
   const [gain, setGain] = useState(0);
   const lastXp = useRef<number | null>(null);
@@ -60,6 +63,13 @@ export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: bool
         <b>{greeting()}{name ? `, ${name}` : ""}</b>
         <small>{name ? today : <Link activeProps={{ className: "active" }} to="/profile">Add your name</Link>}</small>
       </div>
+
+      {/* focus mode hides the sidebar; this is the way back, always on screen (P3-18) */}
+      {focusMode && (
+        <button className="ghost" onClick={() => saveSettings.mutate({ focusMode: false })} title="Show the sidebar again">
+          Focus mode · Exit
+        </button>
+      )}
 
       <div className="tb-right">
         {pet && (pet.pet ? (

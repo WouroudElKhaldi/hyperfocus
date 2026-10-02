@@ -32,6 +32,35 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+
+  /* The accessibility settings (P3-18, set on <html> by features/settings/a11y.ts). Here, so no page can undo them. */
+  /* "Always calm": no movement at all, whatever the computer says (the same as its reduced-motion setting) */
+  html[data-motion="reduce"] *,
+  html[data-motion="reduce"] *::before,
+  html[data-motion="reduce"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* an easy-to-read font everywhere, headings included (Atkinson Hyperlegible, free under the SIL Open Font License) */
+  html[data-font="readable"] {
+    --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+    --font-display: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  }
+  /* larger text: the app's text sizes are in rem, so changing the root size scales all of it */
+  html[data-text="large"] {
+    font-size: 112.5%;
+  }
+  html[data-text="larger"] {
+    font-size: 125%;
+  }
+  /* focus mode: only the page, no sidebar (the top bar keeps a way out) */
+  html[data-focus="on"] .sidebar-wrap,
+  html[data-focus="on"] .sb-toggle {
+    display: none;
+  }
 }
 
 /* shadcn/ui components expect Tailwind's reset (preflight), which this app doesn't load (see above). This is the part

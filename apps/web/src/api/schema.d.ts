@@ -6230,8 +6230,15 @@ export interface paths {
                     content: {
                         "application/json": {
                             breakEveryMin: number;
+                            focusMode: boolean;
+                            /** @enum {string} */
+                            font: "default" | "readable";
                             morningAt: string;
+                            /** @enum {string} */
+                            motion: "auto" | "reduce";
                             reminders: boolean;
+                            /** @enum {string} */
+                            textSize: "normal" | "large" | "larger";
                         };
                     };
                 };
@@ -6254,8 +6261,15 @@ export interface paths {
                 content: {
                     "application/json": {
                         breakEveryMin?: number | null;
+                        focusMode?: boolean | null;
+                        /** @enum {string|null} */
+                        font?: "default" | "readable" | null;
                         morningAt?: string | null;
+                        /** @enum {string|null} */
+                        motion?: "auto" | "reduce" | null;
                         reminders?: boolean | null;
+                        /** @enum {string|null} */
+                        textSize?: "normal" | "large" | "larger" | null;
                     };
                 };
             };
@@ -6268,8 +6282,15 @@ export interface paths {
                     content: {
                         "application/json": {
                             breakEveryMin: number;
+                            focusMode: boolean;
+                            /** @enum {string} */
+                            font: "default" | "readable";
                             morningAt: string;
+                            /** @enum {string} */
+                            motion: "auto" | "reduce";
                             reminders: boolean;
+                            /** @enum {string} */
+                            textSize: "normal" | "large" | "larger";
                         };
                     };
                 };

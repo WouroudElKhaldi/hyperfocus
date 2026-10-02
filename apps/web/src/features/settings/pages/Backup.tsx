@@ -4,8 +4,15 @@ import More from "../../../components/More.tsx";
 import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import { type ThemeMode, getTheme, setTheme } from "../../../theme.ts";
-import type { Settings } from "../../../types.ts";
 import { useBackupNow, useBackups, useSaveSettings, useSettings } from "../api.ts";
+import type { A11y } from "../a11y.ts";
+
+// the choices for each accessibility setting, in the order they are shown (P3-18)
+const A11Y_OPTIONS: { key: Exclude<keyof A11y, "focusMode">; label: string; hint: string; choices: [string, string][] }[] = [
+  { key: "motion", label: "Movement", hint: "Always calm turns off every animation, whatever your computer is set to.", choices: [["auto", "Follow my computer"], ["reduce", "Always calm"]] },
+  { key: "font", label: "Font", hint: "Easy to read uses Atkinson Hyperlegible: letters that are hard to mix up.", choices: [["default", "Usual"], ["readable", "Easy to read"]] },
+  { key: "textSize", label: "Text size", hint: "Makes all the text bigger, on every page.", choices: [["normal", "Normal"], ["large", "Large"], ["larger", "Larger"]] },
+];
 import { type QuoteSettings, readQuoteSettings, writeQuoteSettings } from "../../../components/Quotes.tsx";
 import { QUOTE_CATEGORIES } from "../../../data/quotes.ts";
 
@@ -31,7 +38,7 @@ export default function Backup() {
     return () => window.removeEventListener("theme-change", sync);
   }, []);
 
-  const savePrefs = (patch: Partial<Settings>) => saveSettings.mutate(patch);
+  const savePrefs = (patch: Parameters<typeof saveSettings.mutate>[0]) => saveSettings.mutate(patch);
   const testNotification = () => notifyTest.mutate(undefined, { onSuccess: () => toast("Sent. Look at the corner of your screen 🔔") });
   const backupNow = () => backup.mutate(undefined, { onSuccess: () => toast("Backup saved 💾 Everything you have right now is safe.") });
 
@@ -41,6 +48,28 @@ export default function Backup() {
     <>
       <h1>Settings</h1>
       <p className="sub">Your reminders, plus a few things most people never need to change.</p>
+
+      <div className="card">
+        <h2>Easier to use</h2>
+        <p className="muted">Saved with your settings, so they stay the same next time.</p>
+        <div className="form-grid">
+          {A11Y_OPTIONS.map((o) => (
+            <div key={o.key} className="field">
+              <div className="field-label" id={`a11y-${o.key}`}>{o.label}</div>
+              <div className="seg" role="radiogroup" aria-labelledby={`a11y-${o.key}`}>
+                {o.choices.map(([v, l]) => (
+                  <button key={v} role="radio" aria-checked={prefs?.[o.key] === v} className={prefs?.[o.key] === v ? "on" : ""} disabled={!prefs} onClick={() => savePrefs({ [o.key]: v })}>{l}</button>
+                ))}
+              </div>
+              <p className="muted tiny">{o.hint}</p>
+            </div>
+          ))}
+          <label className="row" style={{ gap: "var(--s-2)", cursor: "pointer" }}>
+            <input type="checkbox" className="check" checked={!!prefs?.focusMode} disabled={!prefs} onChange={(e) => savePrefs({ focusMode: e.target.checked })} />
+            <span><b>Focus mode</b><span className="muted tiny" style={{ display: "block" }}>Hides the sidebar, so only the page is on screen. The top bar keeps an Exit button.</span></span>
+          </label>
+        </div>
+      </div>
 
       <div className="grid2">
         <div className="card">

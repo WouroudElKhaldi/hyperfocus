@@ -44,3 +44,31 @@ describe("optimistic changes", () => {
     expect(client.getQueryData(key)).toEqual(["old"]);
   });
 });
+
+describe("refreshing after a change somewhere else (data-changed)", () => {
+  it("waits until every change on its way is done, so it never reads the server too early", async () => {
+    const { refreshOnDataChanged } = await import("./query.ts");
+    const events = new EventTarget();
+    vi.stubGlobal("window", events);
+    const client = new QueryClient();
+    const refresh = vi.spyOn(client, "invalidateQueries");
+    const stop = refreshOnDataChanged(client);
+
+    let finish = () => {};
+    const done = new Promise<void>((r) => { finish = r; });
+    const change = client.getMutationCache().build(client, { mutationFn: () => done });
+    const running = change.execute(undefined);
+    await vi.waitFor(() => expect(client.isMutating()).toBe(1));
+    events.dispatchEvent(new Event("data-changed"));
+    expect(refresh).not.toHaveBeenCalled(); // a change is still on its way
+
+    finish();
+    await running;
+    expect(refresh).toHaveBeenCalledTimes(1); // now, once
+
+    events.dispatchEvent(new Event("data-changed"));
+    expect(refresh).toHaveBeenCalledTimes(2); // nothing pending: at once
+    stop();
+    vi.unstubAllGlobals();
+  });
+});

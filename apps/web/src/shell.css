@@ -424,7 +424,7 @@ a.book-title:hover { color: var(--accent-strong); text-decoration: underline; }
 .tb-brand { align-items: center; gap: var(--s-2); text-decoration: none; color: var(--ink); font-family: var(--font-display); }
 
 @media (max-width: 900px) {
-  body { font-size: 16px; line-height: 1.5; }
+  body { font-size: 1rem; line-height: 1.5; }
   h1 { font-size: 1.55rem; }
   h2 { font-size: 1.1rem; }
 
