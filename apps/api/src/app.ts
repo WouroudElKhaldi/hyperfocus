@@ -11,6 +11,8 @@ import { booksRouter } from "./modules/books/routes.ts";
 import { calendarRouter } from "./modules/calendar/routes.ts";
 import { chatRouter } from "./modules/chat/routes.ts";
 import { coachRouter } from "./modules/coach/routes.ts";
+import type { MailProvider } from "./modules/emails/mail-provider.ts";
+import { emailsRouter } from "./modules/emails/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
@@ -34,7 +36,7 @@ import { type Db, httpError } from "./types.ts";
 // Routes are declared with createRoute() and Zod schemas (P2-02): the same schema checks the request, types the
 // handler and documents the route. The documentation is served at /api/docs (and the raw spec at /api/openapi.json).
 
-export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway; publisher: SocialPublisher };
+export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway; publisher: SocialPublisher; mail: MailProvider };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
 export type AppEnv = { Variables: { requestId: string; log: Logger } };
 
@@ -101,6 +103,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", postsRouter(deps));
   app.route("/", chatRouter(deps));
   app.route("/", coachRouter(deps));
+  app.route("/", emailsRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {

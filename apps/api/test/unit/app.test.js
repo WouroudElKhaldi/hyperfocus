@@ -33,9 +33,9 @@ describe("health (served by Hono)", () => {
 });
 
 describe("demo mode (P2-20: a config flag)", () => {
-  it("switches off backups, test notifications and email, and nothing else", async () => {
+  it("switches off backups, test notifications and email (P2-16: email too, now on Hono), and nothing else", async () => {
     const app = make({ demo: true });
-    for (const [method, path] of [["GET", "/api/backups"], ["POST", "/api/backups"], ["GET", "/api/backups/x.db/download"], ["POST", "/api/notify/test"]]) {
+    for (const [method, path] of [["GET", "/api/backups"], ["POST", "/api/backups"], ["GET", "/api/backups/x.db/download"], ["POST", "/api/notify/test"], ["GET", "/api/emails"], ["POST", "/api/emails/1/send"], ["GET", "/api/email-templates"]]) {
       const r = await app.request(path, { method });
       expect(r.status, `${method} ${path}`).toBe(403);
       expect((await r.json()).error).toBe("This is switched off in the demo.");

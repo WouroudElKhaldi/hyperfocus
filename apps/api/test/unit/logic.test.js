@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { occurrenceDays } from "../../src/modules/calendar/calendar.ts";
 import { CRISIS_FALLBACK, isCrisis } from "../../src/modules/chat/crisis.ts";
-import { cleanHtml, textOf } from "../../src/mail.ts";
+import { cleanHtml, textOf } from "../../src/modules/emails/html.ts";
 import { levelFor, studyXp, taskXp } from "../../src/pet.ts";
 import { nextOccurrence } from "../../src/reminders.ts";
 
@@ -96,9 +96,10 @@ describe("email HTML cleaning", () => {
   it("turns HTML into readable plain text", () => {
     expect(textOf("<p>Line one</p><p>Line two</p><ul><li>a</li><li>b</li></ul>")).toBe("Line one\nLine two\na\nb");
   });
-  // KNOWN (P2-16): sanitize-html already turns &nbsp; into the U+00A0 character, so textOf's
-  // replace(/&nbsp;/) never matches and plain-text bodies keep invisible non-breaking spaces.
-  it("currently keeps &nbsp; as a non-breaking space character", () => {
-    expect(textOf("<p>a&nbsp;b</p>")).toBe("a b");
+  // P2-16 fix: sanitize-html turns &nbsp; into the U+00A0 character before textOf's replace ran, so plain-text bodies
+  // kept invisible no-break spaces. Now both are plain spaces.
+  it("turns &nbsp; into a normal space", () => {
+    expect(textOf("<p>a&nbsp;b</p>")).toBe("a b");
+    expect(textOf("<p>a&nbsp;b</p>")).not.toContain(" ");
   });
 });

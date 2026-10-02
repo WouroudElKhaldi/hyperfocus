@@ -93,4 +93,12 @@ describe("email templates", () => {
     expect((await post(`/api/email-templates/${t.id}/use`)).status).toBe(404);
     expect((await post("/api/emails/999999/save-template", {})).status).toBe(404);
   });
+
+  // P2-16: renaming a template that doesn't exist is a 404 (it was a 500); uploads say what is missing
+  it("answers 404 for a missing template or email, naming it", async () => {
+    expect((await api("PATCH", "/api/email-templates/999999", { name: "x" })).body.error).toBe("Template not found.");
+    expect((await upload("/api/email-templates/999999/attachments", "x")).body.error).toBe("Template not found.");
+    expect((await upload("/api/emails/999999/attachments", "x")).body.error).toBe("Email not found.");
+    expect((await api("GET", "/api/emails/attachments/abc")).status).toBe(404);
+  });
 });

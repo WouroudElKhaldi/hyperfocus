@@ -4,6 +4,7 @@ export * from "./books.ts";
 export * from "./calendar.ts";
 export * from "./chat.ts";
 export * from "./constants.ts";
+export * from "./emails.ts";
 export * from "./goals.ts";
 export * from "./notes.ts";
 export * from "./primitives.ts";
