@@ -49,4 +49,13 @@ describe("job applications", () => {
     expect((await get(`/api/jobs/${j.id}`)).status).toBe(404);
     expect((await ok(get(`/api/emails/${e.id}`))).jobId).toBeNull();
   });
+
+  // P2-17: deleting a job that doesn't exist is a 404 (it was a quiet { ok: true })
+  it("answers 404 for a job that doesn't exist", async () => {
+    for (const r of [await del("/api/jobs/999999"), await get("/api/jobs/abc")]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("Job not found.");
+    }
+    expect((await put("/api/emails/abc/job", { jobId: null })).body.error).toBe("Email not found.");
+  });
 });

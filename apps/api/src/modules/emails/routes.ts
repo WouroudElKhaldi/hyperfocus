@@ -5,7 +5,7 @@ import { EmailFieldsInput, PolishEmailInput, RenameTemplateInput, SaveTemplateIn
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { IdParam, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
-import { jobSent } from "../../jobs.ts";
+import { jobSent } from "../jobs/rules.ts";
 import { errorInfo, httpError } from "../../types.ts";
 import { SLIM, cloneEmail, cloneTemplate } from "./copies.ts";
 import { MAX_FILE, MAX_TOTAL, SAFE_IMAGE, addrList, checkAddrs, cleanHtml, emailFields, inlineImages, safeFilename, tagsOf, textOf } from "./html.ts";

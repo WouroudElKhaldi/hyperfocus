@@ -14,6 +14,7 @@ import { coachRouter } from "./modules/coach/routes.ts";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
 import { emailsRouter } from "./modules/emails/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
+import { jobsRouter } from "./modules/jobs/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
 import type { SocialPublisher } from "./modules/posts/publisher.ts";
@@ -104,6 +105,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", chatRouter(deps));
   app.route("/", coachRouter(deps));
   app.route("/", emailsRouter(deps));
+  app.route("/", jobsRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {

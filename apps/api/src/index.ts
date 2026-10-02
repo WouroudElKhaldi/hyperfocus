@@ -10,13 +10,11 @@ import { petEarnsXp } from "./modules/pet/xp.ts";
 import { checkReminders, checkMyReminders } from "./reminders.ts";
 import { startAutoBackup } from "./backup.ts";
 import { gmailAppPassword } from "./modules/emails/mail-provider.ts";
-import { registerJobs } from "./jobs.ts";
 import { createApp } from "./app.ts";
 import { n8nPublisher } from "./modules/posts/publisher.ts";
 import { failInterrupted, postScheduler } from "./modules/posts/scheduler.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
-import { errorInfo, type Wrap } from "./types.ts";
 import { ai } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
@@ -36,17 +34,7 @@ app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
 // The new Hono app answers the routes it already has; Express answers the rest (P2-01, the strangler). It must come before
 // express.json(), so the requests Express answers still have an unread body.
 app.use(honoFirst(createApp({ config, prisma, log, events, ai, publisher, mail })));
-app.use(express.json({ limit: "1mb" }));
-
-
-// TODO(types): request bodies (req.body) are unchecked until each module moves to Hono with Zod schemas (P2).
-const wrap: Wrap = (fn) => (req, res) => {
-  fn(req, res).catch((thrown: unknown) => {
-    const e = errorInfo(thrown);
-    console.error(e.message);
-    res.status(e.status || 500).json({ error: e.message });
-  });
-};
+// Every API route is now served by Hono (P2-06 … P2-20); Express is left only for the demo's website, until P2-22.
 
 // Notes moved to Hono: src/modules/notes (P2-06)
 
@@ -72,7 +60,7 @@ const wrap: Wrap = (fn) => (req, res) => {
 
 // The support chat moved to Hono: src/modules/chat (P2-18)
 
-registerJobs(app, prisma, wrap);
+// Job applications moved to Hono: src/modules/jobs (P2-17)
 
 // The demo serves the built website from this same server, so only ONE port ever needs to be shared.
 if (DEMO) {
