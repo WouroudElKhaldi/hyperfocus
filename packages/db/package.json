@@ -10,9 +10,9 @@
   "scripts": {
     "postinstall": "prisma generate",
     "generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:new-migration": "prisma migrate dev --create-only",
-    "db:studio": "prisma studio",
+    "db:migrate": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy",
+    "db:new-migration": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate dev --create-only",
+    "db:studio": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js studio",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint ."
   },

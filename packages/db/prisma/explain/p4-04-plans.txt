@@ -1,0 +1,147 @@
+=== Calendar: tasks due in one week (WITH the index) ===
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on "Task" (actual time=0.113..0.371 rows=777.00 loops=1)
+   Recheck Cond: (("dueDay" >= '2026-10-01'::text) AND ("dueDay" <= '2026-10-07'::text))
+   Heap Blocks: exact=117
+   Buffers: shared hit=120
+   ->  Bitmap Index Scan on "Task_dueDay_idx" (actual time=0.066..0.066 rows=777.00 loops=1)
+         Index Cond: (("dueDay" >= '2026-10-01'::text) AND ("dueDay" <= '2026-10-07'::text))
+         Index Searches: 1
+         Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=44
+ Planning Time: 0.369 ms
+ Execution Time: 0.439 ms
+(12 rows)
+
+=== Calendar: events in one week (WITH the index) ===
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Sort (actual time=0.929..0.966 rows=777.00 loops=1)
+   Sort Key: day
+   Sort Method: quicksort  Memory: 91kB
+   Buffers: shared hit=126
+   ->  Bitmap Heap Scan on "Event" (actual time=0.113..0.375 rows=777.00 loops=1)
+         Recheck Cond: ((day >= '2026-10-01'::text) AND (day <= '2026-10-07'::text))
+         Heap Blocks: exact=123
+         Buffers: shared hit=126
+         ->  Bitmap Index Scan on "Event_day_idx" (actual time=0.067..0.067 rows=777.00 loops=1)
+               Index Cond: ((day >= '2026-10-01'::text) AND (day <= '2026-10-07'::text))
+               Index Searches: 1
+               Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=74
+ Planning Time: 3.114 ms
+ Execution Time: 1.032 ms
+(16 rows)
+
+=== Pet: today's task points (WITH the index) ===
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=0.405..0.406 rows=1.00 loops=1)
+   Buffers: shared hit=227
+   ->  Bitmap Heap Scan on "PetXp" (actual time=0.093..0.385 rows=222.00 loops=1)
+         Recheck Cond: ((source = 'task'::text) AND ("createdAt" >= date_trunc('day'::text, now())))
+         Heap Blocks: exact=222
+         Buffers: shared hit=227
+         ->  Bitmap Index Scan on "PetXp_source_createdAt_idx" (actual time=0.052..0.052 rows=222.00 loops=1)
+               Index Cond: ((source = 'task'::text) AND ("createdAt" >= date_trunc('day'::text, now())))
+               Index Searches: 1
+               Buffers: shared hit=5
+ Planning:
+   Buffers: shared hit=52
+ Planning Time: 4.828 ms
+ Execution Time: 0.446 ms
+(14 rows)
+
+=== Chat: the last 24 messages of a thread (WITH the index) ===
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Limit (actual time=0.021..0.053 rows=24.00 loops=1)
+   Buffers: shared hit=27
+   ->  Index Scan Backward using "ChatMessage_threadId_id_idx" on "ChatMessage" (actual time=0.019..0.049 rows=24.00 loops=1)
+         Index Cond: ("threadId" = 42)
+         Index Searches: 1
+         Buffers: shared hit=27
+ Planning:
+   Buffers: shared hit=38
+ Planning Time: 2.555 ms
+ Execution Time: 0.080 ms
+(10 rows)
+
+=== The same four WITHOUT indexes (index scans switched off, as before P4-04) ===
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Gather (actual time=1.049..141.737 rows=777.00 loops=1)
+   Workers Planned: 1
+   Workers Launched: 1
+   Buffers: shared hit=2119
+   ->  Parallel Seq Scan on "Task" (actual time=0.919..88.524 rows=388.50 loops=2)
+         Filter: (("dueDay" >= '2026-10-01'::text) AND ("dueDay" <= '2026-10-07'::text))
+         Rows Removed by Filter: 99612
+         Buffers: shared hit=2119
+ Planning Time: 0.221 ms
+ Execution Time: 141.917 ms
+(10 rows)
+
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Gather Merge (actual time=125.621..132.524 rows=777.00 loops=1)
+   Workers Planned: 1
+   Workers Launched: 1
+   Buffers: shared hit=2508
+   ->  Sort (actual time=90.501..90.553 rows=388.50 loops=2)
+         Sort Key: day
+         Sort Method: quicksort  Memory: 67kB
+         Buffers: shared hit=2508
+         Worker 0:  Sort Method: quicksort  Memory: 49kB
+         ->  Parallel Seq Scan on "Event" (actual time=0.372..89.727 rows=388.50 loops=2)
+               Filter: ((day >= '2026-10-01'::text) AND (day <= '2026-10-07'::text))
+               Rows Removed by Filter: 99612
+               Buffers: shared hit=2470
+ Planning Time: 0.270 ms
+ Execution Time: 132.617 ms
+(15 rows)
+
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
+ Finalize Aggregate (actual time=75.462..82.613 rows=1.00 loops=1)
+   Buffers: shared hit=1548
+   ->  Gather (actual time=75.447..82.602 rows=2.00 loops=1)
+         Workers Planned: 1
+         Workers Launched: 1
+         Buffers: shared hit=1548
+         ->  Partial Aggregate (actual time=41.704..41.705 rows=1.00 loops=2)
+               Buffers: shared hit=1548
+               ->  Parallel Seq Scan on "PetXp" (actual time=0.443..41.617 rows=111.00 loops=2)
+                     Filter: ((source = 'task'::text) AND ("createdAt" >= date_trunc('day'::text, now())))
+                     Rows Removed by Filter: 99889
+                     Buffers: shared hit=1548
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.220 ms
+ Execution Time: 82.660 ms
+(16 rows)
+
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Limit (actual time=79.094..86.548 rows=24.00 loops=1)
+   Buffers: shared hit=1612
+   ->  Gather Merge (actual time=79.091..86.542 rows=24.00 loops=1)
+         Workers Planned: 1
+         Workers Launched: 1
+         Buffers: shared hit=1612
+         ->  Sort (actual time=25.764..25.766 rows=12.00 loops=2)
+               Sort Key: id DESC
+               Sort Method: top-N heapsort  Memory: 28kB
+               Buffers: shared hit=1612
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               ->  Parallel Seq Scan on "ChatMessage" (actual time=0.042..25.578 rows=50.00 loops=2)
+                     Filter: ("threadId" = 42)
+                     Rows Removed by Filter: 99950
+                     Buffers: shared hit=1575
+ Planning Time: 0.222 ms
+ Execution Time: 86.611 ms
+(17 rows)
+
