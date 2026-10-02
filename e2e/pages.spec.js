@@ -393,3 +393,52 @@ test.describe("Today, Tasks and Notes share their data", () => {
     await expect(page.getByText("E2E archive me")).toBeVisible();
   });
 });
+
+// P3-08: Calendar and Reminders on the shared cache. A task added on the calendar is the same task everywhere.
+test.describe("Calendar and Reminders share their data", () => {
+  test("a reminder set on Today shows in Settings, and deleting it there removes it", async ({ page }) => {
+    await page.goto("/");
+    await page.getByPlaceholder("Remind me to…").fill("E2E drink water");
+    await page.getByRole("button", { name: "In 1 hour" }).click();
+    await expect(page.getByText(/I'll remind you today|I'll remind you tomorrow/)).toBeVisible();
+    await expect(page.locator(".rem-list").getByText("E2E drink water")).toBeVisible();
+    await page.goto("/backup");
+    await expect(page.locator(".rem-list").getByText("E2E drink water")).toBeVisible();
+    await page.getByRole("button", { name: "Delete reminder E2E drink water" }).click();
+    await expect(page.getByText("E2E drink water")).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "My reminders" })).toBeVisible();
+    await expect(page.getByText("E2E drink water")).toHaveCount(0);
+  });
+
+  test("a task added on the calendar is ticked there and shows as done on Tasks", async ({ page }) => {
+    await page.goto("/calendar");
+    await page.getByPlaceholder("New task for this day").fill("E2E calendar task");
+    await page.getByPlaceholder("New task for this day").press("Enter");
+    const box = page
+      .locator(".cal-side, aside, .card")
+      .getByRole("checkbox", { name: "Done: E2E calendar task" })
+      .first();
+    await expect(box).toBeVisible();
+    await box.click();
+    await expect(box).toBeChecked();
+    await page.locator(".sidebar").getByRole("link", { name: "Tasks", exact: true }).click();
+    await expect(page.getByRole("checkbox", { name: "Done: E2E calendar task" })).toBeChecked();
+  });
+
+  test("quick add with AI, then delete the event", async ({ page }) => {
+    await page.goto("/calendar");
+    await page.getByLabel("Quick add an event in your own words").fill("study friday 3pm");
+    await page.getByRole("button", { name: "Add with AI" }).click();
+    await expect(page.getByPlaceholder("Event title")).toHaveValue("Study"); // the fake AI's answer
+    await page.getByPlaceholder("Event title").fill("E2E quick event");
+    await page.getByRole("button", { name: "Add event" }).click();
+    await expect(page.getByText("Event added")).toBeVisible();
+    const event = page.locator(".side-ev").filter({ hasText: "E2E quick event" });
+    await expect(event).toBeVisible(); // the side panel jumps to the event's day
+    await event.click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page.getByText("Event deleted")).toBeVisible();
+    await expect(page.getByText("E2E quick event")).toHaveCount(0);
+  });
+});

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import MyReminders from "../../../components/MyReminders.tsx";
+import { MyReminders } from "../../reminders/index.ts";
 import { Link } from "@tanstack/react-router";
 import { KINDS } from "../../../api.ts";
 import { useApiChange } from "../../../api/hooks.ts";

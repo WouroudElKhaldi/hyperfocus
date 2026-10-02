@@ -8,13 +8,18 @@ import type { ApiUrl, BodyOf, Method, ResponseOf } from "./typed.ts";
 // against the real routes and the data has the route's type.
 
 /** Reads an address and keeps it fresh: `const tasks = useApi("/tasks")` → tasks.data, tasks.isPending, tasks.error. */
-export function useApi<const U extends string>(url: U & ApiUrl<"get", U>, options: { enabled?: boolean; meta?: ApiMeta } = {}) {
+export function useApi<const U extends string>(
+  url: U & ApiUrl<"get", U>,
+  options: { enabled?: boolean; meta?: ApiMeta; refetchInterval?: number } = {},
+) {
   return useQuery({
     queryKey: keyOf(url),
     // (the address was checked where the hook is called; here it only needs passing on)
     queryFn: () => (api.get as (u: string) => Promise<ResponseOf<"get", U>>)(url),
     ...(options.enabled === undefined ? {} : { enabled: options.enabled }),
     ...(options.meta ? { meta: options.meta } : {}),
+    // (for what changes on its own, like the clock moving on or a reminder being sent)
+    ...(options.refetchInterval ? { refetchInterval: options.refetchInterval } : {}),
   });
 }
 
@@ -44,6 +49,7 @@ export function useApiChange<M extends ChangeMethod, const U extends string, Ctx
     ...(options.onMutate ? { onMutate: options.onMutate } : {}),
     onError: (error, body, context) => options.onError?.(error, body, context),
     onSuccess: (data, body) => options.onSuccess?.(data, body),
-    onSettled: () => Promise.all((options.refresh ?? []).map((u) => client.invalidateQueries({ queryKey: keyOf(u) as QueryKey }))),
+    onSettled: () =>
+      Promise.all((options.refresh ?? []).map((u) => client.invalidateQueries({ queryKey: keyOf(u) as QueryKey }))),
   });
 }

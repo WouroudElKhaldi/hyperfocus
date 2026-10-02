@@ -68,7 +68,7 @@ powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # close
   uses youtube-nocookie.com, and loads only when a song is played. `apps/web/security-headers.mjs` limits what the site may load.
 
 ## How the code is organised
-- `apps/web/src/features/<feature>/` one folder per feature (`pages/`, `components/`, `hooks/`); other code may only use what its `index.ts` exports (checked by `pnpm lint`). Pages load only when opened (`router.tsx`). `components/` shared pieces (`ui/` = shadcn/ui), `api/` the typed API client and data cache, `audio/` the music, `data/` words and lists.
+- `apps/web/src/features/<feature>/` one folder per feature (`pages/`, `components/`, `hooks/`); other code may only use what its `index.ts` exports (checked by `pnpm lint`). Pages load only when opened (`router.tsx`). `api.ts` per feature holds its data hooks (TanStack Query); `components/` shared pieces (`ui/` = shadcn/ui), `api/` the typed API client and data cache, `audio/` the music, `data/` words and lists.
   Everything is TypeScript: `api.ts` is the fetch wrapper (`api.get<Task[]>("/tasks")`) and `types.ts` describes what the API sends back.
 - `apps/web/src/shell.css` the layout, spacing variables (`--s-*`) and phone layer; `styles.css` the base design and colors.
 - `apps/api/src/index.ts` the API (TypeScript, run directly by Node 24, no build step); one small file per topic next to it (`pet.ts`, `books.ts`, `reminders.ts`, ...). Shared API types are in `types.ts`. Data model: `packages/db/prisma/schema.prisma`.

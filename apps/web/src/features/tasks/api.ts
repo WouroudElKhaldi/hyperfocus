@@ -20,7 +20,8 @@ function useOptimisticTasks() {
   const client = useQueryClient();
   return {
     show: (update: (list: TaskList) => TaskList) => optimistic<TaskList>(client, TASKS, (list) => update(list ?? [])),
-    refresh: () => client.invalidateQueries({ queryKey: TASKS }),
+    // tasks with a due day also show on the calendar
+    refresh: () => Promise.all([TASKS, keyOf("/calendar")].map((queryKey) => client.invalidateQueries({ queryKey }))),
   };
 }
 

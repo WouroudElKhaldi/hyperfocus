@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import MyReminders from "../../../components/MyReminders.tsx";
+import { MyReminders } from "../../reminders/index.ts";
 import More from "../../../components/More.tsx";
 import { api, errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
