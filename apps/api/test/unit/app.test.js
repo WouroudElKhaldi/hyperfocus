@@ -118,6 +118,12 @@ describe("the strangler (Hono first, then Express)", () => {
     expect(owns("GET", "/api/posts")).toBe(false);
     expect(owns("GET", "/api/health/extra")).toBe(false);
   });
+  it("handles a record path next to a deeper one and a fixed name (P2-09: RegExpRouter refused this)", () => {
+    const app = new Hono();
+    for (const [m, p] of [["patch", "/x/:id"], ["post", "/x/:id/plan"], ["post", "/x/bulk"]]) app.on(m.toUpperCase(), p, (c) => c.text("ok"));
+    const has = routeOwner(app);
+    expect([has("PATCH", "/x/3"), has("POST", "/x/3/plan"), has("POST", "/x/bulk"), has("GET", "/x/3")]).toEqual([true, true, true, false]);
+  });
 
   // a minimal Express-like request and response, so the middleware can run without a server
   const fakeReq = (method, url, body = "") => Object.assign(Readable.from(body ? [Buffer.from(body)] : []), { method, path: url.split("?")[0], originalUrl: url, headers: { host: "test", "x-request-id": "via-express" } });

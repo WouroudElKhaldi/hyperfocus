@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import type { RequestHandler } from "express";
 import type { Env, Hono } from "hono";
-import { RegExpRouter } from "hono/router/reg-exp-router";
+import { TrieRouter } from "hono/router/trie-router";
 
 // The strangler (ADR-001): the new Hono app answers the routes it has, and Express answers everything else, so routes
 // can move over one module at a time behind the same /api paths. This runs as the first Express middleware after CORS.
@@ -11,7 +11,8 @@ import { RegExpRouter } from "hono/router/reg-exp-router";
 
 /** Says whether the Hono app has a route (not just middleware) for a method and path. HEAD counts as GET. */
 export function routeOwner<E extends Env>(app: Hono<E>) {
-  const owned = new RegExpRouter<true>();
+  // (TrieRouter: it accepts every path shape; RegExpRouter refuses some, like /x/:id next to /x/:id/plan)
+  const owned = new TrieRouter<true>();
   for (const r of app.routes) if (r.method !== "ALL") owned.add(r.method, r.path, true);
   return (method: string, path: string) => owned.match(method === "HEAD" ? "GET" : method, path)[0].length > 0;
 }

@@ -21,6 +21,4 @@ export const postIdeas = (input: In<typeof prompts.postIdeas>) => ai.run(prompts
 export const taskSteps = (task: string) => ai.run(prompts.taskSteps, { task });
 export const organize = (text: string) => ai.run(prompts.organize, { text });
 export const stuckHelp = (input: In<typeof prompts.stuckHelp>) => ai.run(prompts.stuckHelp, input);
-export const suggestSkills = (input: In<typeof prompts.suggestSkills>) => ai.run(prompts.suggestSkills, input);
-export const skillPlan = (input: In<typeof prompts.skillPlan>) => ai.run(prompts.skillPlan, input);
 export const winsSummary = (wins: In<typeof prompts.winsSummary>["wins"]) => ai.run(prompts.winsSummary, { wins });

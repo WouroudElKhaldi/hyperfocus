@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { type ChatThread, type Event, type Post, type Prisma, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
+import { type ChatThread, type Event, type Post, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
 import type { Request } from "express";
 import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
@@ -23,7 +23,7 @@ import { createApp } from "./app.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
 import { activeMs, errorInfo, parseDate, type UncheckedJson, type Wrap } from "./types.ts";
-import { ai, rewritePost, taskSteps, organize, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
+import { ai, rewritePost, taskSteps, organize, polishDraft, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
@@ -265,46 +265,7 @@ app.delete("/api/reviews/:id", wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// ---------- Skills gap map ----------
-const clampLevel = (n: unknown) => Math.min(5, Math.max(0, Math.round(Number(n) || 0)));
-app.get("/api/skills", wrap(async (_, res) => {
-  res.json(await prisma.skill.findMany({ orderBy: [{ area: "asc" }, { createdAt: "asc" }] }));
-}));
-app.post("/api/skills", wrap(async (req, res) => {
-  const { name, area = "", notes = "" } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "Give the skill a name." });
-  res.json(await prisma.skill.create({ data: { name: name.trim(), area, notes, level: clampLevel(req.body.level), target: clampLevel(req.body.target ?? 4) || 4 } }));
-}));
-app.post("/api/skills/bulk", wrap(async (req, res) => {
-  const existing = new Set((await prisma.skill.findMany()).map((s) => s.name.toLowerCase()));
-  const items = ((req.body.items || []) as UncheckedJson[]).filter((i) => i.name?.trim() && !existing.has(i.name.trim().toLowerCase()));
-  await prisma.skill.createMany({ data: items.map((i) => ({ name: i.name.trim(), area: i.area || "", notes: i.why || "" })) });
-  res.json(await prisma.skill.findMany({ orderBy: [{ area: "asc" }, { createdAt: "asc" }] }));
-}));
-app.patch("/api/skills/:id", wrap(async (req, res) => {
-  const { name, area, notes } = req.body;
-  const data: Prisma.SkillUpdateInput = { name, area, notes };
-  if (req.body.level !== undefined) data.level = clampLevel(req.body.level);
-  if (req.body.target !== undefined) data.target = clampLevel(req.body.target) || 1;
-  const before = await prisma.skill.findUnique({ where: { id: id(req) } });
-  const skill = await prisma.skill.update({ where: { id: id(req) }, data });
-  if (before && skill.level > before.level) await events.publish("SkillLevelledUp", { skillId: skill.id, name: skill.name, level: skill.level });
-  res.json(skill);
-}));
-app.delete("/api/skills/:id", wrap(async (req, res) => {
-  await prisma.skill.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-app.post("/api/skills/suggest", wrap(async (req, res) => {
-  if (!req.body.context?.trim()) return res.status(400).json({ error: "Tell me a little about what feels shaky or what you work on." });
-  const existing = (await prisma.skill.findMany()).map((s) => s.name);
-  res.json({ skills: await suggestSkills({ context: req.body.context, existing }) });
-}));
-app.post("/api/skills/:id/plan", wrap(async (req, res) => {
-  const s = await prisma.skill.findUnique({ where: { id: id(req) } });
-  if (!s) return res.status(404).json({ error: "Skill not found." });
-  res.json(await skillPlan({ name: s.name, level: s.level, target: s.target }));
-}));
+// The skills gap map moved to Hono: src/modules/skills (P2-09)
 
 // The profile moved to Hono: src/modules/profile (P2-20)
 

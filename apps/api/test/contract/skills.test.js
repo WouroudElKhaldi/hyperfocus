@@ -40,4 +40,18 @@ describe("skills", () => {
     await ok(del(`/api/skills/${s.id}`));
     expect((await ok(get("/api/skills"))).some((x) => x.id === s.id)).toBe(false);
   });
+
+  // P2-09: a skill that doesn't exist is a 404 (changing or deleting one used to be a 500)
+  it("answers 404 for a skill that doesn't exist", async () => {
+    for (const r of [await patch("/api/skills/999999", { level: 2 }), await del("/api/skills/999999"), await post("/api/skills/999999/plan"), await patch("/api/skills/abc", {})]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("Skill not found.");
+    }
+  });
+
+  it("rounds a level on change, and refuses a field of the wrong type", async () => {
+    const s = await ok(post("/api/skills", { name: "Round me", level: 1 }));
+    expect((await ok(patch(`/api/skills/${s.id}`, { level: 2.6, notes: "n" })))).toMatchObject({ level: 3, notes: "n" });
+    expect((await post("/api/skills", { name: "x", area: 5 })).status).toBe(400);
+  });
 });
