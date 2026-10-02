@@ -1,8 +1,7 @@
-import { type SyntheticEvent, useEffect, useState } from "react";
+import { type SyntheticEvent, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { api, errorOf } from "../../../api.ts";
-import { useToast } from "../../../App.tsx";
-import type { Job, JobListItem } from "../../../types.ts";
+import type { Job } from "../../../types.ts";
+import { useAddJob, useJobs, useUpdateJob } from "../api.ts";
 
 export const STATUS: Record<string, string> = { wishlist: "⭐ Wishlist", applied: "✓ Applied", interview: "🗣 Interview", offer: "🎉 Offer", rejected: "Rejected", withdrawn: "Withdrawn" };
 export const statusChip = (s: string) => "chip " + (s === "applied" || s === "offer" ? "posted" : s === "interview" ? "scheduled" : s === "rejected" ? "failed" : "");
@@ -11,26 +10,19 @@ export const dayOf = (d: string) => new Date(d).toLocaleDateString([], { day: "n
 const TABS: [string, string][] = [["all", "All"], ...Object.entries(STATUS)];
 
 export default function Jobs() {
-  const toast = useToast();
   const nav = useNavigate();
-  const [jobs, setJobs] = useState<JobListItem[]>([]);
+  const jobs = useJobs().data ?? [];
+  const addJob = useAddJob();
+  const update = useUpdateJob();
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
   const [form, setForm] = useState({ company: "", title: "", url: "" });
   const [adding, setAdding] = useState(false);
 
-  const load = () => api.get("/jobs").then(setJobs).catch((e) => toast(e.message, "err"));
-  useEffect(() => { load(); }, []);
-
-  const add = async () => {
-    try {
-      const j = await api.post("/jobs", form);
-      nav({ to: "/jobs/$id", params: { id: String(j.id) } });
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-  const setStatus = async (e: SyntheticEvent, j: Job, status: string) => {
+  const add = () => addJob.mutate(form, { onSuccess: (j) => nav({ to: "/jobs/$id", params: { id: String(j.id) } }) });
+  const setStatus = (e: SyntheticEvent, j: Job, status: string) => {
     e.preventDefault(); e.stopPropagation();
-    try { await api.patch(`/jobs/${j.id}`, { status }); load(); } catch (caught) { const x = errorOf(caught); toast(x.message, "err"); }
+    update.mutate({ id: j.id, change: { status } });
   };
 
   const needle = q.trim().toLowerCase();

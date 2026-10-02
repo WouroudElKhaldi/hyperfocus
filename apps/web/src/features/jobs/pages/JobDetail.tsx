@@ -1,10 +1,12 @@
 import { type ChangeEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { type ApiError, api, errorOf } from "../../../api.ts";
+import { errorOf } from "../../../api.ts";
+import { useApi } from "../../../api/hooks.ts";
+import { useDeleteJob, useJob, useLinkEmail, useUpdateJob, useWriteJobEmail } from "../api.ts";
 import { useToast } from "../../../App.tsx";
 import { STATUS, dayOf, statusChip } from "./Jobs.tsx";
 import LoadProblem, { isId, notFound } from "../../../components/LoadProblem.tsx";
-import type { Email, EmailListItem, Job, JobDetail as JobData } from "../../../types.ts";
+import type { Job } from "../../../types.ts";
 
 const when = (d: string | null) => new Date(d ?? 0).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const EDIT = ["company", "title", "url", "location", "salary", "source", "contactName", "contactEmail", "followUpDay", "notes"] as const;
@@ -15,37 +17,32 @@ export default function JobDetail() {
   const { id } = useParams({ from: "/jobs/$id" });
   const nav = useNavigate();
   const toast = useToast();
-  const [job, setJob] = useState<JobData | null>(null);
+  const jobQuery = useJob(id);
+  const job = jobQuery.data ?? null;
+  const loadErr = !isId(id) ? notFound : jobQuery.error ? errorOf(jobQuery.error) : null;
+  const emails = useApi("/emails").data ?? []; // every email, to pick one to link
+  const update = useUpdateJob();
+  const linkEmail = useLinkEmail();
+  const writeEmail = useWriteJobEmail();
+  const deleteJob = useDeleteJob();
   const [f, setF] = useState<Form | null>(null);
-  const [emails, setEmails] = useState<EmailListItem[]>([]); // every email, to pick one to link
   const [pick, setPick] = useState("");
 
-  const [loadErr, setLoadErr] = useState<ApiError | null>(null);
-  // the first load shows a problem page if it fails; later refreshes (after a save) only show a toast
-  const load = (first = false) => {
-    if (first) setLoadErr(null);
-    if (first && !isId(id)) return setLoadErr(notFound);
-    return api.get(`/jobs/${id}`).then((j) => { setJob(j); setF(formOf(j)); }).catch((e) => (first ? setLoadErr(e) : toast(e.message, "err")));
-  };
-  useEffect(() => { load(true); api.get("/emails").then(setEmails).catch(() => {}); }, [id]);
+  // the form is filled once when the job loads, and again from what the server saved
+  useEffect(() => { if (job) setF(formOf(job)); }, [job?.id]);
 
   const dirty = job && f && EDIT.some((k) => (f[k] ?? "") !== (job[k] ?? ""));
-  const save = async () => {
-    if (!f) return;
-    try { await api.patch(`/jobs/${id}`, f); toast("Saved"); load(); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+  const save = () => {
+    if (f) update.mutate({ id: Number(id), change: f }, { onSuccess: (j) => { setF(formOf(j)); toast("Saved"); } });
   };
-  const patch = async (data: Partial<Job>) => { try { await api.patch(`/jobs/${id}`, data); load(); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); } };
-  const link = async (emailId: number | string, jobId: number | null) => {
-    try { await api.put(`/emails/${emailId}/job`, { jobId }); setPick(""); load(); api.get("/emails").then(setEmails); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-  const write = async () => { const m = await api.post(`/jobs/${id}/email`); nav({ to: "/emails/$id", params: { id: String(m.id) } }); };
-  const remove = async () => {
-    if (!confirm("Delete this job? Your emails stay, they just won't be linked to it.")) return;
-    await api.del(`/jobs/${id}`);
-    nav({ to: "/jobs" });
+  const patch = (change: Parameters<typeof update.mutate>[0]["change"]) => update.mutate({ id: Number(id), change });
+  const link = (emailId: number | string, jobId: number | null) => linkEmail.mutate({ emailId, jobId }, { onSuccess: () => setPick("") });
+  const write = () => writeEmail.mutate(Number(id), { onSuccess: (m) => nav({ to: "/emails/$id", params: { id: String(m.id) } }) });
+  const remove = () => {
+    if (confirm("Delete this job? Your emails stay, they just won't be linked to it.")) deleteJob.mutate(Number(id), { onSuccess: () => nav({ to: "/jobs" }) });
   };
 
-  if (loadErr) return <LoadProblem error={loadErr} what="job" back="/jobs" backLabel="Back to jobs" onRetry={() => load(true)} />;
+  if (loadErr) return <LoadProblem error={loadErr} what="job" back="/jobs" backLabel="Back to jobs" onRetry={() => jobQuery.refetch()} />;
   if (!job || !f) return <p className="muted">Loading…</p>;
   const set = (k: keyof Form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((x) => (x ? { ...x, [k]: e.target.value } : x));
   const linkedIds = new Set(job.emails.map((m) => m.id));

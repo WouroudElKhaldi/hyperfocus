@@ -665,3 +665,35 @@ test.describe("Emails keep their data", () => {
     await expect(card).toHaveCount(0);
   });
 });
+
+// P3-13: Jobs on the shared cache: changes show on the list, an email written for a job is linked to it.
+test.describe("Jobs keep their data", () => {
+  test.beforeEach(({ page }) => page.on("dialog", (d) => d.accept()));
+
+  test("edit a job, keep unsaved notes through a status change, and see it on the list", async ({ page }) => {
+    const res = await page.request.post("/api/jobs", { data: { company: "E2E Jobs Co", title: "", url: "" } });
+    const { id } = await res.json();
+    await page.goto(`/jobs/${id}`);
+    await page.getByLabel("Job title").fill("E2E Engineer");
+    await page.getByLabel("Notes").fill("E2E unsaved note");
+    await page.locator("label").filter({ hasText: /^Status/ }).locator("select").selectOption("applied");
+    await expect(page.getByLabel("Notes")).toHaveValue("E2E unsaved note"); // a status change doesn't wipe your typing
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await page.goto("/jobs");
+    await page.getByRole("button", { name: /^✓ Applied \(/ }).click();
+    await expect(page.getByText("E2E Jobs Co").first()).toBeVisible();
+  });
+
+  test("an email written for a job is linked to it, and can be unlinked", async ({ page }) => {
+    const res = await page.request.post("/api/jobs", { data: { company: "E2E Mail Co", title: "", url: "" } });
+    const { id } = await res.json();
+    await page.goto(`/jobs/${id}`);
+    await page.getByRole("button", { name: "✉️ Write an email for this job" }).click();
+    await expect(page).toHaveURL(/\/emails\/\d+/);
+    await expect(page.getByLabel("Linked job")).toHaveValue(String(id));
+    await page.goto(`/jobs/${id}`);
+    await page.getByRole("button", { name: "Unlink this email" }).click();
+    await expect(page.getByRole("button", { name: "Unlink this email" })).toHaveCount(0);
+  });
+});
