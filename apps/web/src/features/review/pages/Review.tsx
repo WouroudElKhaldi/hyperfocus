@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import More from "../../../components/More.tsx";
 import { useNavigate } from "@tanstack/react-router";
-import { api, errorOf } from "../../../api.ts";
+import { api } from "../../../api.ts";
+import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
-import type { Post, Review as ReviewData } from "../../../types.ts";
+import type { Review as ReviewData } from "../../../types.ts";
+import { useAddTask } from "../../tasks/index.ts";
+import { useDeleteReview, useReviews } from "../api.ts";
 
 const hm = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m` : `${m}m`);
 const when = (d: string) => new Date(d).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
@@ -21,34 +24,21 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 export default function Review() {
   const toast = useToast();
   const nav = useNavigate();
-  const [reviews, setReviews] = useState<ReviewData[]>([]);
-  const [current, setCurrent] = useState<ReviewData | null>(null);
-  const [busy, setBusy] = useState(false);
+  const reviews = useReviews().data ?? [];
+  // the one picked in the list; the newest when none is picked (or the picked one was deleted)
+  const [pickedId, setPickedId] = useState<number | null>(null);
+  const current = reviews.find((r) => r.id === pickedId) ?? reviews[0] ?? null;
+  const write = useApiChange("post", "/reviews", { refresh: ["/reviews"], onSuccess: (r) => setPickedId(r.id) });
+  const deleteReview = useDeleteReview();
+  const addTaskChange = useAddTask();
+  const busy = write.isPending;
 
-  useEffect(() => {
-    api.get("/reviews").then((r) => { setReviews(r); setCurrent(r[0] || null); }).catch((e) => toast(e.message, "err"));
-  }, []);
-
-  const generate = async () => {
-    setBusy(true);
-    try {
-      const r = await api.post("/reviews");
-      setReviews((l) => [r, ...l]);
-      setCurrent(r);
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
-  const remove = async (r: ReviewData) => {
-    if (!confirm("Delete this review?")) return;
-    await api.del(`/reviews/${r.id}`);
-    const rest = reviews.filter((x) => x.id !== r.id);
-    setReviews(rest);
-    if (current?.id === r.id) setCurrent(rest[0] || null);
-  };
-  const addTask = async (title: string) => { await api.post("/tasks", { title }); toast("Added to your tasks ✅"); };
+  const generate = () => write.mutate(undefined);
+  const remove = (r: ReviewData) => { if (confirm("Delete this review?")) deleteReview.mutate(r.id); };
+  const addTask = (title: string) => addTaskChange.mutate({ title }, { onSuccess: () => toast("Added to your tasks ✅") });
   const addAll = async () => {
     if (!current) return;
-    for (const p of current.content.priorities) await api.post("/tasks", { title: p.title });
+    for (const p of current.content.priorities) await addTaskChange.mutateAsync({ title: p.title });
     toast("Your 3 priorities are in Tasks ✅");
   };
   const toPost = async () => {
@@ -77,7 +67,7 @@ export default function Review() {
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="muted">Review of {current.label} · made {when(current.createdAt)}</span>
             {reviews.length > 1 && (
-              <select value={current.id} onChange={(e) => setCurrent(reviews.find((r) => r.id === Number(e.target.value)) ?? null)}>
+              <select value={current.id} onChange={(e) => setPickedId(Number(e.target.value))}>
                 {reviews.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
             )}

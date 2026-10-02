@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import More from "../../../components/More.tsx";
-import { api, errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
-import type { Goal, GoalAction, GoalAnalysis, GoalLog } from "../../../types.ts";
+import type { Goal, GoalAction, GoalLog } from "../../../types.ts";
+import { useAddGoal, useDeleteGoal, useGoalChanges, useGoals } from "../api.ts";
 
 const VERDICT: Record<string, { label: string; cls: string }> = {
   achievable: { label: "✅ Achievable", cls: "v-ok" },
@@ -17,45 +17,25 @@ const todayStr = () => {
 const daysLeft = (d: string) => Math.round((Date.parse(dayStr(d)) - Date.parse(todayStr())) / 86400000);
 
 // Top-level (not nested) so typing in its inputs never loses focus when the list re-renders.
-function GoalCard({ goal, onChange, onDelete }: { goal: Goal; onChange: (g: Goal) => void; onDelete: () => void }) {
+function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
   const toast = useToast();
-  const [busy, setBusy] = useState(false);
+  const change = useGoalChanges(goal.id);
+  const busy = change.analyze.isPending;
   const [proposed, setProposed] = useState<string[]>([]);
   const [newAction, setNewAction] = useState("");
   const [logText, setLogText] = useState("");
   const [original, setOriginal] = useState(goal.original);
 
-  const patch = async (body: Partial<Goal>) => onChange(await api.patch(`/goals/${goal.id}`, body));
-  const analyze = async () => {
-    setBusy(true);
-    try {
-      const out = await api.post(`/goals/${goal.id}/analyze`);
-      onChange(out.goal);
-      setProposed(out.actions);
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
-  const addActions = async (texts: string[]) => {
-    onChange(await api.post(`/goals/${goal.id}/actions`, { texts }));
-    setNewAction("");
-  };
-  const toggleAction = async (a: GoalAction) => {
-    await api.patch(`/goal-actions/${a.id}`, { done: !a.done });
-    onChange({ ...goal, actions: goal.actions.map((x) => (x.id === a.id ? { ...x, done: !a.done } : x)) });
-  };
-  const delAction = async (a: GoalAction) => {
-    await api.del(`/goal-actions/${a.id}`);
-    onChange({ ...goal, actions: goal.actions.filter((x) => x.id !== a.id) });
-  };
-  const addLog = async () => {
+  const patch = (body: Parameters<typeof change.update.mutate>[0]) => change.update.mutate(body);
+  const analyze = () => change.analyze.mutate(undefined, { onSuccess: (out) => setProposed(out.actions) });
+  const addActions = (texts: string[]) => change.addActions.mutate(texts, { onSuccess: () => setNewAction("") });
+  const toggleAction = (a: GoalAction) => change.toggleAction.mutate(a);
+  const delAction = (a: GoalAction) => change.deleteAction.mutate(a.id);
+  const addLog = () => {
     if (!logText.trim()) return;
-    onChange(await api.post(`/goals/${goal.id}/logs`, { text: logText }));
-    setLogText("");
+    change.addLog.mutate(logText, { onSuccess: () => setLogText("") });
   };
-  const delLog = async (l: GoalLog) => {
-    await api.del(`/goal-logs/${l.id}`);
-    onChange({ ...goal, logs: goal.logs.filter((x) => x.id !== l.id) });
-  };
+  const delLog = (l: GoalLog) => change.deleteLog.mutate(l.id);
 
   const doneCount = goal.actions.filter((a) => a.done).length;
   const pct = goal.actions.length ? Math.round((doneCount / goal.actions.length) * 100) : 0;
@@ -164,26 +144,14 @@ function GoalCard({ goal, onChange, onDelete }: { goal: Goal; onChange: (g: Goal
 }
 
 export default function Goals() {
-  const toast = useToast();
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const goals = useGoals().data ?? [];
+  const addGoal = useAddGoal();
+  const deleteGoal = useDeleteGoal();
   const [text, setText] = useState("");
   const [date, setDate] = useState("");
 
-  useEffect(() => { api.get("/goals").then(setGoals).catch((e) => toast(e.message, "err")); }, []);
-
-  const add = async () => {
-    try {
-      const g = await api.post("/goals", { original: text, targetDate: date || null });
-      setGoals([g, ...goals]);
-      setText(""); setDate("");
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-  const replace = (g: Goal) => setGoals((list) => list.map((x) => (x.id === g.id ? g : x)));
-  const remove = async (g: Goal) => {
-    if (!confirm("Delete this goal and its plan?")) return;
-    await api.del(`/goals/${g.id}`);
-    setGoals((list) => list.filter((x) => x.id !== g.id));
-  };
+  const add = () => addGoal.mutate({ original: text, targetDate: date || null }, { onSuccess: () => { setText(""); setDate(""); } });
+  const remove = (g: Goal) => { if (confirm("Delete this goal and its plan?")) deleteGoal.mutate(g.id); };
 
   return (
     <>
@@ -194,11 +162,11 @@ export default function Goals() {
         <textarea style={{ minHeight: 80 }} placeholder="In your own words, what do you want? e.g. become a senior engineer…" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="row" style={{ marginTop: "var(--s-3)" }}>
           <label className="muted">By when? <input type="date" style={{ width: "auto" }} value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <button className="primary" disabled={!text.trim()} onClick={add}>Add goal</button>
+          <button className="primary" disabled={!text.trim() || addGoal.isPending} onClick={add}>Add goal</button>
         </div>
       </div>
       {goals.length === 0 && <div className="empty">No goals yet. Write the first one, messy is fine.</div>}
-      {goals.map((g) => <GoalCard key={g.id} goal={g} onChange={replace} onDelete={() => remove(g)} />)}
+      {goals.map((g) => <GoalCard key={g.id} goal={g} onDelete={() => remove(g)} />)}
     </>
   );
 }

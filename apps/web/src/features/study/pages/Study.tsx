@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import More from "../../../components/More.tsx";
 import { useNavigate } from "@tanstack/react-router";
-import { api, studyMins, studySecs, errorOf } from "../../../api.ts";
+import { api, studyMins, studySecs } from "../../../api.ts";
+import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
-import type { Post, PostIdea, StudySession } from "../../../types.ts";
+import type { PostIdea, StudySession } from "../../../types.ts";
+import { useStudyChange, useStudySessions } from "../api.ts";
 
 /** What the course / part / notes fields edit. */
 type StudyFields = { course: string; part: string; notes: string };
@@ -76,16 +78,14 @@ function Fields<T extends StudyFields>({ v, set, courses }: { v: T; set: (v: T) 
 export default function Study() {
   const toast = useToast();
   const nav = useNavigate();
-  const [sessions, setSessions] = useState<StudySession[]>([]);
+  const sessions = useStudySessions().data ?? [];
   const [now, setNow] = useState(Date.now());
   const [form, setForm] = useState<StudyFields>({ course: "", part: "", notes: "" });
   const [manual, setManual] = useState({ course: "", part: "", notes: "", from: toLocalInput(Date.now() - 3600000), to: toLocalInput(Date.now()), breakMins: "" });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [ideas, setIdeas] = useState<Record<number, PostIdea[]>>({}); // post ideas per session id
-  const [ideaBusy, setIdeaBusy] = useState<number | null>(null);
+  const [ideasFor, setIdeasFor] = useState<number | null>(null);
 
-  const load = () => api.get("/study").then(setSessions).catch((e) => toast(e.message, "err"));
-  useEffect(() => { load(); }, []);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
   const running = sessions.find((s) => !s.endedAt);
@@ -121,86 +121,87 @@ export default function Study() {
 
   const courses = [...new Set(sessions.map((s) => s.course).filter(Boolean))];
 
-  const start = async () => {
-    try { await api.post("/study", form); load(); toast("Timer started. You've got this 💜"); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-  const pause = async () => {
+  // each change reloads the sessions (and waits for them) before its toast; a refusal shows its reason instead
+  const startChange = useStudyChange((f: StudyFields) => api.post("/study", f));
+  const pauseChange = useStudyChange(async ({ id, f }: { id: number; f: StudyFields }) => {
+    await api.patch(`/study/${id}`, f); // keep what you typed safe
+    await api.post(`/study/${id}/pause`);
+  });
+  const resumeChange = useStudyChange((id: number) => api.post(`/study/${id}/resume`));
+  const stopChange = useStudyChange(async ({ id, f }: { id: number; f: StudyFields }) => {
+    await api.patch(`/study/${id}`, f);
+    await api.post(`/study/${id}/stop`);
+  });
+  const addChange = useStudyChange((body: Parameters<typeof api.post<"/study">>[1]) => api.post("/study", body));
+  const editChange = useStudyChange(({ id, body }: { id: number; body: StudyFields & { startedAt?: string; endedAt?: string; breakMins?: number } }) => api.patch(`/study/${id}`, body));
+  const continueChange = useStudyChange((id: number) => api.post(`/study/${id}/continue`));
+  const deleteChange = useStudyChange((id: number) => api.del(`/study/${id}`));
+
+  const start = () => startChange.mutate(form, { onSuccess: () => toast("Timer started. You've got this 💜") });
+  const pause = () => {
     if (!running) return;
-    try {
-      await api.patch(`/study/${running.id}`, form); // keep what you typed safe
-      await api.post(`/study/${running.id}/pause`);
-      toast("Break started ☕ Your study timer is paused.");
-      load();
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+    pauseChange.mutate({ id: running.id, f: form }, { onSuccess: () => toast("Break started ☕ Your study timer is paused.") });
   };
-  const resume = async () => {
+  const resume = () => {
     if (!running) return;
-    try { await api.post(`/study/${running.id}/resume`); toast("Welcome back 💜 Timer running."); load(); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+    resumeChange.mutate(running.id, { onSuccess: () => toast("Welcome back 💜 Timer running.") });
   };
-  const stop = async () => {
+  const stop = () => {
     if (!running) return;
     const wasPaused = !!running.pausedAt;
-    await api.patch(`/study/${running.id}`, form);
-    await api.post(`/study/${running.id}/stop`);
-    await load(); // wait until the session shows as stopped, so the auto-save can never overwrite it with an empty form
-    setForm({ course: "", part: "", notes: "" });
-    toast(wasPaused ? "Session saved 🎉 It ended when your break began." : "Session saved 🎉");
+    // the reload is awaited first, so the auto-save can never overwrite the stopped session with an empty form
+    stopChange.mutate({ id: running.id, f: form }, {
+      onSuccess: () => {
+        setForm({ course: "", part: "", notes: "" });
+        toast(wasPaused ? "Session saved 🎉 It ended when your break began." : "Session saved 🎉");
+      },
+    });
   };
-  const addManual = async () => {
-    try {
-      await api.post("/study", {
-        course: manual.course, part: manual.part, notes: manual.notes,
-        startedAt: new Date(manual.from).toISOString(), endedAt: new Date(manual.to).toISOString(),
-        breakMins: Number(manual.breakMins) || 0,
-      });
-      setManual({ ...manual, part: "", notes: "", breakMins: "" });
-      toast("Session added");
-      load();
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-  const saveEdit = async () => {
+  const addManual = () =>
+    addChange.mutate({
+      course: manual.course, part: manual.part, notes: manual.notes,
+      startedAt: new Date(manual.from).toISOString(), endedAt: new Date(manual.to).toISOString(),
+      breakMins: Number(manual.breakMins) || 0,
+    }, {
+      onSuccess: () => {
+        setManual({ ...manual, part: "", notes: "", breakMins: "" });
+        toast("Session added");
+      },
+    });
+  const saveEdit = () => {
     if (!editing) return;
-    try {
-      const o = editing.orig;
-      const body: StudyFields & { startedAt?: string; endedAt?: string; breakMins?: number } = { course: editing.course, part: editing.part, notes: editing.notes };
-      if (editing.from !== o.from) body.startedAt = new Date(editing.from).toISOString();
-      if (editing.to !== o.to) body.endedAt = new Date(editing.to).toISOString();
-      if (String(editing.breakMins) !== String(o.breakMins)) body.breakMins = Number(editing.breakMins) || 0;
-      await api.patch(`/study/${editing.id}`, body);
-      setEditing(null); load();
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+    const o = editing.orig;
+    const body: StudyFields & { startedAt?: string; endedAt?: string; breakMins?: number } = { course: editing.course, part: editing.part, notes: editing.notes };
+    if (editing.from !== o.from) body.startedAt = new Date(editing.from).toISOString();
+    if (editing.to !== o.to) body.endedAt = new Date(editing.to).toISOString();
+    if (String(editing.breakMins) !== String(o.breakMins)) body.breakMins = Number(editing.breakMins) || 0;
+    editChange.mutate({ id: editing.id, body }, { onSuccess: () => setEditing(null) });
   };
   // Undo an accidental stop: the session reopens and the time you were away counts as a break
-  const continueSession = async (s: StudySession) => {
-    try {
-      await api.post(`/study/${s.id}/continue`);
-      toast("Continuing this session 💜 The time you were away counts as a break.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      load();
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
+  const continueSession = (s: StudySession) =>
+    continueChange.mutate(s.id, {
+      onSuccess: () => {
+        toast("Continuing this session 💜 The time you were away counts as a break.");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+    });
   // For older sessions: start a fresh one for the same part
   const studyAgain = (s: StudySession) => {
     setForm({ course: s.course, part: s.part, notes: "" });
     window.scrollTo({ top: 0, behavior: "smooth" });
     toast("Course and part are filled in. Press Start when you're ready.");
   };
-  const getIdeas = async (s: StudySession) => {
-    setIdeaBusy(s.id);
-    try {
-      const out = await api.post("/ai/post-ideas", { course: s.course, part: s.part, notes: s.notes });
-      setIdeas((m) => ({ ...m, [s.id]: out.ideas }));
-    }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setIdeaBusy(null);
+  const ideasChange = useApiChange("post", "/ai/post-ideas");
+  const ideaBusy = ideasChange.isPending ? ideasFor : null;
+  const getIdeas = (s: StudySession) => {
+    setIdeasFor(s.id);
+    ideasChange.mutate({ course: s.course, part: s.part, notes: s.notes }, { onSuccess: (out) => setIdeas((m) => ({ ...m, [s.id]: out.ideas })) });
   };
   const takeIdea = async (idea: PostIdea) => {
     const p = await api.post("/posts", { thought: idea.thought });
     nav({ to: "/posts/$id", params: { id: String(p.id) } });
   };
-  const remove = async (s: StudySession) => { if (confirm("Delete this session?")) { await api.del(`/study/${s.id}`); load(); } };
+  const remove = (s: StudySession) => { if (confirm("Delete this session?")) deleteChange.mutate(s.id); };
   const toPost = async (s: StudySession) => {
     const thought = `${[s.course, s.part].filter(Boolean).join(" - ")}\n\n${s.notes}`.trim();
     const p = await api.post("/posts", { thought });

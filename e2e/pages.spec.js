@@ -442,3 +442,73 @@ test.describe("Calendar and Reminders share their data", () => {
     await expect(page.getByText("E2E quick event")).toHaveCount(0);
   });
 });
+
+// P3-09: Goals, Skills, Study and Review on the shared cache.
+test.describe("Goals, Skills, Study and Review keep their data", () => {
+  test.beforeEach(({ page }) => page.on("dialog", (d) => d.accept())); // "Delete this …?"
+
+  test("Goals: plan a step, tick it, log progress, then delete the goal", async ({ page }) => {
+    await page.goto("/goals");
+    await page.getByPlaceholder(/In your own words, what do you want/).fill("E2E goal with a plan");
+    await page.getByRole("button", { name: "Add goal" }).click();
+    const card = page.locator(".card.goal").filter({ has: page.locator("textarea", { hasText: "E2E goal with a plan" }) });
+    await card.getByPlaceholder("Add a step…").fill("E2E first step");
+    await card.getByPlaceholder("Add a step…").press("Enter");
+    const step = card.getByRole("checkbox").first();
+    await step.click();
+    await expect(step).toBeChecked();
+    await card.getByText("My progress log").click();
+    await card.getByPlaceholder("What did you do toward this today?").fill("E2E did a thing");
+    await card.getByRole("button", { name: "Log it" }).click();
+    await expect(card.getByText("E2E did a thing")).toBeVisible();
+    await page.reload();
+    await expect(card.getByRole("checkbox").first()).toBeChecked(); // saved, not just shown
+    await card.getByText("More", { exact: true }).click();
+    await card.getByRole("button", { name: "Delete" }).click();
+    await expect(page.locator("textarea", { hasText: "E2E goal with a plan" })).toHaveCount(0);
+  });
+
+  test("Skills: rate a skill, and the rating is kept", async ({ page }) => {
+    await page.goto("/skills");
+    await page.getByPlaceholder(/Add a skill/).fill("E2E rated skill");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    const row = page.locator(".item.skill").filter({ hasText: "E2E rated skill" });
+    await row.getByRole("button", { name: "level 3" }).click();
+    await expect(row.getByText("Comfortable")).toBeVisible();
+    await page.reload();
+    await expect(row.getByText("Comfortable")).toBeVisible();
+    await row.getByRole("button", { name: "🪄 How to close it" }).click();
+    await expect(row.getByText("1. Read one page")).toBeVisible(); // the fake AI's plan
+  });
+
+  test("Study: notes typed while studying survive a reload; break, resume, stop", async ({ page }) => {
+    await page.goto("/study");
+    await page.getByPlaceholder("Part (e.g. Part 1: Intro)").first().fill("E2E part");
+    await page.getByRole("button", { name: /Start timer/ }).click();
+    await expect(page.getByText("Timer started.")).toBeVisible();
+    await page.getByPlaceholder(/What did you learn or do/).first().fill("E2E notes while studying");
+    await page.waitForTimeout(1500); // the auto-save runs a second after typing stops
+    await page.reload();
+    await expect(page.getByPlaceholder(/What did you learn or do/).first()).toHaveValue("E2E notes while studying");
+    await page.getByRole("button", { name: /Take a break/ }).click();
+    await expect(page.getByText("Break started")).toBeVisible();
+    await page.getByRole("button", { name: /Resume/ }).click();
+    await expect(page.getByText("Welcome back")).toBeVisible();
+    await page.getByRole("button", { name: /Stop & save/ }).click();
+    await expect(page.getByText("Session saved 🎉")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Start timer/ })).toBeVisible();
+    await expect(page.getByPlaceholder("Part (e.g. Part 1: Intro)").first()).toHaveValue("");
+    await expect(page.getByText("E2E notes while studying")).toBeVisible(); // in the log
+  });
+
+  test("Review: a priority becomes a task, then the review is deleted", async ({ page }) => {
+    await page.goto("/review");
+    await page.getByRole("button", { name: /Review my week/ }).click();
+    await expect(page.getByText("A calm week.")).toBeVisible();
+    await page.getByRole("button", { name: "➕ task" }).first().click();
+    await expect(page.getByText("Added to your tasks ✅")).toBeVisible();
+    await page.getByRole("button", { name: "Delete this review" }).click();
+    await page.goto("/tasks");
+    await expect(page.getByRole("checkbox", { name: "Done: Finish one task" }).first()).toBeVisible();
+  });
+});

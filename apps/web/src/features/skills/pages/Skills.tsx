@@ -1,7 +1,9 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { api, errorOf } from "../../../api.ts";
+import { type FormEvent, useMemo, useState } from "react";
+import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import type { Skill, SkillPlan, SkillSuggestion } from "../../../types.ts";
+import { useAddTask } from "../../tasks/index.ts";
+import { useAddSkill, useAddSkills, useDeleteSkill, useSkills, useUpdateSkill } from "../api.ts";
 
 const LEVELS = ["Not rated yet", "Shaky", "Learning it", "Comfortable", "Strong", "Could teach it"];
 const AREAS = ["Design & architecture", "Code quality", "Data & databases", "Delivery & DevOps", "Security & performance", "Communication & leadership", "Product & UX", "Other"] as const;
@@ -27,22 +29,21 @@ function Dots({ value, onChange, label }: { value: number; onChange: (n: number)
 }
 
 // Top-level so inputs keep focus when the list re-renders.
-function SkillRow({ skill, onChange, onDelete }: { skill: Skill; onChange: (s: Skill) => void; onDelete: () => void }) {
+function SkillRow({ skill, onDelete }: { skill: Skill; onDelete: () => void }) {
   const toast = useToast();
   const [plan, setPlan] = useState<SkillPlan | null>(null);
-  const [busy, setBusy] = useState(false);
+  const update = useUpdateSkill();
+  const planChange = useApiChange("post", `/skills/${skill.id}/plan`, { onSuccess: setPlan });
+  const addTaskChange = useAddTask();
+  const addBookChange = useApiChange("post", "/books", { refresh: ["/books"] });
+  const busy = planChange.isPending;
   const [notes, setNotes] = useState(skill.notes);
   const gap = skill.level > 0 ? Math.max(0, skill.target - skill.level) : null;
 
-  const patch = async (body: Partial<Skill>) => onChange(await api.patch(`/skills/${skill.id}`, body));
-  const getPlan = async () => {
-    setBusy(true);
-    try { setPlan(await api.post(`/skills/${skill.id}/plan`)); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
-  const addTask = async (title: string) => { await api.post("/tasks", { title: `${skill.name}: ${title}` }); toast("Added to your tasks ✅"); };
-  const addBook = async (b: { title: string; author: string }) => { await api.post("/books", { title: b.title, author: b.author }); toast("Added to your books 📖"); };
+  const patch = (change: Parameters<typeof update.mutate>[0]["change"]) => update.mutate({ id: skill.id, change });
+  const getPlan = () => planChange.mutate(undefined);
+  const addTask = (title: string) => addTaskChange.mutate({ title: `${skill.name}: ${title}` }, { onSuccess: () => toast("Added to your tasks ✅") });
+  const addBook = (b: { title: string; author: string }) => addBookChange.mutate({ title: b.title, author: b.author }, { onSuccess: () => toast("Added to your books 📖") });
 
   return (
     <div className="item skill">
@@ -93,32 +94,26 @@ function SkillRow({ skill, onChange, onDelete }: { skill: Skill; onChange: (s: S
 
 export default function Skills() {
   const toast = useToast();
-  const [skills, setSkills] = useState<Skill[]>([]);
+  const skills = useSkills().data ?? [];
+  const addSkill = useAddSkill();
+  const addSkills = useAddSkills();
+  const deleteSkill = useDeleteSkill();
   const [name, setName] = useState("");
   const [area, setArea] = useState<string>(AREAS[0]);
   const [helpOpen, setHelpOpen] = useState(false);
   const [context, setContext] = useState("");
   const [ideas, setIdeas] = useState<SkillSuggestion[]>([]);
-  const [busy, setBusy] = useState(false);
+  const suggestChange = useApiChange("post", "/skills/suggest", { onSuccess: (r) => setIdeas(r.skills) });
+  const busy = suggestChange.isPending;
 
-  useEffect(() => { api.get("/skills").then(setSkills).catch((e) => toast(e.message, "err")); }, []);
-  const replace = (s: Skill) => setSkills((l) => l.map((x) => (x.id === s.id ? s : x)));
-
-  const add = async (e: FormEvent) => {
+  const add = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    try { const s = await api.post("/skills", { name, area }); setSkills((l) => [...l, s]); setName(""); }
-    catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
+    addSkill.mutate({ name, area }, { onSuccess: () => setName("") });
   };
-  const remove = async (s: Skill) => { await api.del(`/skills/${s.id}`); setSkills((l) => l.filter((x) => x.id !== s.id)); };
-  const addMany = async (items: NewSkill[]) => { setSkills(await api.post("/skills/bulk", { items })); };
-
-  const suggest = async () => {
-    setBusy(true);
-    try { setIdeas((await api.post("/skills/suggest", { context })).skills); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
+  const remove = (s: Skill) => deleteSkill.mutate(s.id);
+  const addMany = (items: NewSkill[]) => addSkills.mutateAsync(items);
+  const suggest = () => suggestChange.mutate({ context });
 
   const rated = skills.filter((s) => s.level > 0);
   const gaps = rated.filter((s) => s.target > s.level).sort((a, b) => b.target - b.level - (a.target - a.level)).slice(0, 3);
@@ -197,7 +192,7 @@ export default function Skills() {
       {byArea.map(([a, list]) => (
         <div className="card" key={a}>
           <h2>{a}</h2>
-          {list.map((s) => <SkillRow key={s.id} skill={s} onChange={replace} onDelete={() => remove(s)} />)}
+          {list.map((s) => <SkillRow key={s.id} skill={s} onDelete={() => remove(s)} />)}
         </div>
       ))}
     </>
