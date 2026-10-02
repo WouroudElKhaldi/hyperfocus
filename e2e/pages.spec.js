@@ -797,28 +797,12 @@ test.describe("the pet keeps its data", () => {
 test.describe("music", () => {
   test("every generated track plays (sound comes out of each)", async ({ page }) => {
     test.setTimeout(120_000);
-    await page.goto("/");
-    await page.getByRole("button", { name: "Open music player" }).click(); // a real click: browsers only allow sound after one
-    const silent = await page.evaluate(async () => {
-      const { Engine } = await import("/src/features/music/audio/engine.ts");
-      const { TRACKS } = await import("/src/features/music/audio/tracks.ts");
-      const engine = new Engine();
-      const quiet = [];
-      for (const t of TRACKS) {
-        if (t.kind === "song") continue;
-        await engine.play(t);
-        let heard = 0;
-        for (let i = 0; i < 20 && !heard; i++) {
-          await new Promise((r) => setTimeout(r, 100));
-          const bins = new Uint8Array(engine.analyser.frequencyBinCount);
-          engine.analyser.getByteFrequencyData(bins);
-          heard = bins.reduce((a, b) => a + b, 0);
-        }
-        if (!heard || engine.snapshot().ctxState !== "running") quiet.push(t.id);
-      }
-      engine.stop();
-      return quiet;
-    });
+    // /dev/sound plays each track through the real engine and listens; the click is what lets a browser make sound
+    await page.goto("/dev/sound");
+    await page.getByRole("button", { name: "Check every track" }).click();
+    const result = page.getByTestId("silent");
+    await expect(result).toBeVisible({ timeout: 110_000 });
+    const silent = JSON.parse(await result.innerText());
     expect(silent, "tracks that made no sound").toEqual([]);
   });
 
@@ -911,5 +895,57 @@ test.describe("accessibility settings", () => {
     // focus mode always has a way out
     await page.getByRole("button", { name: "Focus mode · Exit" }).click();
     await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeVisible();
+  });
+});
+
+// P3-19: the app frame is translatable, and its layout works right to left. Two pseudo-languages make that visible:
+// en-XA turns every translatable word into "⟦Ŵöŕðš··⟧" (40% longer), ar-XB reads right to left.
+test.describe("translation-ready @phone", () => {
+  // every text in the frame, except the brand name and the person's own data (initials), must have come from the language file
+  const untranslated = (page, selector) =>
+    page.locator(selector).first().evaluate((root) => {
+      const out = [];
+      const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      while (walk.nextNode()) {
+        const node = walk.currentNode;
+        const text = node.textContent.trim();
+        const el = node.parentElement;
+        // (not translated: dates, which the browser formats for the language (<time>), and people's own words like a pet's name (translate="no"))
+        if (!text || !/\p{L}/u.test(text) || !el || el.closest(".brand, .tb-brand, .avatar, time, [translate='no'], [aria-hidden='true']")) continue;
+        if (!el.checkVisibility()) continue;
+        if (!text.includes("⟦")) out.push(text);
+      }
+      return out;
+    });
+
+  test("every word in the frame comes from the language file (pseudo-language en-XA)", async ({ page, isMobile }) => {
+    // the fullest frame: a name (the top bar shows the date) and a pet (the sidebar shows its card)
+    await page.request.put("/api/profile", { data: { name: "Zed Tester" } });
+    if (!(await (await page.request.get("/api/pet")).json()).pet)
+      await page.request.post("/api/pet", { data: { name: "Pixel", species: "cat", gender: "neutral", color: "#9b7bff", traits: [] } });
+    await page.goto("/?lang=en-XA");
+    await expect(page.locator("main h1").first()).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(await untranslated(page, "header.topbar"), "top bar").toEqual([]);
+    if (isMobile) expect(await untranslated(page, "nav[aria-label^='⟦']"), "tab bar").toEqual([]);
+    else expect(await untranslated(page, "aside.sidebar"), "sidebar").toEqual([]);
+    const { scroll, view } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
+    expect(scroll, "longer words don't push the page sideways").toBeLessThanOrEqual(view + 1);
+  });
+
+  test("the layout mirrors for a right-to-left language (pseudo-language ar-XB)", async ({ page, isMobile }) => {
+    await page.goto("/?lang=ar-XB");
+    await expect(page.locator("main h1").first()).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    const { scroll, view } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
+    expect(scroll, "nothing sticks out sideways").toBeLessThanOrEqual(view + 1);
+    const fab = await page.locator(".music-fab").boundingBox();
+    expect(fab.x + fab.width / 2, "the music button moves to the left").toBeLessThan(view / 2);
+    if (!isMobile) {
+      const side = await page.locator(".sidebar-wrap").boundingBox();
+      const main = await page.locator("main").boundingBox();
+      expect(side.x, "the sidebar is on the right").toBeGreaterThan(main.x);
+    }
   });
 });

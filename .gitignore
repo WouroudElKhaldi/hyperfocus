@@ -14,3 +14,4 @@ tools
 e2e/results
 e2e/report
 .turbo
+apps/web/dist-e2e

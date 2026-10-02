@@ -35,9 +35,13 @@ const Chat = lazyRouteComponent(() => import("./features/chat/pages/Chat.tsx"));
 const Pet = lazyRouteComponent(() => import("./features/pet/pages/Pet.tsx"));
 const Profile = lazyRouteComponent(() => import("./features/profile/pages/Profile.tsx"));
 // the design system page (P3-02): development only, so it never ships in the built app
-const DevUi = import.meta.env.DEV ? lazyRouteComponent(() => import("./features/dev/pages/DevUi.tsx")) : null;
+// development pages: in development, and in the browser-test build (pnpm build:e2e sets VITE_DEV_PAGES); never in the app you use
+const DEV_PAGES = import.meta.env.DEV || import.meta.env["VITE_DEV_PAGES"] === "1";
+const DevUi = DEV_PAGES ? lazyRouteComponent(() => import("./features/dev/pages/DevUi.tsx")) : null;
 // every pet drawing on one page (P3-15), for the visual test: development only too
-const PetGallery = import.meta.env.DEV ? lazyRouteComponent(() => import("./features/dev/pages/PetGallery.tsx")) : null;
+const PetGallery = DEV_PAGES ? lazyRouteComponent(() => import("./features/dev/pages/PetGallery.tsx")) : null;
+// plays every generated track and lists the silent ones (P3-16)
+const SoundCheck = DEV_PAGES ? lazyRouteComponent(() => import("./features/dev/pages/SoundCheck.tsx")) : null;
 
 /** An address that isn't a page: say so kindly, with one way back. */
 function NotFound() {
@@ -79,7 +83,7 @@ const routes = [
   page("/pet", Pet),
   page("/profile", Profile),
 ] as const;
-const devRoutes = DevUi && PetGallery ? [page("/dev/ui", DevUi), page("/dev/pet", PetGallery)] : [];
+const devRoutes = DevUi && PetGallery && SoundCheck ? [page("/dev/ui", DevUi), page("/dev/pet", PetGallery), page("/dev/sound", SoundCheck)] : [];
 
 export const router = createRouter({
   routeTree: root.addChildren([...routes, ...devRoutes]),

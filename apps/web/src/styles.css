@@ -87,8 +87,9 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: var
 .tiny { font-size: .78rem; }
 .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .empty { text-align: center; color: var(--muted); padding: var(--s-5) var(--s-2); }
-.skip { position: absolute; left: -999px; top: 8px; background: var(--accent); color: var(--on-accent); padding: var(--s-2) var(--s-3); border-radius: 8px; z-index: 50; }
-.skip:focus { left: 8px; }
+/* inset-inline-start = left in English, right in right-to-left languages (P3-19), so it never widens the page */
+.skip { position: absolute; inset-inline-start: -999px; top: 8px; background: var(--accent); color: var(--on-accent); padding: var(--s-2) var(--s-3); border-radius: 8px; z-index: 50; }
+.skip:focus { inset-inline-start: 8px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 * { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
@@ -194,7 +195,7 @@ button.big { padding: var(--s-2) var(--s-5); font-size: .98rem; border-radius: 1
 .lock { opacity: .7; font-weight: 400; }
 
 .toast {
-  position: fixed; right: 20px; bottom: 88px; max-width: min(380px, calc(100vw - 32px)); z-index: 60;
+  position: fixed; inset-inline-end: 20px; bottom: 88px; max-width: min(380px, calc(100vw - 32px)); z-index: 60;
   padding: var(--s-3) var(--s-4); border-radius: 12px; background: var(--ink); color: var(--bg); box-shadow: var(--shadow-2);
   animation: slide-up .28s cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -384,7 +385,7 @@ button.big { padding: var(--s-2) var(--s-5); font-size: .98rem; border-radius: 1
 
 /* ---------- gentle lines (quotes) ---------- */
 .quote-card {
-  --c: var(--accent); position: fixed; left: 18px; bottom: 18px; z-index: 30; width: min(340px, calc(100vw - 36px));
+  --c: var(--accent); position: fixed; inset-inline-start: 18px; bottom: 18px; z-index: 30; width: min(340px, calc(100vw - 36px));
   padding: var(--s-3) var(--s-3) var(--s-3); background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c);
   border-radius: 14px; box-shadow: var(--shadow-2); overflow: hidden; animation: slide-right .45s cubic-bezier(.2, .8, .2, 1) both;
 }

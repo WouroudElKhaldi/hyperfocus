@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useState } from "react";
 import type { PetState } from "../../../types.ts";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { usePet } from "../hooks/usePet.ts";
 import PetArt from "./PetArt.tsx";
 
@@ -9,14 +10,15 @@ const write = (k: string, v: unknown) => { try { localStorage.setItem(k, String(
 
 // The pet card in the sidebar.
 export default function PetWidget({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation();
   const s = usePet();
   if (!s) return null;
 
   if (!s.pet) {
     return (
-      <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget empty" + (compact ? " compact" : "")} title="Get your companion">
+      <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget empty" + (compact ? " compact" : "")} title={t("pet.getTitle")}>
         <span className="pw-egg" aria-hidden="true">🥚</span>
-        <span className="pw-text"><b>Get your companion</b><small>A pet that grows with you</small></span>
+        <span className="pw-text"><b>{t("pet.getTitle")}</b><small>{t("pet.getHint")}</small></span>
       </Link>
     );
   }
@@ -25,8 +27,8 @@ export default function PetWidget({ compact = false }: { compact?: boolean }) {
     <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget" + (compact ? " compact" : "")} title={`${p.name} · Age ${s.age} ${s.stageName} · ${s.xp} points`}>
       <PetArt species={p.species} gender={p.gender} color={p.color} stage={s.stage} mood={s.mood} outfit={s.outfit} pattern={p.pattern} aura={p.aura} legend={s.legend} eggProgress={s.progress} size={compact ? 40 : 48} />
       <span className="pw-text">
-        <b>{p.name}</b>
-        <small>Age {s.age} · {s.xp} points</small>
+        <b translate="no">{p.name}</b>
+        <small>{t("pet.ageLine", { age: s.age, xp: s.xp })}</small>
         <span className="xpbar mini"><span style={{ width: `${Math.round(s.progress * 100)}%` }} /></span>
       </span>
     </Link>

@@ -11,7 +11,7 @@
 .sidebar { width: 100%; height: 100%; position: static; overflow-x: hidden; }
 .resizing, .resizing * { cursor: col-resize !important; user-select: none; }
 .resizing .sidebar-wrap { transition: none; }
-.resize-handle { position: absolute; top: 0; right: -5px; width: 10px; height: 100%; cursor: col-resize; z-index: 8; touch-action: none; }
+.resize-handle { position: absolute; top: 0; inset-inline-end: -5px; width: 10px; height: 100%; cursor: col-resize; z-index: 8; touch-action: none; }
 .resize-handle::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; background: transparent; border-radius: 2px; transition: background .15s; }
 .resize-handle:hover::after, .resizing .resize-handle::after, .resize-handle:focus-visible::after { background: var(--accent); }
 .resize-handle:focus-visible { outline: none; }
@@ -143,7 +143,7 @@
 
 /* ---------- floating music player ---------- */
 .music-fab {
-  position: fixed; right: 18px; bottom: 18px; z-index: 36; width: 56px; height: 56px; padding: 0; border-radius: 50%;
+  position: fixed; inset-inline-end: 18px; bottom: 18px; z-index: 36; width: 56px; height: 56px; padding: 0; border-radius: 50%;
   display: grid; place-items: center; background: var(--accent); color: #fff; box-shadow: var(--shadow-2), 0 0 0 3px color-mix(in srgb, var(--bg) 80%, transparent);
   transition: transform .2s, box-shadow .2s;
 }
@@ -159,7 +159,7 @@
 @media (prefers-reduced-motion: reduce) { .eq i { animation: none; height: 70%; } .music-fab.playing { animation: none; } }
 
 .music-panel {
-  position: fixed; right: 18px; bottom: 88px; z-index: 37; width: min(430px, calc(100vw - 24px)); max-height: min(720px, calc(100vh - 112px));
+  position: fixed; inset-inline-end: 18px; bottom: 88px; z-index: 37; width: min(430px, calc(100vw - 24px)); max-height: min(720px, calc(100vh - 112px));
   overflow-y: auto; overflow-x: hidden; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 22px;
   box-shadow: var(--shadow-2); animation: pop .22s cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -231,7 +231,7 @@
 .mp-row input[type="range"], .mp-vol input, .mp-8d input[type="range"] { accent-color: var(--accent); }
 
 @media (max-width: 900px) {
-  .music-fab { bottom: calc(var(--tab-h) + 14px + env(safe-area-inset-bottom, 0px)); right: 14px; width: 52px; height: 52px; }
+  .music-fab { bottom: calc(var(--tab-h) + 14px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 14px; width: 52px; height: 52px; }
   .music-panel { left: 8px; right: 8px; width: auto; bottom: calc(var(--tab-h) + 76px + env(safe-area-inset-bottom, 0px)); max-height: calc(100vh - var(--tab-h) - 100px); }
   .mp-8d-body { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .mp-8d-controls { width: 100%; }

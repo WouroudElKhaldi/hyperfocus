@@ -30,11 +30,13 @@ export default defineConfig({
       timeout: 60000,
     },
     {
-      command: "pnpm --filter ./apps/web dev",
+      // a build of the site, not the dev server: what ships is what gets tested, and nothing compiles while the tests
+      // run (the dev server's native compilers crashed it at random on Windows, 0xC0000409)
+      command: "pnpm --filter ./apps/web build:e2e && pnpm --filter ./apps/web preview:e2e",
       url: `http://localhost:${WEB_PORT}`,
       env: { WEB_PORT: String(WEB_PORT), API_PORT: String(API_PORT) },
       reuseExistingServer: false,
-      timeout: 60000,
+      timeout: 180000,
     },
   ],
 });

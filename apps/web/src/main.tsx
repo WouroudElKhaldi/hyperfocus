@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/figtree";
 import { createQueryClient, refreshOnDataChanged } from "./api/query.ts";
+import "./i18n/index.ts"; // the words, before anything draws (P3-19)
 import { router } from "./router.tsx";
 import { applySavedA11y } from "./features/settings/index.ts";
 import { applyTheme, getTheme } from "./theme.ts";

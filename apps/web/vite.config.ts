@@ -18,5 +18,11 @@ export default defineConfig({
     proxy: { "/api": `http://localhost:${process.env.API_PORT || 4000}` },
     headers: SECURITY_HEADERS,
   },
-  preview: { headers: SECURITY_HEADERS },
+  // the browser tests run against a build (pnpm build:e2e + preview:e2e), on the same ports and API as the dev server
+  preview: {
+    port: Number(process.env.WEB_PORT) || 4173,
+    strictPort: true,
+    proxy: { "/api": `http://localhost:${process.env.API_PORT || 4000}` },
+    headers: SECURITY_HEADERS,
+  },
 });

@@ -4,9 +4,10 @@ import { PetArt, usePet } from "../features/pet/index.ts";
 import { initialsOf, useProfile } from "../features/profile/index.ts";
 import { useA11y, useSaveSettings } from "../features/settings/index.ts";
 import { effectiveTheme, setTheme } from "../theme.ts";
+import { useTranslation } from "react-i18next";
 import Icon from "./Icon.tsx";
 
-const greeting = () => { const h = new Date().getHours(); return h < 5 ? "Hello" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; };
+const greetingKey = () => { const h = new Date().getHours(); return h < 5 ? "night" : h < 12 ? "morning" : h < 18 ? "afternoon" : "evening"; };
 
 export function ThemeSwitch() {
   const [t, setT] = useState(effectiveTheme());
@@ -17,18 +18,20 @@ export function ThemeSwitch() {
     mq?.addEventListener?.("change", sync);
     return () => { window.removeEventListener("theme-change", sync); mq?.removeEventListener?.("change", sync); };
   }, []);
+  const { t: tr } = useTranslation();
   const dark = t === "dark";
   return (
-    <button role="switch" aria-checked={dark} className={"theme-switch" + (dark ? " dark" : "")} onClick={() => setTheme(dark ? "light" : "dark")} title={dark ? "Switch to light mode" : "Switch to dark mode"}>
+    <button role="switch" aria-checked={dark} className={"theme-switch" + (dark ? " dark" : "")} onClick={() => setTheme(dark ? "light" : "dark")} title={dark ? tr("topbar.toLight") : tr("topbar.toDark")}>
       <span className="ts-ico sun"><Icon name="sun" size={15} /></span>
       <span className="ts-ico moon"><Icon name="moon" size={15} /></span>
       <span className="ts-thumb" />
-      <span className="sr-only">{dark ? "Dark mode" : "Light mode"}</span>
+      <span className="sr-only">{dark ? tr("topbar.dark") : tr("topbar.light")}</span>
     </button>
   );
 }
 
 export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: boolean; onToggleSidebar: () => void }) {
+  const { t, i18n } = useTranslation();
   const profile = useProfile();
   const focusMode = !!useA11y()?.focusMode;
   const saveSettings = useSaveSettings();
@@ -49,44 +52,46 @@ export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: bool
   }, [pet?.pet ? pet.xp : null, pet?.pet?.id]);
 
   const name = profile?.name?.trim();
-  const today = new Date().toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
+  // a date is formatted for the chosen language (by the browser), not translated
+  const now = new Date();
+  const today = now.toLocaleDateString(i18n.language, { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <header className="topbar">
-      <button className="ghost icon-btn sb-toggle" onClick={onToggleSidebar} aria-label={collapsed ? "Expand the sidebar" : "Collapse the sidebar"} aria-pressed={collapsed} title="Toggle sidebar (Ctrl+B)">
+      <button className="ghost icon-btn sb-toggle" onClick={onToggleSidebar} aria-label={collapsed ? t("topbar.expandSidebar") : t("topbar.collapseSidebar")} aria-pressed={collapsed} title={t("topbar.toggleSidebar")}>
         <Icon name="sidebar" size={19} />
       </button>
 
-      <Link activeProps={{ className: "active" }} to="/" className="tb-brand" aria-label="Home"><span className="tb-brand-mark" aria-hidden="true" /><b>Hyperfocus</b></Link>
+      <Link activeProps={{ className: "active" }} to="/" className="tb-brand" aria-label={t("topbar.home")}><span className="tb-brand-mark" aria-hidden="true" /><b>Hyperfocus</b></Link>
 
       <div className="tb-hello">
-        <b>{greeting()}{name ? `, ${name}` : ""}</b>
-        <small>{name ? today : <Link activeProps={{ className: "active" }} to="/profile">Add your name</Link>}</small>
+        <b>{name ? t("topbar.helloName", { greeting: t(`topbar.hello.${greetingKey()}`), name }) : t(`topbar.hello.${greetingKey()}`)}</b>
+        <small>{name ? <time dateTime={now.toISOString().slice(0, 10)}>{today}</time> : <Link activeProps={{ className: "active" }} to="/profile">{t("topbar.addName")}</Link>}</small>
       </div>
 
       {/* focus mode hides the sidebar; this is the way back, always on screen (P3-18) */}
       {focusMode && (
-        <button className="ghost" onClick={() => saveSettings.mutate({ focusMode: false })} title="Show the sidebar again">
-          Focus mode · Exit
+        <button className="ghost" onClick={() => saveSettings.mutate({ focusMode: false })} title={t("topbar.focusExitHint")}>
+          {t("topbar.focusExit")}
         </button>
       )}
 
       <div className="tb-right">
         {pet && (pet.pet ? (
-          <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip" title={`${pet.pet.name} · Age ${pet.age} ${pet.stageName} · ${pet.xp} points`}>
+          <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip" title={t("topbar.petTitle", { name: pet.pet.name, age: pet.age, stage: pet.stageName, xp: pet.xp })}>
             <PetArt species={pet.pet.species} gender={pet.pet.gender} color={pet.pet.color} stage={pet.stage} mood={pet.mood} outfit={pet.outfit} pattern={pet.pet.pattern} aura={pet.pet.aura} legend={pet.legend} eggProgress={pet.progress} size={38} animate={false} />
             <span className="pc-text">
-              <b>{pet.xp} points</b>
-              <small>{pet.pet.name} · Age {pet.age}</small>
+              <b>{t("topbar.points", { xp: pet.xp })}</b>
+              <small>{t("topbar.petLine", { name: pet.pet.name, age: pet.age })}</small>
             </span>
             <span className="xpbar mini pc-bar"><span style={{ width: `${Math.round(pet.progress * 100)}%` }} /></span>
             {gain > 0 && <span className="xp-float" aria-live="polite">+{gain}</span>}
           </Link>
         ) : (
-          <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip empty"><span aria-hidden="true">🥚</span><span className="pc-text"><b>Get a companion</b></span></Link>
+          <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip empty"><span aria-hidden="true">🥚</span><span className="pc-text"><b>{t("topbar.getPet")}</b></span></Link>
         ))}
         <ThemeSwitch />
-        <Link activeProps={{ className: "active" }} to="/profile" className="avatar" style={{ background: profile?.avatar || "#7447e6" }} title={name ? `${name}'s profile` : "Your profile"} aria-label="Your profile">
+        <Link activeProps={{ className: "active" }} to="/profile" className="avatar" style={{ background: profile?.avatar || "#7447e6" }} title={name ? t("topbar.namedProfile", { name }) : t("topbar.yourProfile")} aria-label={t("topbar.yourProfile")}>
           {initialsOf(name)}
         </Link>
       </div>

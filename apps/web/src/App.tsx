@@ -2,7 +2,9 @@ import { type KeyboardEvent, type PointerEvent, Suspense, createContext, lazy, u
 import { BRAND } from "./brand.ts";
 import { Link, type LinkProps, Outlet, useRouterState } from "@tanstack/react-router";
 import { api } from "./api.ts";
+import { useTranslation } from "react-i18next";
 import Icon from "./components/Icon.tsx";
+import type { Strings } from "./i18n/en.ts";
 import Stuck from "./components/Stuck.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import { PetCelebration, PetWidget } from "./features/pet/index.ts";
@@ -20,33 +22,34 @@ const ToastCtx = createContext<Toast>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
 // The menu, grouped by what you use it for. `tab` marks the shortcuts shown in the phone tab bar.
-type NavItem = { to: LinkProps["to"] & string; icon: string; label: string; tab?: boolean };
-type NavGroup = { group: string; items: NavItem[] };
+// (labels are word keys: the words themselves are in i18n/en.ts, P3-19)
+type NavItem = { to: LinkProps["to"] & string; icon: string; label: Exclude<keyof Strings["nav"], "groups" | "chatShort">; tab?: boolean };
+type NavGroup = { group: keyof Strings["nav"]["groups"]; items: NavItem[] };
 const NAV: NavGroup[] = [
   { group: "Plan", items: [
-    { to: "/", icon: "today", label: "Today", tab: true },
-    { to: "/calendar", icon: "calendar", label: "Calendar", tab: true },
-    { to: "/tasks", icon: "tasks", label: "Tasks", tab: true },
+    { to: "/", icon: "today", label: "today", tab: true },
+    { to: "/calendar", icon: "calendar", label: "calendar", tab: true },
+    { to: "/tasks", icon: "tasks", label: "tasks", tab: true },
   ] },
   { group: "Grow", items: [
-    { to: "/goals", icon: "goals", label: "Goals" },
-    { to: "/skills", icon: "skills", label: "Skills map" },
-    { to: "/study", icon: "study", label: "Study log" },
-    { to: "/books", icon: "books", label: "Books" },
-    { to: "/review", icon: "review", label: "Weekly review" },
+    { to: "/goals", icon: "goals", label: "goals" },
+    { to: "/skills", icon: "skills", label: "skills" },
+    { to: "/study", icon: "study", label: "study" },
+    { to: "/books", icon: "books", label: "books" },
+    { to: "/review", icon: "review", label: "review" },
   ] },
   { group: "Share", items: [
-    { to: "/notes", icon: "thoughts", label: "Thoughts & ideas" },
-    { to: "/posts", icon: "posts", label: "LinkedIn posts" },
-    { to: "/emails", icon: "mail", label: "Email" },
-    { to: "/jobs", icon: "jobs", label: "Job applications" },
+    { to: "/notes", icon: "thoughts", label: "notes" },
+    { to: "/posts", icon: "posts", label: "posts" },
+    { to: "/emails", icon: "mail", label: "emails" },
+    { to: "/jobs", icon: "jobs", label: "jobs" },
   ] },
   { group: "You", items: [
-    { to: "/chat", icon: "chat", label: "Talk it out", tab: true },
-    { to: "/pet", icon: "pet", label: "Companion" },
-    { to: "/wins", icon: "wins", label: "Wins" },
-    { to: "/profile", icon: "profile", label: "Profile" },
-    { to: "/backup", icon: "settings", label: "Settings & backup" },
+    { to: "/chat", icon: "chat", label: "chat", tab: true },
+    { to: "/pet", icon: "pet", label: "pet" },
+    { to: "/wins", icon: "wins", label: "wins" },
+    { to: "/profile", icon: "profile", label: "profile" },
+    { to: "/backup", icon: "settings", label: "settings" },
   ] },
 ];
 const ALL = NAV.flatMap((g) => g.items);
@@ -79,6 +82,7 @@ export default function App() {
   const [folded, setFolded] = useState<Record<string, boolean>>(() => lsGet("sb-folded", {})); // { Plan: true } means that group is folded
   const [resizing, setResizing] = useState(false);
   const location = useRouterState({ select: (s) => s.location });
+  const { t } = useTranslation();
 
   const show = useCallback<Toast>((msg, kind = "ok") => {
     const id = Date.now();
@@ -129,31 +133,31 @@ export default function App() {
 
   return (
     <ToastCtx.Provider value={show}>
-      <a className="skip" href="#main">Skip to content</a>
+      <a className="skip" href="#main">{t("shell.skip")}</a>
       <div className={"shell" + (resizing ? " resizing" : "") + (collapsed ? " is-collapsed" : "")}>
         <div className="sidebar-wrap phone:hidden" style={{ width }}>
-          <aside className={"sidebar" + (collapsed ? " collapsed" : "")} aria-label="Sidebar">
+          <aside className={"sidebar" + (collapsed ? " collapsed" : "")} aria-label={t("shell.sidebar")}>
             <Brand collapsed={collapsed} />
             {!collapsed && (
               <button className="ghost fold-all" onClick={() => setFolded(Object.fromEntries(NAV.map((g) => [g.group, !allFolded])))}>
-                {allFolded ? "Unfold all" : "Fold all"}
+                {allFolded ? t("shell.unfoldAll") : t("shell.foldAll")}
               </button>
             )}
-            <nav aria-label="Main">
+            <nav aria-label={t("shell.main")}>
               {NAV.map((g) => {
                 const isFolded = !collapsed && !!folded[g.group];
                 return (
                   <div key={g.group} className="nav-group">
                     {collapsed ? <div className="nav-sep" aria-hidden="true" /> : (
                       <button className="nav-label" aria-expanded={!isFolded} onClick={() => setFolded((f) => ({ ...f, [g.group]: !f[g.group] }))}>
-                        <Icon name="chevron" size={13} /> {g.group}
+                        <Icon name="chevron" size={13} /> {t(`nav.groups.${g.group}`)}
                       </button>
                     )}
                     <div className={"nav-items" + (isFolded ? "" : " open")}>
                       <div className="nav-items-inner">
                         {g.items.map((i) => (
-                          <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav" activeProps={{ className: "active" }} title={collapsed ? i.label : undefined} tabIndex={isFolded ? -1 : 0}>
-                            <Icon name={i.icon} /> <span className="nav-text">{i.label}</span>
+                          <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav" activeProps={{ className: "active" }} title={collapsed ? t(`nav.${i.label}`) : undefined} tabIndex={isFolded ? -1 : 0}>
+                            <Icon name={i.icon} /> <span className="nav-text">{t(`nav.${i.label}`)}</span>
                           </Link>
                         ))}
                       </div>
@@ -166,24 +170,28 @@ export default function App() {
               <PetWidget />
               <Stuck />
               <div className="status">
-                <div title={health?.ok === false ? "Server offline" : "Server running"}><i className={"dot-s " + (health?.ok === false ? "bad" : "ok")} /><span className="st-text">{health?.ok === false ? "Server offline" : "Server running"}</span></div>
-                <div title={health?.ai ? "AI connected" : "No DeepSeek key"}><i className={"dot-s " + (health?.ai ? "ok" : "off")} /><span className="st-text">{health?.ai ? "AI connected" : "No DeepSeek key"}</span></div>
-                <div title={health?.n8n ? "LinkedIn posting on" : "Post by hand (n8n off)"}><i className={"dot-s " + (health?.n8n ? "ok" : "off")} /><span className="st-text">{health?.n8n ? "LinkedIn posting on" : "Post by hand (n8n off)"}</span></div>
+                {[
+                  [health?.ok !== false, health?.ok === false ? "bad" : "ok", health?.ok === false ? t("shell.status.serverOff") : t("shell.status.serverOn")],
+                  [!!health?.ai, health?.ai ? "ok" : "off", health?.ai ? t("shell.status.aiOn") : t("shell.status.aiOff")],
+                  [!!health?.n8n, health?.n8n ? "ok" : "off", health?.n8n ? t("shell.status.n8nOn") : t("shell.status.n8nOff")],
+                ].map(([, dot, text]) => (
+                  <div key={String(text)} title={String(text)}><i className={`dot-s ${dot}`} /><span className="st-text">{text}</span></div>
+                ))}
               </div>
             </div>
           </aside>
           {!collapsed && (
-            <div className="resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize the sidebar (arrow keys, double-click to reset)" aria-valuenow={sbWidth} aria-valuemin={SB.min} aria-valuemax={SB.max}
+            <div className="resize-handle" role="separator" aria-orientation="vertical" aria-label={t("shell.resize")} aria-valuenow={sbWidth} aria-valuemin={SB.min} aria-valuemax={SB.max}
               tabIndex={0} onPointerDown={startResize} onKeyDown={onHandleKey} onDoubleClick={() => setSbWidth(SB.def)} />
           )}
         </div>
 
         <div className="content">
-          {health?.demo && <div className="demo-banner" role="note">You're looking at a demo with sample data. The AI, LinkedIn posting and backups are switched off.</div>}
+          {health?.demo && <div className="demo-banner" role="note">{t("shell.demo")}</div>}
           <TopBar collapsed={collapsed} onToggleSidebar={() => setCollapsed((c) => !c)} />
           <main className="main" id="main">
             <div className="page" key={location.pathname}>
-              <Suspense fallback={<div className="empty">Loading…</div>}>
+              <Suspense fallback={<div className="empty">{t("shell.loading")}</div>}>
               <Outlet />
               </Suspense>
             </div>
@@ -191,27 +199,27 @@ export default function App() {
         </div>
 
         {/* phones only: the bottom tab bar and the "More" sheet (P3-17: Tailwind, was the phone layer in styles.css) */}
-        <nav className="hidden phone:flex fixed inset-x-0 bottom-0 z-35 h-[calc(var(--tab-h)+env(safe-area-inset-bottom,0px))] border-t border-line bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] px-2 pt-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-[10px] small:pt-1" aria-label="Quick menu">
+        <nav className="hidden phone:flex fixed inset-x-0 bottom-0 z-35 h-[calc(var(--tab-h)+env(safe-area-inset-bottom,0px))] border-t border-line bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] px-2 pt-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-[10px] small:pt-1" aria-label={t("shell.quickMenu")}>
           {ALL.filter((i) => i.tab).map((i) => (
             <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className={TAB} activeProps={{ className: "active" }}>
-              <Icon name={i.icon} size={22} /><span>{i.label.replace("Talk it out", "Talk")}</span>
+              <Icon name={i.icon} size={22} /><span>{t(i.label === "chat" ? "nav.chatShort" : `nav.${i.label}`)}</span>
             </Link>
           ))}
           <button className={TAB + (sheet ? " active" : "")} onClick={() => setSheet(!sheet)} aria-expanded={sheet}>
-            <Icon name="more" size={22} /><span>More</span>
+            <Icon name="more" size={22} /><span>{t("shell.more")}</span>
           </button>
         </nav>
 
         {sheet && (
           <div className="hidden phone:block fixed inset-0 z-34 animate-[fade_.2s_both] bg-[rgba(28,18,60,.45)]" onClick={() => setSheet(false)}>
-            <div className="card fixed inset-x-2 bottom-[calc(var(--tab-h)+8px+env(safe-area-inset-bottom,0px))] grid max-h-[72vh] animate-[slide-up_.25s_both] gap-2 overflow-y-auto small:max-h-[78vh] small:p-3" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="All pages">
+            <div className="card fixed inset-x-2 bottom-[calc(var(--tab-h)+8px+env(safe-area-inset-bottom,0px))] grid max-h-[72vh] animate-[slide-up_.25s_both] gap-2 overflow-y-auto small:max-h-[78vh] small:p-3" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("shell.allPages")}>
               <PetWidget compact />
               <div className="grid grid-cols-2 gap-1">
                 {ALL.map((i) => (
-                  <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav border border-line bg-surface-2 [&.active]:bg-[var(--accent)] small:min-h-12 small:text-[1rem]" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{i.label}</span></Link>
+                  <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav border border-line bg-surface-2 [&.active]:bg-[var(--accent)] small:min-h-12 small:text-[1rem]" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{t(`nav.${i.label}`)}</span></Link>
                 ))}
               </div>
-              <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-surface-2 px-3 py-2 font-semibold text-ink-2"><span>Light or dark</span><ThemeSwitch /></div>
+              <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-surface-2 px-3 py-2 font-semibold text-ink-2"><span>{t("shell.lightOrDark")}</span><ThemeSwitch /></div>
               <Stuck inline />
             </div>
           </div>
