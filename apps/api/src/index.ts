@@ -9,7 +9,7 @@ import type { Request } from "express";
 import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
 import { notify, getSettings, saveSettings, remind } from "./notify.ts";
-import { type Cleaned, PRIORITIES, petState, catalogState, cleanPet } from "./pet.ts";
+import { type Cleaned, petState, catalogState, cleanPet } from "./pet.ts";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { companionReply, isCrisis } from "./chat.ts";
@@ -57,50 +57,7 @@ const id = (req: Request) => Number(req.params.id);
 
 // Notes moved to Hono: src/modules/notes (P2-06)
 
-// ---------- Tasks ----------
-const taskInclude = { steps: { orderBy: { id: "asc" } } } satisfies Prisma.TaskInclude;
-app.get("/api/tasks", wrap(async (_, res) => {
-  res.json(await prisma.task.findMany({ include: taskInclude, orderBy: [{ done: "asc" }, { createdAt: "desc" }] }));
-}));
-app.post("/api/tasks", wrap(async (req, res) => {
-  if (!req.body.title?.trim()) return res.status(400).json({ error: "Task needs a title." });
-  const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : "normal";
-  const created = await prisma.task.create({ data: { title: req.body.title, today: !!req.body.today, dueDay: req.body.dueDay || null, priority }, include: taskInclude });
-  await events.publish("TaskCaptured", { taskId: created.id });
-  res.json(created);
-}));
-app.patch("/api/tasks/:id", wrap(async (req, res) => {
-  const { title, done, today } = req.body;
-  const data: Prisma.TaskUncheckedUpdateInput = { title, today };
-  if (req.body.priority !== undefined) {
-    if (!PRIORITIES.includes(req.body.priority)) return res.status(400).json({ error: "Importance must be low, normal, high or urgent." });
-    data.priority = req.body.priority;
-  }
-  if ("dueDay" in req.body) data.dueDay = req.body.dueDay || null;
-  if (done !== undefined) {
-    data.done = done;
-    data.doneAt = done ? new Date() : null;
-  }
-  const task = await prisma.task.update({ where: { id: id(req) }, data, include: taskInclude });
-  if (done === true) await events.publish("TaskCompleted", { taskId: task.id, title: task.title, priority: task.priority });
-  res.json(task);
-}));
-app.delete("/api/tasks/:id", wrap(async (req, res) => {
-  await prisma.task.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-app.post("/api/tasks/:id/steps", wrap(async (req, res) => {
-  const texts: string[] = req.body.steps ?? [req.body.text];
-  await prisma.step.createMany({ data: texts.filter(Boolean).map((text) => ({ text, taskId: id(req) })) });
-  res.json(await prisma.task.findUnique({ where: { id: id(req) }, include: taskInclude }));
-}));
-app.patch("/api/steps/:id", wrap(async (req, res) => {
-  res.json(await prisma.step.update({ where: { id: id(req) }, data: { done: req.body.done } }));
-}));
-app.delete("/api/steps/:id", wrap(async (req, res) => {
-  await prisma.step.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
+// Tasks and steps moved to Hono: src/modules/tasks (P2-07)
 
 // ---------- Posts ----------
 app.get("/api/posts", wrap(async (_, res) => {

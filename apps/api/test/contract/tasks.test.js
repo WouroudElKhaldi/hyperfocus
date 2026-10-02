@@ -68,4 +68,19 @@ describe("tasks", () => {
     expect(await ok(del(`/api/tasks/${t.id}`))).toEqual({ ok: true });
     expect((await ok(get("/api/tasks"))).some((x) => x.id === t.id)).toBe(false);
   });
+
+  // P2-07: a task or step that doesn't exist is "not found" (it used to be a 500, or a null body for adding steps)
+  it("answers 404 for a task or step that doesn't exist", async () => {
+    const checks = [
+      [await patch("/api/tasks/999999", { title: "x" }), "Task not found."],
+      [await del("/api/tasks/999999"), "Task not found."],
+      [await post("/api/tasks/999999/steps", { steps: ["s"] }), "Task not found."],
+      [await patch("/api/steps/999999", { done: true }), "Step not found."],
+      [await del("/api/steps/999999"), "Step not found."],
+    ];
+    for (const [r, message] of checks) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe(message);
+    }
+  });
 });

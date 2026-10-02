@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TASK_PRIORITIES } from "./constants.ts";
+import { TASK_PRIORITIES, type TaskPriority } from "./constants.ts";
 import { Id, IsoDateTime, nonBlank } from "./primitives.ts";
 
 // Tasks and their steps. These describe the API exactly as it behaves today (P1-04);
@@ -34,7 +34,8 @@ export const CreateTaskInput = z.object({
   title: nonBlank("Task needs a title."),
   today: z.boolean().optional(),
   dueDay: z.string().nullish(),
-  priority: TaskPriorityEnum.catch("normal"),
+  // written as preprocess, not .catch(), so the OpenAPI docs can describe it (P2-07)
+  priority: z.preprocess((v) => (TASK_PRIORITIES.includes(v as TaskPriority) ? v : "normal"), TaskPriorityEnum),
 });
 export type CreateTaskInput = z.input<typeof CreateTaskInput>;
 
@@ -51,3 +52,7 @@ export type UpdateTaskInput = z.input<typeof UpdateTaskInput>;
 /** POST /api/tasks/:id/steps: several steps at once, or one. Empty ones are skipped. */
 export const AddStepsInput = z.union([z.object({ steps: z.array(z.string()) }), z.object({ text: z.string() })]);
 export type AddStepsInput = z.input<typeof AddStepsInput>;
+
+/** PATCH /api/steps/:id: tick or untick a step. */
+export const UpdateStepInput = z.object({ done: z.boolean() }).partial();
+export type UpdateStepInput = z.input<typeof UpdateStepInput>;

@@ -99,7 +99,7 @@ describe("the strangler (Hono first, then Express)", () => {
     expect(owns("GET", "/api/health")).toBe(true);
     expect(owns("HEAD", "/api/health")).toBe(true);
     expect(owns("POST", "/api/health")).toBe(false);
-    expect(owns("GET", "/api/tasks")).toBe(false);
+    expect(owns("GET", "/api/posts")).toBe(false);
     expect(owns("GET", "/api/health/extra")).toBe(false);
   });
 
@@ -126,7 +126,7 @@ describe("the strangler (Hono first, then Express)", () => {
   });
 
   it("passes other routes to Express without touching the body", async () => {
-    const req = fakeReq("POST", "/api/tasks", '{"title":"x"}');
+    const req = fakeReq("POST", "/api/posts", '{"title":"x"}');
     let passed = false;
     honoFirst(make())(req, fakeRes(), () => { passed = true; });
     expect(passed).toBe(true);
