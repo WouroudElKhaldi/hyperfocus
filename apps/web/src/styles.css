@@ -418,7 +418,6 @@ button.big { padding: var(--s-2) var(--s-5); font-size: .98rem; border-radius: 1
 .swatch.on { box-shadow: 0 0 0 2.5px var(--accent); transform: scale(1.08); }
 .swatch.custom { background: conic-gradient(#ff8fb8, #ffd36b, #62d6a8, #6cb8ff, #9b7bff, #ff8fb8); position: relative; cursor: pointer; overflow: hidden; }
 .swatch.custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-.bdchip i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: var(--s-2); vertical-align: -2px; border: 1px solid var(--line-2); }
 .pet-home { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--s-3); align-items: stretch; margin-bottom: var(--s-3); }
 .pet-hero { margin-bottom: 0; min-height: 360px; display: flex; align-items: flex-end; justify-content: center; position: relative; overflow: hidden; padding-top: var(--s-7); border-color: transparent; }
 .pet-tap { background: transparent; padding: 0; border-radius: 50%; }

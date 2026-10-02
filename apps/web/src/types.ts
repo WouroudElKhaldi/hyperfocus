@@ -53,7 +53,6 @@ export type CalendarData = {
   study: Pick<StudySession, "id" | "course" | "part" | "startedAt" | "endedAt" | "pausedAt" | "breakMs">[];
   posts: { id: number; title: string; status: string; at: string | null }[];
 };
-export type ParsedEvent = { title: string; day: string; allDay: boolean; startTime: string; endTime: string; category: string; repeat: string; location: string };
 export type StudyBlock = { day: string; startTime: string; endTime: string; minutes: number; title: string; why: string };
 
 // ---------- books ----------
@@ -65,7 +64,6 @@ export type BookResult = {
 export type Book = {
   id: number; title: string; author: string; status: string; notes: string; result: string; foundAt: string | null; createdAt: string;
 };
-export type BookMessage = { id: number; bookId: number; role: string; content: string; createdAt: string };
 
 // ---------- skills, reviews, wins ----------
 export type Skill = { id: number; name: string; area: string; level: number; target: number; notes: string; createdAt: string; updatedAt: string };
@@ -106,19 +104,16 @@ export type Email = {
   jobId: number | null; job?: JobRef | null; attachments: Attachment[];
 };
 export type EmailTemplate = { id: number; name: string; subject: string; createdAt: string; updatedAt: string; preview: string; files: number };
-export type MailStatus = { ready: boolean; user: string; hasKey: boolean; hasUser: boolean };
 export type JobEmail = { id: number; subject: string; toAddr: string; status: string; sentAt: string | null; updatedAt: string };
 export type Job = {
   id: number; company: string; title: string; url: string; location: string; salary: string; source: string; status: string;
   appliedAt: string | null; followUpDay: string | null; contactName: string; contactEmail: string; notes: string;
   createdAt: string; updatedAt: string;
 };
-export type JobListItem = Job & { emailCount: number; lastSentAt: string | null };
 export type JobDetail = Job & { emails: JobEmail[] };
 
 // ---------- AI helpers ----------
 export type OrganizedItem = { kind: string; title: string; body: string };
-export type GoalAnalysis = { goal: Goal; actions: string[] };
 
 // ---------- companion pet ----------
 export type UnlockRuleKind = "free" | "xp" | "tasks" | "studyMin" | "posts" | "streak" | "goals" | "books" | "wins";
