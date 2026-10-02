@@ -23,7 +23,7 @@ import { createApp } from "./app.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
 import { activeMs, errorInfo, type UncheckedJson, type Wrap } from "./types.ts";
-import { rewritePost, taskSteps, organize, analyzeGoal, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
+import { rewritePost, taskSteps, organize, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
@@ -679,77 +679,7 @@ app.post("/api/calendar/parse", wrap(async (req, res) => {
 }));
 app.post("/api/calendar/plan", wrap(async (_, res) => res.json(await planStudyBlocks(prisma))));
 
-// ---------- Goals ----------
-const goalInclude = { actions: { orderBy: { id: "asc" } }, logs: { orderBy: { createdAt: "desc" } } } satisfies Prisma.GoalInclude;
-app.get("/api/goals", wrap(async (_, res) => {
-  res.json(await prisma.goal.findMany({ include: goalInclude, orderBy: [{ status: "asc" }, { createdAt: "desc" }] }));
-}));
-app.post("/api/goals", wrap(async (req, res) => {
-  const { original, targetDate } = req.body;
-  if (!original?.trim()) return res.status(400).json({ error: "Write your goal first." });
-  const d = targetDate ? parseDate(targetDate) : null;
-  if (targetDate && !d) return res.status(400).json({ error: "Invalid date." });
-  res.json(await prisma.goal.create({ data: { original, targetDate: d }, include: goalInclude }));
-}));
-app.patch("/api/goals/:id", wrap(async (req, res) => {
-  const { original, refined, status } = req.body;
-  const data: Prisma.GoalUpdateInput = { original, refined, status };
-  if ("targetDate" in req.body) {
-    const targetDate = req.body.targetDate ? parseDate(req.body.targetDate) : null;
-    data.targetDate = targetDate;
-    if (req.body.targetDate && !targetDate) return res.status(400).json({ error: "Invalid date." });
-  }
-  const goal = await prisma.goal.update({ where: { id: id(req) }, data, include: goalInclude });
-  if (status === "achieved") await events.publish("GoalAchieved", { goalId: goal.id, text: goal.refined || goal.original });
-  res.json(goal);
-}));
-app.delete("/api/goals/:id", wrap(async (req, res) => {
-  await prisma.goal.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-app.post("/api/goals/:id/analyze", wrap(async (req, res) => {
-  const goal = await prisma.goal.findUnique({ where: { id: id(req) }, include: { actions: true } });
-  if (!goal) return res.status(404).json({ error: "Goal not found" });
-  const since = new Date(Date.now() - 14 * 86400000);
-  const sessions = await prisma.studySession.findMany({ where: { endedAt: { not: null }, startedAt: { gte: since } } });
-  const mins = sessions.reduce((a, s) => a + activeMs(s) / 60000, 0);
-  const out = await analyzeGoal({
-    goal: goal.original,
-    targetDate: goal.targetDate?.toISOString().slice(0, 10),
-    today: new Date().toISOString().slice(0, 10),
-    studyHours14d: (mins / 60).toFixed(1),
-    existingActions: goal.actions.map((a) => a.text),
-  });
-  const saved = await prisma.goal.update({
-    where: { id: goal.id },
-    data: { refined: out.refined, verdict: out.verdict, verdictNote: out.verdictNote, suggestion: out.suggestion, analyzedAt: new Date() },
-    include: goalInclude,
-  });
-  res.json({ goal: saved, actions: out.actions });
-}));
-app.post("/api/goals/:id/actions", wrap(async (req, res) => {
-  const texts: string[] = (req.body.texts ?? [req.body.text]).filter((t: string | undefined) => t?.trim());
-  await prisma.goalAction.createMany({ data: texts.map((text) => ({ text, goalId: id(req) })) });
-  res.json(await prisma.goal.findUnique({ where: { id: id(req) }, include: goalInclude }));
-}));
-app.patch("/api/goal-actions/:id", wrap(async (req, res) => {
-  const step = await prisma.goalAction.update({ where: { id: id(req) }, data: { done: req.body.done, text: req.body.text } });
-  if (req.body.done === true) await events.publish("GoalStepDone", { stepId: step.id, text: step.text });
-  res.json(step);
-}));
-app.delete("/api/goal-actions/:id", wrap(async (req, res) => {
-  await prisma.goalAction.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-app.post("/api/goals/:id/logs", wrap(async (req, res) => {
-  if (!req.body.text?.trim()) return res.status(400).json({ error: "Write what you did." });
-  await prisma.goalLog.create({ data: { text: req.body.text, goalId: id(req) } });
-  res.json(await prisma.goal.findUnique({ where: { id: id(req) }, include: goalInclude }));
-}));
-app.delete("/api/goal-logs/:id", wrap(async (req, res) => {
-  await prisma.goalLog.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
+// Goals, their actions and logs moved to Hono: src/modules/goals (P2-08)
 
 // ---------- AI ----------
 app.post("/api/ai/rewrite", wrap(async (req, res) => {

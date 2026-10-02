@@ -57,4 +57,22 @@ describe("goals", () => {
     await ok(del(`/api/goals/${g.id}`));
     expect((await ok(get("/api/goals"))).some((x) => x.id === g.id)).toBe(false);
   });
+
+  // P2-08: a goal, step or progress entry that doesn't exist is "not found" (it used to be a 500, or a null body)
+  it("answers 404 for a goal, step or progress entry that doesn't exist", async () => {
+    const checks = [
+      [await patch("/api/goals/999999", { refined: "x" }), "Goal not found."],
+      [await del("/api/goals/999999"), "Goal not found."],
+      [await post("/api/goals/999999/actions", { texts: ["a"] }), "Goal not found."],
+      [await post("/api/goals/999999/logs", { text: "did it" }), "Goal not found."],
+      [await post("/api/goals/999999/analyze"), "Goal not found."],
+      [await patch("/api/goal-actions/999999", { done: true }), "Goal step not found."],
+      [await del("/api/goal-actions/999999"), "Goal step not found."],
+      [await del("/api/goal-logs/999999"), "Progress entry not found."],
+    ];
+    for (const [r, message] of checks) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe(message);
+    }
+  });
 });

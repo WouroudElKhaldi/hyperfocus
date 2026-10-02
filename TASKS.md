@@ -60,6 +60,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-13 | **Reminders run on Hono** (`src/modules/reminders`), the third module on the CRUD factory. The old checks (`cleanReminder`) are now shared schemas (`CreateReminderInput`, `UpdateReminderInput`, `Reminder` in `@hyperfocus/shared`) with the same rules and messages: text trimmed and cut to length, "Pick a day and time." for a missing or impossible time, only the known repeats, first problem reported. `REMINDER_REPEATS` now lives in `@hyperfocus/shared/constants`, one list for the API and the website. Kept: moving a reminder into the future re-arms it, and deleting one that's already gone is a quiet `{ ok: true }`. P2 fix: changing a missing reminder is a 404 "Reminder not found." (was a 500). | 5 schema tests (26/26 shared) · full API suite **201/201** (a new 404 contract test) · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-08 | **Goals, their actions and progress logs run on Hono** (`src/modules/goals`): the CRUD factory for goals, plus six routes on the same router (AI analysis, add/tick/delete actions, add/delete logs). New shared schemas (`Goal`, `GoalAction`, `GoalLog`, `CreateGoalInput`, `UpdateGoalInput`, `AddGoalActionsInput`, `UpdateGoalActionInput`, `AddGoalLogInput`, `GoalAnalysis`) with the old messages ("Write your goal first.", "Invalid date.", "Write what you did."), and an empty date still clears it. `GoalAchieved` / `GoalStepDone` events kept. P2 fix: 8 cases of a missing goal, step or log entry now answer 404. The analysis still uses `analyzeGoal` until P2-05. Route-building helpers (`IdParam`, `body`, `json`, `problem`, `pathId`, `Ok`) are now exported by `http/crud.ts`, and the tasks module uses them too. | 3 schema tests (29/29 shared) · full API suite **202/202** (a new 404 contract test covering all 8 cases) · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -243,7 +245,7 @@ hyperfocus/
 | P2-05 | **AI gateway** in `packages/ai`: provider interface, DeepSeek adapter, prompt templates, timeouts, retries, typed outputs (Zod-parsed) | L | P2-01 | All `ai.js` functions ported, with fake-provider tests |
 | ✅ P2-06 | Port module: **notes** | S | P2-03 | Contract tests green against Hono |
 | ✅ P2-07 | Port module: **tasks + steps** | M | P2-03, P2-04 | " |
-| P2-08 | Port module: **goals + actions + logs** | M | P2-03 | " |
+| ✅ P2-08 | Port module: **goals + actions + logs** | M | P2-03 | " |
 | P2-09 | Port module: **skills** (+ suggest, plan, bulk) | M | P2-05 | " |
 | P2-10 | Port module: **study sessions** (state machine: running → paused → stopped) | M | P2-04 | State transitions unit-tested |
 | P2-11 | Port module: **books** (+ find, ask, chat) | M | P2-05 | " |

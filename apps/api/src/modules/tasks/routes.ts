@@ -1,18 +1,14 @@
-import { createRoute, z } from "@hono/zod-openapi";
+import { createRoute } from "@hono/zod-openapi";
 import { AddStepsInput, CreateTaskInput, Step, Task, UpdateStepInput, UpdateTaskInput } from "@hyperfocus/shared";
 import type { Prisma } from "@hyperfocus/db";
 import type { AppDeps } from "../../app.ts";
-import { crudRouter, parseId } from "../../http/crud.ts";
+import { IdParam, Ok, body, crudRouter, json, pathId, problem } from "../../http/crud.ts";
 import { compact, httpError, orNull } from "../../types.ts";
 
 // Tasks and their tiny steps (P2-07). Same answers as the Express routes had, plus the P2 fix: a task or step that
 // doesn't exist is a 404 ("Task not found." / "Step not found.") instead of a 500 or a `null` body.
 
 const taskInclude = { steps: { orderBy: { id: "asc" } } } satisfies Prisma.TaskInclude;
-const Ok = z.object({ ok: z.literal(true) });
-const IdParam = z.object({ id: z.string().openapi({ param: { name: "id", in: "path" }, example: "12" }) });
-const json = (schema: z.ZodType, description: string) => ({ description, content: { "application/json": { schema } } });
-const notFound = (description: string) => ({ description, content: { "application/problem+json": { schema: z.object({ status: z.number(), error: z.string() }) } } });
 
 export function tasksRouter({ prisma, events }: AppDeps) {
   const app = crudRouter({
@@ -46,44 +42,38 @@ export function tasksRouter({ prisma, events }: AppDeps) {
     },
   });
 
-  const idOr404 = (raw: string | undefined, message: string) => {
-    const id = parseId(raw ?? "");
-    if (id === null) throw httpError(404, message);
-    return id;
-  };
-
   // ---------- steps ----------
   const addSteps = createRoute({
     method: "post", path: "/api/tasks/{id}/steps", tags: ["Tasks"], summary: "Add tiny steps to a task (several at once, or one)",
-    request: { params: IdParam, body: { content: { "application/json": { schema: AddStepsInput } }, required: true } },
-    responses: { 200: json(Task, "The task with all its steps"), 404: notFound("No such task") },
+    request: { params: IdParam, body: body(AddStepsInput) },
+    responses: { 200: json(Task, "The task with all its steps"), 404: problem("No such task") },
   });
   app.openapi(addSteps, async (c) => {
-    const taskId = idOr404(c.req.param("id"), "Task not found.");
+    const taskId = pathId(c.req.param("id"), "Task not found.");
     if (!(await prisma.task.findUnique({ where: { id: taskId }, select: { id: true } }))) throw httpError(404, "Task not found.");
-    const body = c.req.valid("json");
-    const texts = "steps" in body ? body.steps : [body.text];
+    const input = c.req.valid("json");
+    const texts = "steps" in input ? input.steps : [input.text];
     await prisma.step.createMany({ data: texts.filter(Boolean).map((text) => ({ text, taskId })) }); // empty ones are skipped
     return c.json(await prisma.task.findUniqueOrThrow({ where: { id: taskId }, include: taskInclude }), 200);
   });
 
   const tickStep = createRoute({
     method: "patch", path: "/api/steps/{id}", tags: ["Tasks"], summary: "Tick or untick a step",
-    request: { params: IdParam, body: { content: { "application/json": { schema: UpdateStepInput } }, required: true } },
-    responses: { 200: json(Step, "The step"), 404: notFound("No such step") },
+    request: { params: IdParam, body: body(UpdateStepInput) },
+    responses: { 200: json(Step, "The step"), 404: problem("No such step") },
   });
   app.openapi(tickStep, async (c) => {
-    const step = await orNull(prisma.step.update({ where: { id: idOr404(c.req.param("id"), "Step not found.") }, data: compact(c.req.valid("json")) }));
+    const step = await orNull(prisma.step.update({ where: { id: pathId(c.req.param("id"), "Step not found.") }, data: compact(c.req.valid("json")) }));
     if (!step) throw httpError(404, "Step not found.");
     return c.json(step, 200);
   });
 
   const deleteStep = createRoute({
     method: "delete", path: "/api/steps/{id}", tags: ["Tasks"], summary: "Delete a step",
-    request: { params: IdParam }, responses: { 200: json(Ok, "Deleted"), 404: notFound("No such step") },
+    request: { params: IdParam }, responses: { 200: json(Ok, "Deleted"), 404: problem("No such step") },
   });
   app.openapi(deleteStep, async (c) => {
-    const { count } = await prisma.step.deleteMany({ where: { id: idOr404(c.req.param("id"), "Step not found.") } });
+    const { count } = await prisma.step.deleteMany({ where: { id: pathId(c.req.param("id"), "Step not found.") } });
     if (!count) throw httpError(404, "Step not found.");
     return c.json({ ok: true as const }, 200);
   });

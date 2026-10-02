@@ -46,20 +46,29 @@ export type CrudDefinition<Q extends z.ZodObject, C extends z.ZodType, U extends
 // route types can't follow, so the checked values are read here, in one place, with the type the schema gives them.
 const checked = <T>(c: Context, part: "json" | "query"): T => c.req.valid(part as never) as T;
 
-const Ok = z.object({ ok: z.literal(true) }).openapi("Ok");
-const IdParam = z.object({ id: z.string().openapi({ param: { name: "id", in: "path" }, example: "12" }) });
-const json = (schema: z.ZodType, description: string) => ({ description, content: { "application/json": { schema } } });
-const problem = (description: string) => ({ description, content: { "application/problem+json": { schema: z.object({ status: z.number(), error: z.string() }) } } });
+// Building blocks for module routes beyond the five the factory makes (like POST /api/tasks/{id}/steps).
+export const Ok = z.object({ ok: z.literal(true) }).openapi("Ok");
+export const IdParam = z.object({ id: z.string().openapi({ param: { name: "id", in: "path" }, example: "12" }) });
+/** A JSON response in a route definition. */
+// (response schemas document the route; they are not used to type the handler, because the database returns plain strings
+// where a schema lists allowed values, like a task's priority)
+export const json = (schema: z.ZodType, description: string) => ({ description, content: { "application/json": { schema } } });
+/** A JSON request body in a route definition. */
+export const body = <S extends z.ZodType>(schema: S) => ({ content: { "application/json": { schema } }, required: true as const });
+/** An error response in a route definition. */
+export const problem = (description: string) => ({ description, content: { "application/problem+json": { schema: z.object({ status: z.number(), error: z.string() }) } } });
+/** The record id from the path, or a 404 with `notFound` when it can't be a record id. */
+export const pathId = (raw: string | undefined, notFound: string) => {
+  const id = parseId(raw ?? "");
+  if (id === null) throw httpError(404, notFound);
+  return id;
+};
 
 export function crudRouter<Q extends z.ZodObject = z.ZodObject<{}>, C extends z.ZodType = z.ZodNever, U extends z.ZodType = z.ZodNever>(def: CrudDefinition<Q, C, U>) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   const { path, tag, name, store } = def;
   const one = `${path}/{id}`;
-  const idOf = (raw: string) => {
-    const id = parseId(raw);
-    if (id === null) throw httpError(404, def.notFound);
-    return id;
-  };
+  const idOf = (raw: string) => pathId(raw, def.notFound);
   const found = <T>(row: T | null) => {
     if (row === null) throw httpError(404, def.notFound);
     return row;

@@ -5,6 +5,7 @@ import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
 import { defaultHook } from "./http/validation.ts";
+import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { remindersRouter } from "./modules/reminders/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
@@ -61,6 +62,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", notesRouter(deps));
   app.route("/", tasksRouter(deps));
   app.route("/", remindersRouter(deps));
+  app.route("/", goalsRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {
