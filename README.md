@@ -22,6 +22,10 @@ pnpm typecheck  # TypeScript, strict (shared configs in packages/config)
 pnpm check      # lint + typecheck + tests, what CI runs
 ```
 Tests run against a throwaway database with fake AI and n8n, so they never touch your data, spend credits or post anything.
+GitHub Actions runs the same checks on every push and pull request (`.github/workflows/ci.yml`).
+
+A git hook (lefthook, installed by `pnpm install`) lints your staged files and typechecks the packages you changed before each
+commit (`lefthook.yml`). It takes a second or two. `git commit --no-verify` skips it once.
 
 ## Config (`apps/api/.env`)
 - `DEEPSEEK_API_KEY` – from https://platform.deepseek.com/api_keys

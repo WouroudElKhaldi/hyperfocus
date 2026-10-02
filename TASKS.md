@@ -41,6 +41,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ⏳ P1-08 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml): on every push to `main` and every pull request it installs (pnpm from `packageManager`, Node 24, pnpm store cached), restores the Turborepo cache (`.turbo/cache`, as in Turborepo's own GitHub Actions guide), then runs typecheck → lint → API tests (unit + contract) → the route check → browser tests on Playwright's Chromium. A failed run keeps the browser report for 14 days. Needs no secrets: the tests use fakes. Newer pushes cancel older runs of the same branch. **Needs you:** it runs for the first time when you push, and making it a required check is a GitHub setting (Settings → Branches → protect `main` → require the "Typecheck, lint and tests" check). | Written, not run yet (no push from here) |
 
+| 2026-10-02 | ✅ P1-09 | Pre-commit hook with **lefthook 2.1** ([`lefthook.yml`](lefthook.yml)), installed automatically by `pnpm install` (its install script is approved in `pnpm-workspace.yaml`). Before each commit: Biome lints the staged files, and Turborepo typechecks only the packages with staged changes. A change in `packages/shared` or `packages/db` also checks the apps that use them. Jobs run in parallel, and Turbo's cache makes unchanged packages instant. `git commit --no-verify` skips it once. README updated. | Planted type error in a staged website file: hook failed (exit 1), only the website typecheck ran, the other packages were skipped · this commit went through the hook |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -209,8 +211,8 @@ hyperfocus/
 | ✅ P1-05 | Convert **apps/api** JS → TS file by file, behaviour unchanged (`tsx watch` in dev, `tsup` build) | L | P1-02 | 0 `any` in new code (`// TODO(types)` allowed temporarily). Tests green. |
 | ✅ P1-06 | Convert **apps/web** JS → TS/TSX page by page, behaviour unchanged | L | P1-02 | `tsc --noEmit` clean, Playwright green |
 | ✅ P1-07 | Rename packages from `thought-studio` → `@hyperfocus/*` | S | P1-01 | – |
-| P1-08 | **GitHub Actions CI**: install → typecheck → lint → unit → contract → Playwright, with Turbo cache | M | P1-05 | Required check on `main` |
-| P1-09 | Pre-commit hook (lefthook): biome + typecheck on staged packages | S | P1-02 | – |
+| ⏳ P1-08 | **GitHub Actions CI**: install → typecheck → lint → unit → contract → Playwright, with Turbo cache | M | P1-05 | Required check on `main` |
+| ✅ P1-09 | Pre-commit hook (lefthook): biome + typecheck on staged packages | S | P1-02 | – |
 | P1-10 | Typed **config module** (`packages/shared/config` with a Zod-validated env). Merge root and server `.env` into one source. | S | P1-05 | App refuses to start with a clear message if env is invalid |
 
 ## Phase 2: Backend re-architecture (Express → Hono, modular monolith)

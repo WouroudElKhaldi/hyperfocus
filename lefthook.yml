@@ -1,0 +1,31 @@
+# Git hooks (P1-09). Installed automatically by `pnpm install`; see https://lefthook.dev/configuration/
+# Before each commit: lint the staged files, and typecheck only the packages that have staged changes (plus the ones that
+# use them, so a change in packages/shared also checks both apps). Turborepo caches results, so unchanged packages are instant.
+# Skip once in an emergency with `git commit --no-verify` (CI runs the same checks anyway).
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint staged files
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,json,jsonc}"
+      run: pnpm exec biome lint --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
+    - name: typecheck api
+      root: "apps/api/"
+      glob: "*.{ts,js,mjs}"
+      run: pnpm exec turbo run typecheck --filter=@hyperfocus/api --output-logs=errors-only
+
+    - name: typecheck web
+      root: "apps/web/"
+      glob: "*.{ts,tsx,js,mjs}"
+      run: pnpm exec turbo run typecheck --filter=@hyperfocus/web --output-logs=errors-only
+
+    - name: typecheck shared (and the apps that use it)
+      root: "packages/shared/"
+      glob: "*.{ts,js,mjs}"
+      run: pnpm exec turbo run typecheck --filter=...@hyperfocus/shared --output-logs=errors-only
+
+    - name: typecheck db (and the API that uses it)
+      root: "packages/db/"
+      glob: "*.{ts,js,mjs,prisma}"
+      run: pnpm exec turbo run typecheck --filter=...@hyperfocus/db --output-logs=errors-only
