@@ -50,9 +50,17 @@ describe("notes", () => {
     expect((await ok(get("/api/notes"))).some((x) => x.id === n.id)).toBe(false);
   });
 
-  // KNOWN (P2): Prisma's "record not found" is not mapped, so a missing id gives 500 instead of 404.
-  it("currently answers 500 when updating or deleting a missing note", async () => {
-    expect((await patch("/api/notes/999999", { title: "x" })).status).toBe(500);
-    expect((await del("/api/notes/999999")).status).toBe(500);
+  // Fixed in P2-06 (it used to be a 500): a missing or impossible id is "not found".
+  it("answers 404 when updating or deleting a note that doesn't exist", async () => {
+    for (const r of [await patch("/api/notes/999999", { title: "x" }), await del("/api/notes/999999"), await del("/api/notes/abc")]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("Note not found.");
+    }
+  });
+
+  it("refuses a field of the wrong type with a 400 (it used to reach the database and fail with a 500)", async () => {
+    const n = await ok(post("/api/notes", { body: "typed" }));
+    expect((await patch(`/api/notes/${n.id}`, { pinned: "yes" })).status).toBe(400);
+    expect((await post("/api/notes", { body: 42 })).status).toBe(400);
   });
 });

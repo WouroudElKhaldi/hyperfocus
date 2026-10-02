@@ -51,6 +51,9 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-02 | **OpenAPI + API docs.** The Hono app is an `OpenAPIHono` (`@hono/zod-openapi` 1.6, Zod 4). Routes are declared with `createRoute()` and Zod schemas: one schema checks the request, types the handler and documents the route. A request that breaks a schema gets a **400 problem+json with the schema's own message**, so the error texts the API uses today carry over when routes move. `/api/openapi.json` is the OpenAPI 3.1 document; **`/api/docs`** is the Scalar reference page. `/api/health` is documented with a `Health` schema. The route checker understands `createRoute` and `doc31`; the contract tests cover both new routes and `X-Request-Id`. | 3 more in-process tests (38/38 API unit): spec built from the schemas, docs page, schema validation → 400 with the message · real-process smoke: openapi.json 200 (3.1.0) and docs page 200 HTML · 127/127 routes · typecheck · lint · the docs page loads Scalar from a CDN, so viewing it in a browser waits for the restart · **full API suite 187/187** (21 files, the 3 new contract tests included) |
 
+| 2026-10-02 | 🔄 P2-03 | **CRUD router factory** (`src/http/crud.ts`): give it the Zod schemas and a small store, and it builds list / get / create / update / delete as documented OpenAPI routes, with the same answers everywhere: the record as JSON, `{ ok: true }` after a delete, **404 "… not found."** for a missing or impossible id, and 400 with the schema's message for a bad body. Only the operations the store provides become routes, so porting never adds a route. Helpers: `orNull` (Prisma's "not found" becomes null) and `compact` (a partial update touches only the fields sent). The shared validation hook moved to `src/http/validation.ts`. The route checker now reads Hono's real route table, so routes built in code are counted too. **Open:** "used by ≥3 modules" (1 so far: notes). | 6 in-process tests (all five operations with a query filter, 404 messages, schema messages, only-provided-routes, OpenAPI paths, strict ids) |
+| 2026-10-02 | ✅ P2-06 | **Notes run on Hono** (`src/modules/notes`), the first module ported, built on the factory and the shared `@hyperfocus/shared` schemas from P1-04. Same list order, kind filter, post links and capture points. Two planned P2 fixes: a missing id is now **404 "Note not found."** (was a 500, recorded as a known issue in P0), and a wrongly typed field is a 400 instead of reaching the database. Notes are removed from Express. | Full API suite **188/188**, including the unchanged response-shape snapshots · contract test changed from "currently 500" to 404 and a 400 test added · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -58,7 +61,7 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 **⏳ Needs you: restart the computer, then run `pnpm test:e2e`.** On 2026-10-02 Windows ran out of temporary network ports: 15,846 of 16,384 were stuck in TIME_WAIT and never expired (the PC had been up since 2026-08-22). New local connections then hang, so the browser suite can't start its servers. A restart clears it. It isn't a code problem: the full API suite passes (187/187 after P2-02, about 5 ports per run). Only the **browser suite** hasn't been re-run since P1-05 (API) and P1-06 (website), because Chrome and Vite open thousands of connections. **Please run `pnpm test` after the restart** (API suite + browser suite); both changes are type-level and the build passes, so failures are unlikely, but this is the check that proves it.
 
 **Known issues found (recorded as tests, fixed later in the phase named):**
-- P2: a missing id on update/delete gives **500** instead of 404 (Prisma "not found" not mapped).
+- P2: a missing id on update/delete gives **500** instead of 404 (Prisma "not found" not mapped). **Fixed for notes (P2-06)**; each module gets the fix as it moves to Hono.
 - P2-16: `textOf` leaves invisible non-breaking spaces in plain-text email bodies (its `&nbsp;` replace never matches).
 - P2-11: "find free copies" of a book calls the internet, so only its 404 path is tested. Needs a fake.
 - Vite's first-ever run re-optimises dependencies and restarts once. One E2E run hit it; cached since.
@@ -229,10 +232,10 @@ hyperfocus/
 |---|---|---|---|---|
 | ✅ P2-01 | `apps/api` skeleton: `createApp(deps)` composition root, Hono, error middleware (problem+json), request ID, structured logging (pino) | M | P1-05 | Health route served by Hono **alongside** Express (strangler: Hono mounts first, falls through to Express) |
 | ✅ P2-02 | OpenAPI setup (`@hono/zod-openapi`) + Scalar API docs at `/api/docs` | S | P2-01 | Docs render |
-| P2-03 | **CRUD router factory** (list/get/create/update/delete from a Zod schema + repository) | M | P2-01 | Unit-tested, used by ≥3 modules |
+| 🔄 P2-03 | **CRUD router factory** (list/get/create/update/delete from a Zod schema + repository) | M | P2-01 | Unit-tested, used by ≥3 modules |
 | P2-04 | **Domain event bus** (in-process, typed) + `TaskCompleted`, `StudySessionEnded`, `WinAdded`, `PostPublished`, … | M | P2-01 | Pet XP moves to subscribers. All 16 `award*` call sites are replaced. |
 | P2-05 | **AI gateway** in `packages/ai`: provider interface, DeepSeek adapter, prompt templates, timeouts, retries, typed outputs (Zod-parsed) | L | P2-01 | All `ai.js` functions ported, with fake-provider tests |
-| P2-06 | Port module: **notes** | S | P2-03 | Contract tests green against Hono |
+| ✅ P2-06 | Port module: **notes** | S | P2-03 | Contract tests green against Hono |
 | P2-07 | Port module: **tasks + steps** | M | P2-03, P2-04 | " |
 | P2-08 | Port module: **goals + actions + logs** | M | P2-03 | " |
 | P2-09 | Port module: **skills** (+ suggest, plan, bulk) | M | P2-05 | " |

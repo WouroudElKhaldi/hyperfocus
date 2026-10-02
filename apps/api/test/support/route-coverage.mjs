@@ -8,15 +8,20 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 // every file under dir, sub-folders included (routes move into module folders as they are ported to Hono)
 const read = (dir, ext) => fs.readdirSync(path.join(root, dir), { recursive: true }).filter((f) => f.endsWith(ext)).map((f) => fs.readFileSync(path.join(root, dir, f), "utf8")).join("\n");
 
-const src = read("src", ".ts");
-const routes = [
-  // Express and plain Hono routes: app.get("/api/...", ...)
-  ...[...src.matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p })),
-  // Hono OpenAPI routes: createRoute({ method: "get", path: "/api/..." }); OpenAPI writes path params as {id}
-  ...[...src.matchAll(/createRoute\(\{\s*method:\s*"(\w+)",\s*path:\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p.replace(/\{(\w+)\}/g, ":$1") })),
-  // the OpenAPI document itself: app.doc31("/api/openapi.json", ...)
-  ...[...src.matchAll(/app\.doc(?:31)?\(\s*"([^"]+)"/g)].map(([, p]) => ({ method: "GET", path: p })),
-];
+// The Hono routes come from the app itself (its route table), so routes built in code (like the CRUD factory's) count.
+// Importing the API can check settings (src/config.ts), so give it a database address that is never opened.
+process.env.DATABASE_URL ||= "file:./route-check-never-opened.db";
+const { createApp } = await import("../../src/app.ts");
+const { pino } = await import("pino");
+const stubConfig = { deepseek: {}, gmail: {} };
+const hono = createApp({ config: stubConfig, prisma: {}, log: pino({ level: "silent" }) });
+const honoRoutes = hono.routes.filter((r) => r.method !== "ALL").map((r) => ({ method: r.method, path: r.path }));
+
+// Express routes are still found in the source: app.get("/api/...", ...) in the files Express uses
+const expressRoutes = [...read("src", ".ts").matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p }));
+
+const seen = new Set();
+const routes = [...honoRoutes, ...expressRoutes].filter((r) => !seen.has(`${r.method} ${r.path}`) && seen.add(`${r.method} ${r.path}`));
 
 // every call in the tests, with ${...} expressions turned into a placeholder
 const tests = read("test/contract", ".test.js");

@@ -26,3 +26,17 @@ export const errorInfo = (e: unknown): { status?: number; message: string; code?
 /** A study session's active milliseconds (its length minus breaks). Dates are subtracted by their time value. */
 export const activeMs = (s: { startedAt: Date; endedAt: Date | null; breakMs: number }): number =>
   (s.endedAt ? s.endedAt.getTime() : 0) - s.startedAt.getTime() - s.breakMs;
+
+/** Runs a Prisma call that targets one record and gives null when that record doesn't exist (Prisma error P2025). */
+export async function orNull<T>(query: Promise<T>): Promise<T | null> {
+  try {
+    return await query;
+  } catch (e) {
+    if (errorInfo(e).code === "P2025") return null;
+    throw e;
+  }
+}
+
+/** Drops the fields that are undefined (not sent), so a partial update only touches the fields it was given. */
+export const compact = <T extends object>(o: T) =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as { [K in keyof T]?: Exclude<T[K], undefined> };

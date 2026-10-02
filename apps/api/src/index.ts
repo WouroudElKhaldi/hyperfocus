@@ -50,28 +50,7 @@ const wrap: Wrap = (fn) => (req, res) => {
 };
 const id = (req: Request) => Number(req.params.id);
 
-// ---------- Notes ----------
-app.get("/api/notes", wrap(async (req, res) => {
-  const where = req.query.kind ? { kind: String(req.query.kind) } : {};
-  const notes = await prisma.note.findMany({ where, orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], include: { posts: { select: { id: true, status: true } } } });
-  // a note counts as "posted" once a post made from it is published
-  res.json(notes.map(({ posts, ...n }) => ({ ...n, postIds: posts.map((p) => p.id), posted: posts.some((p) => p.status === "posted") })));
-}));
-app.post("/api/notes", wrap(async (req, res) => {
-  const { kind = "thought", title = "", body } = req.body;
-  if (!body?.trim()) return res.status(400).json({ error: "Write something first." });
-  const note = await prisma.note.create({ data: { kind, title, body } });
-  await awardCapture(prisma, "thought", note.id);
-  res.json(note);
-}));
-app.patch("/api/notes/:id", wrap(async (req, res) => {
-  const { kind, title, body, pinned, archived } = req.body;
-  res.json(await prisma.note.update({ where: { id: id(req) }, data: { kind, title, body, pinned, archived } }));
-}));
-app.delete("/api/notes/:id", wrap(async (req, res) => {
-  await prisma.note.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
+// Notes moved to Hono: src/modules/notes (P2-06)
 
 // ---------- Tasks ----------
 const taskInclude = { steps: { orderBy: { id: "asc" } } } satisfies Prisma.TaskInclude;

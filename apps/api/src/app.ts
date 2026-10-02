@@ -4,7 +4,9 @@ import type { ApiConfig } from "@hyperfocus/shared/config";
 import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
-import { type Db, httpError } from "./types.ts";
+import { defaultHook } from "./http/validation.ts";
+import { notesRouter } from "./modules/notes/routes.ts";
+import type { Db } from "./types.ts";
 
 // The composition root (P2-01). Everything a route needs comes in through `deps`, so tests can pass fakes and nothing
 // reaches for globals. Routes move here from Express one module at a time (P2-06 … P2-21); until then Express answers
@@ -36,12 +38,7 @@ const healthRoute = createRoute({
 
 export function createApp(deps: AppDeps) {
   const { config, log } = deps;
-  // a request that doesn't match a route's schema gets a 400 with the schema's own message (the same text the API used before)
-  const app = new OpenAPIHono<AppEnv>({
-    defaultHook: (result, c) => {
-      if (!result.success) return problemResponse(c, httpError(400, result.error.issues[0]?.message ?? "That request isn't valid."));
-    },
-  });
+  const app = new OpenAPIHono<AppEnv>({ defaultHook }); // a request that breaks a schema gets a 400 with its message
 
   // an id per request: taken from the caller's X-Request-Id when it sends one, otherwise made here
   app.use(requestId());
@@ -56,6 +53,9 @@ export function createApp(deps: AppDeps) {
   app.onError((err, c) => problemResponse(c, err));
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
+
+  // ---------- modules (moved from Express) ----------
+  app.route("/", notesRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {
