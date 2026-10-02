@@ -9,6 +9,7 @@
     "build": "turbo run build",
     "test": "turbo run test && playwright test",
     "test:api": "turbo run test --filter=./apps/api",
+    "test:packages": "turbo run test --filter=./packages/*",
     "test:e2e": "playwright test",
     "lint": "turbo run lint //#lint:root",
     "lint:root": "biome lint e2e scripts playwright.config.js",

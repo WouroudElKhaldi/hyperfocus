@@ -190,6 +190,9 @@ importers:
       '@hono/zod-openapi':
         specifier: ^1.6.3
         version: 1.6.3(hono@4.13.12)(zod@4.6.5)
+      '@hyperfocus/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@hyperfocus/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -288,6 +291,28 @@ importers:
       vite:
         specifier: ^5.4.0
         version: 5.4.21(@types/node@24.19.0)(lightningcss@1.33.0)
+
+  packages/ai:
+    dependencies:
+      '@hyperfocus/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@hyperfocus/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24
+        version: 24.19.0
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@24.19.0)(vite@8.3.1(@types/node@24.19.0))
 
   packages/config: {}
 

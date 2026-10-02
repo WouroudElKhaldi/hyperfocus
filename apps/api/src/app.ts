@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
+import type { AiGateway } from "@hyperfocus/ai";
 import type { ApiConfig } from "@hyperfocus/shared/config";
 import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
@@ -24,7 +25,7 @@ import { type Db, httpError } from "./types.ts";
 // Routes are declared with createRoute() and Zod schemas (P2-02): the same schema checks the request, types the
 // handler and documents the route. The documentation is served at /api/docs (and the raw spec at /api/openapi.json).
 
-export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger; events: EventBus };
+export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
 export type AppEnv = { Variables: { requestId: string; log: Logger } };
 

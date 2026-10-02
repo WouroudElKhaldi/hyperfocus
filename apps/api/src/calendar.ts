@@ -1,5 +1,6 @@
 import type { Event } from "@hyperfocus/db";
-import { type AiJson, chat } from "./ai.ts";
+import { prompts } from "@hyperfocus/ai";
+import { ai } from "./ai.ts";
 import { activeMs, type Db } from "./types.ts";
 
 // Everything about the calendar lives here so the website, the reminders and the export all agree
@@ -114,35 +115,21 @@ export async function planStudyBlocks(prisma: Db) {
   const studied = Math.round(sessions.reduce((t, s) => t + activeMs(s), 0) / 60000);
   const gaps = skills.filter((s) => s.level > 0 && s.target > s.level).sort((a, b) => b.target - b.level - (a.target - a.level)).slice(0, 4);
 
-  const out = await chat(
-    [
-      {
-        role: "system",
-        content: `You help a software engineer with ADHD/autism traits and anxiety plan realistic study blocks for the next 7 days, on her way from mid to senior level (she follows a course program called SE Square).
-Choose 3 to 5 blocks ONLY inside the free windows given. Rules: each block 25 to 90 minutes; at most 2 blocks per day; leave at least 2 days with nothing or only one short block so she can rest; prefer a gentle start (short first block, not a huge one); never put a block outside its window. "title" starts with a verb and says what to do, using her goals, skill gaps, tasks or course work given (never invent courses). "why" is one short kind sentence.
-Reply ONLY with JSON: {"blocks": [{"day": "YYYY-MM-DD", "start": "HH:mm", "minutes": number, "title": string, "why": string}]}.`,
-      },
-      {
-        role: "user",
-        content: JSON.stringify({
-          today, freeWindows: windows, studyMinutesLast7Days: studied,
-          goals: goals.map((g) => g.refined || g.original), biggestSkillGaps: gaps.map((s) => s.name),
-          openTasks: tasks.map((t) => t.title),
-        }),
-      },
-    ],
-    { json: true, temperature: 0.4 },
-  );
+  const proposed = await ai.run(prompts.planStudy, {
+    today, freeWindows: windows, studyMinutesLast7Days: studied,
+    goals: goals.map((g) => g.refined || g.original), biggestSkillGaps: gaps.map((s) => s.name),
+    openTasks: tasks.map((t) => t.title),
+  });
 
   // never trust the AI with the clock: keep only blocks that really fit inside a free window
   const blocks: { day: string; startTime: string; endTime: string; minutes: number; title: string; why: string }[] = [];
-  for (const b of (Array.isArray(out.blocks) ? out.blocks : []) as AiJson[]) {
-    const minutes = Math.round(Number(b.minutes));
-    if (!DAY_RE.test(b.day || "") || !TIME_RE.test(b.start || "") || !(minutes >= 15 && minutes <= 120)) continue;
+  for (const b of proposed) {
+    const minutes = b.minutes;
+    if (!DAY_RE.test(b.day) || !TIME_RE.test(b.start) || !(minutes >= 15 && minutes <= 120)) continue;
     const s = toMin(b.start), e = s + minutes;
     const fits = windows.some((w) => w.day === b.day && s >= toMin(w.from) && e <= toMin(w.to));
     const clashes = blocks.some((x) => x.day === b.day && s < toMin(x.endTime) && e > toMin(x.startTime));
-    if (fits && !clashes) blocks.push({ day: b.day, startTime: b.start, endTime: toTime(e), minutes, title: String(b.title || "Study").slice(0, 80), why: String(b.why || "") });
+    if (fits && !clashes) blocks.push({ day: b.day, startTime: b.start, endTime: toTime(e), minutes, title: (b.title || "Study").slice(0, 80), why: b.why });
   }
   return { blocks: blocks.sort((a, b) => (a.day + a.startTime).localeCompare(b.day + b.startTime)).slice(0, 5), note: "" };
 }
@@ -150,28 +137,17 @@ Reply ONLY with JSON: {"blocks": [{"day": "YYYY-MM-DD", "start": "HH:mm", "minut
 // ---------- AI quick add ----------
 export async function parseEventText(text: string) {
   const now = new Date();
-  const out = await chat(
-    [
-      {
-        role: "system",
-        content: `You turn a short sentence into a calendar event. Today is ${ymd(now)} (${now.toLocaleDateString("en-US", { weekday: "long" })}). Resolve words like "tomorrow", "Friday" or "next week" from today.
-Rules: if no time is given, set "allDay" to true and leave startTime/endTime empty. If a start time is given without a length, make it 1 hour. Times are 24-hour "HH:mm". "category" is one of: ${CATEGORIES.join(", ")} (study for learning/courses, work for job things, health for doctor/sport, personal for the rest, else event). "repeat" is one of: ${REPEATS.join(", ")} ("every Monday" = weekly, "every day" = daily, "weekdays" = weekdays). Keep the title short and in her words. Never invent details she didn't say.
-Reply ONLY with JSON: {"title": string, "day": "YYYY-MM-DD", "allDay": boolean, "startTime": string, "endTime": string, "category": string, "repeat": string, "location": string}.`,
-      },
-      { role: "user", content: text },
-    ],
-    { json: true, temperature: 0.1 },
-  );
-  const allDay = !!out.allDay || !TIME_RE.test(out.startTime || "");
+  const out = await ai.run(prompts.parseEvent, { text, today: ymd(now), weekday: now.toLocaleDateString("en-US", { weekday: "long" }), categories: CATEGORIES, repeats: REPEATS });
+  const allDay = out.allDay || !TIME_RE.test(out.startTime);
   return {
-    title: String(out.title || text).slice(0, 120),
-    day: DAY_RE.test(out.day || "") ? out.day : ymd(now),
+    title: (out.title || text).slice(0, 120),
+    day: DAY_RE.test(out.day) ? out.day : ymd(now),
     allDay,
     startTime: allDay ? "" : out.startTime,
-    endTime: allDay || !TIME_RE.test(out.endTime || "") ? "" : out.endTime,
+    endTime: allDay || !TIME_RE.test(out.endTime) ? "" : out.endTime,
     category: CATEGORIES.includes(out.category) ? out.category : "event",
     repeat: REPEATS.includes(out.repeat) ? out.repeat : "none",
-    location: String(out.location || "").slice(0, 120),
+    location: out.location.slice(0, 120),
   };
 }
 

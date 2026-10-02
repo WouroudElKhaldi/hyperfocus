@@ -1,5 +1,6 @@
 import type { Book } from "@hyperfocus/db";
-import { type AiMessage, chat } from "./ai.ts";
+import { prompts } from "@hyperfocus/ai";
+import { type AiMessage, ai } from "./ai.ts";
 import { config } from "./config.ts";
 import { errorInfo, type UncheckedJson } from "./types.ts";
 
@@ -89,30 +90,10 @@ export async function findBook({ title, author }: { title: string; author: strin
   // The AI only judges which results are really this book and writes a summary. It never supplies links.
   let summary = "", whyForYou = "", foundAuthor = "", keep = candidates, aiNote = "";
   try {
-    const out = await chat(
-      [
-        {
-          role: "system",
-          content: `You help a software engineer (3 years of experience, moving from mid to senior) find books. You get the book she wants and a list of search results.
-Return ONLY JSON: {"matchIds": number[], "author": string, "summary": string, "whyForYou": string}.
-- matchIds: ids of results that are really this book (same work; other editions are fine). Exclude different books, study guides, summaries by other people, and other books with similar titles.
-- author: the book's main author if you are confident, else "".
-- summary: 2-3 plain sentences on what the book is about. If you are not sure what the book is, say so instead of guessing.
-- whyForYou: one sentence on why it could help a mid-level software engineer growing to senior, or "" if it isn't relevant.
-Never invent facts, quotes or links.`,
-        },
-        {
-          role: "user",
-          content: `Book: "${title}"${author ? ` by ${author}` : ""}\nResults:\n${candidates.map((c) => `${c.id}: "${c.title}" by ${c.authors.join(", ") || "?"} (${c.year || "?"}) [${c.source}]`).join("\n") || "(none)"}`,
-        },
-      ],
-      { json: true, temperature: 0.2 },
-    );
-    const matchIds: unknown = out.matchIds;
-    if (Array.isArray(matchIds)) keep = candidates.filter((c) => matchIds.includes(c.id));
-    summary = String(out.summary ?? "");
-    whyForYou = String(out.whyForYou ?? "");
-    foundAuthor = String(out.author ?? "");
+    const out = await ai.run(prompts.matchBook, { title, author, candidates });
+    const matchIds = out.matchIds;
+    if (matchIds) keep = candidates.filter((c) => matchIds.includes(c.id));
+    ({ summary, whyForYou, author: foundAuthor } = out);
   } catch (e) {
     aiNote = `AI step skipped: ${errorInfo(e).message}`;
   }
@@ -132,10 +113,6 @@ Never invent facts, quotes or links.`,
 }
 
 // ---------- asking the AI about one book ----------
-const ASK = `You answer questions about ONE book for a software engineer (about 3 years of experience, growing from mid to senior) who has ADHD/autism traits. Be clear and short: 2 to 6 sentences unless she asks for more, plain words, concrete examples. If she asks for a list, give 3 to 5 items.
-Be honest about what you know. Say plainly when you are not sure. NEVER invent quotes, page numbers, chapter titles, statistics or details about the book. You may use what you reliably know about the book and its ideas, and what she wrote in her own notes.
-If the question is not about this book, reading or learning, gently bring it back. Do not repeat a long summary unless she asks. Answer in the language of her question.`;
-
 export async function askAboutBook({ book, result, history, question, helps }: {
   book: Pick<Book, "title" | "author" | "status" | "notes">;
   result: string;
@@ -143,13 +120,7 @@ export async function askAboutBook({ book, result, history, question, helps }: {
   question: string;
   helps: string;
 }): Promise<string> {
-  let known = "";
-  try { const r = result ? JSON.parse(result) : null; if (r?.summary) known = `A summary written earlier by an AI (it may be wrong): ${r.summary}`; } catch { /* no saved search */ }
-  const context = `The book: "${book.title}"${book.author ? ` by ${book.author}` : ""}. Her status: ${book.status === "done" ? "finished it" : book.status === "reading" ? "reading it now" : "wants to read it"}.${book.notes ? ` Her own notes: ${book.notes}` : ""} ${known}${helps ? `\nWhat helps her, in her own words: ${helps}` : ""}`;
-  const messages = [
-    { role: "system", content: `${ASK}\n\n${context}` },
-    ...history.slice(-16).map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: question },
-  ];
-  return (await chat(messages, { temperature: 0.5 })).trim();
+  let knownSummary = "";
+  try { const r = result ? JSON.parse(result) : null; if (r?.summary) knownSummary = String(r.summary); } catch { /* no saved search */ }
+  return (await ai.run(prompts.askAboutBook, { book, knownSummary, history, question, helps })).trim();
 }

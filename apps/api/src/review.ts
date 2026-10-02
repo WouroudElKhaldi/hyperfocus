@@ -1,5 +1,6 @@
 import type { StudySession } from "@hyperfocus/db";
-import { chat } from "./ai.ts";
+import { prompts } from "@hyperfocus/ai";
+import { ai } from "./ai.ts";
 import type { Db } from "./types.ts";
 
 // The numbers come from her own data, computed here. The AI only narrates them and never produces figures.
@@ -75,33 +76,4 @@ export async function gatherWeek(prisma: Db) {
   return { stats, facts, label: `${day(from)} to ${day(now)}` };
 }
 
-export async function writeReview(facts: unknown) {
-  const out = await chat(
-    [
-      {
-        role: "system",
-        content: `You write a short, kind and honest weekly review for a 21-year-old software engineer (3 years of experience, working toward senior) with ADHD/autism traits, anxiety and procrastination.
-Use ONLY the facts given. Never invent activities, numbers or events. Quote numbers exactly as given. Minutes: show as hours and minutes.
-Tone: warm, specific, calm. Celebrate real wins. If the week was light, do not shame or pressure; say it plainly, normalise it, and suggest a tiny restart. Never use words like "failed", "lazy" or "should".
-Reply ONLY with JSON:
-{"headline": string (one warm sentence summing up the week),
- "wins": string[] (2-4 specific wins from the facts; if there truly are none, one gentle sentence about showing up by doing this review),
- "watch": string[] (0-2 gentle observations, like overdue tasks or no study days, phrased kindly),
- "priorities": [{"title": string (max 10 words, starts with a verb), "why": string (one short sentence)}] (exactly 3, chosen from her goals, overdue tasks, skill gaps and upcoming events),
- "tinyStart": string (a first step for priority 1 that takes under 2 minutes),
- "postIdea": string (one LinkedIn post idea based on something she really did or learned this week, or "" if nothing fits)}.`,
-      },
-      { role: "user", content: JSON.stringify(facts) },
-    ],
-    { json: true, temperature: 0.5 },
-  );
-  const arr = (x: unknown) => (Array.isArray(x) ? x.map(String) : []);
-  return {
-    headline: String(out.headline ?? ""),
-    wins: arr(out.wins),
-    watch: arr(out.watch),
-    priorities: (Array.isArray(out.priorities) ? out.priorities : []).slice(0, 3).map((p) => ({ title: String(p.title ?? ""), why: String(p.why ?? "") })).filter((p) => p.title),
-    tinyStart: String(out.tinyStart ?? ""),
-    postIdea: String(out.postIdea ?? ""),
-  };
-}
+export const writeReview = (facts: unknown) => ai.run(prompts.writeReview, { facts });

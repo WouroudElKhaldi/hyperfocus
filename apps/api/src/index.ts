@@ -23,7 +23,7 @@ import { createApp } from "./app.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
 import { activeMs, errorInfo, parseDate, type UncheckedJson, type Wrap } from "./types.ts";
-import { rewritePost, taskSteps, organize, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
+import { ai, rewritePost, taskSteps, organize, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
@@ -39,7 +39,7 @@ const app = express();
 app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
 // The new Hono app answers the routes it already has; Express answers the rest (P2-01, the strangler). It must come before
 // express.json(), so the requests Express answers still have an unread body.
-app.use(honoFirst(createApp({ config, prisma, log, events })));
+app.use(honoFirst(createApp({ config, prisma, log, events, ai })));
 app.use(express.json({ limit: "1mb" }));
 
 // The demo switch for the routes Express still answers (email, until P2-16). Hono has its own (app.ts).

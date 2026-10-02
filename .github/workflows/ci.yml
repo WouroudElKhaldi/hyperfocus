@@ -49,6 +49,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Package tests (shared schemas, AI gateway)
+        run: pnpm test:packages
+
       - name: API tests (unit + contract)
         run: pnpm test:api
 

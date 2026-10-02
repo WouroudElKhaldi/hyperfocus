@@ -15,7 +15,7 @@ export const HOOKS = [
 ];
 
 // Add hooks that worked for YOU here, plain text. The AI will copy their style (not their words).
-export const MY_HOOKS = [];
+export const MY_HOOKS: string[] = [];
 
 export const HOOK_RULES = `
 HOOK RULES (the opening decides whether anyone reads the rest):

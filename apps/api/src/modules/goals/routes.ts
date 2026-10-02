@@ -1,9 +1,9 @@
 import { createRoute } from "@hono/zod-openapi";
+import { prompts } from "@hyperfocus/ai";
 import type { Prisma } from "@hyperfocus/db";
 import {
   AddGoalActionsInput, AddGoalLogInput, CreateGoalInput, Goal, GoalAction, GoalAnalysis, UpdateGoalActionInput, UpdateGoalInput,
 } from "@hyperfocus/shared";
-import { analyzeGoal } from "../../ai.ts";
 import type { AppDeps } from "../../app.ts";
 import { IdParam, Ok, body, crudRouter, json, pathId, problem } from "../../http/crud.ts";
 import { activeMs, compact, httpError, orNull } from "../../types.ts";
@@ -14,7 +14,7 @@ import { activeMs, compact, httpError, orNull } from "../../types.ts";
 const goalInclude = { actions: { orderBy: { id: "asc" } }, logs: { orderBy: { createdAt: "desc" } } } satisfies Prisma.GoalInclude;
 const GOAL_404 = "Goal not found.";
 
-export function goalsRouter({ prisma, events }: AppDeps) {
+export function goalsRouter({ prisma, events, ai }: AppDeps) {
   const app = crudRouter({
     path: "/api/goals",
     tag: "Goals",
@@ -54,7 +54,7 @@ export function goalsRouter({ prisma, events }: AppDeps) {
       const since = new Date(Date.now() - 14 * 86400000);
       const sessions = await prisma.studySession.findMany({ where: { endedAt: { not: null }, startedAt: { gte: since } } });
       const mins = sessions.reduce((a, s) => a + activeMs(s) / 60000, 0);
-      const out = await analyzeGoal({
+      const out = await ai.run(prompts.analyzeGoal, {
         goal: goal.original,
         targetDate: goal.targetDate?.toISOString().slice(0, 10),
         today: new Date().toISOString().slice(0, 10),

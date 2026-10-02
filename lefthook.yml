@@ -29,3 +29,8 @@ pre-commit:
       root: "packages/db/"
       glob: "*.{ts,js,mjs,prisma}"
       run: pnpm exec turbo run typecheck --filter=...@hyperfocus/db --output-logs=errors-only
+
+    - name: typecheck ai (and the API that uses it)
+      root: "packages/ai/"
+      glob: "*.{ts,js,mjs}"
+      run: pnpm exec turbo run typecheck --filter=...@hyperfocus/ai --output-logs=errors-only

@@ -2,7 +2,8 @@ import type { EmailAttachment, Prisma } from "@hyperfocus/db";
 import express, { type Express, type Request } from "express";
 import nodemailer from "nodemailer";
 import sanitizeHtml from "sanitize-html";
-import { chat } from "./ai.ts";
+import { prompts } from "@hyperfocus/ai";
+import { ai } from "./ai.ts";
 import { config } from "./config.ts";
 import { jobSent } from "./jobs.ts";
 import { type Db, errorInfo, httpError as err, type UncheckedJson, type Wrap } from "./types.ts";
@@ -67,28 +68,14 @@ const checkAddrs = (label: string, list: string[]) => {
 // ---- the AI "fix my English" pass. It may only change words inside the text, never the layout. ----
 const tagsOf = (html: string) => (String(html).match(/<[^>]+>/g) || []).join("");
 export async function polishEmail({ subject, html }: { subject: string; html: string }) {
-  const out = await chat(
-    [
-      {
-        role: "system",
-        content: `You are a careful proofreader for an email written by a non-native English speaker. Make the SMALLEST edits that make it correct, natural English.
-You MUST fix EVERY one of these, none may be left: spelling, typos, wrong words, grammar, punctuation, and capitalization (the first letter of every sentence, the greeting, names, the word "I", the first letter of the subject line). Also fix repeated words. Also smooth clearly awkward or unnatural phrasing with the fewest words changed, the way a native speaker would say it.
-Keep EXACTLY: the meaning, the order of sentences, the tone, the greeting and sign-off wording, names, email addresses, links, numbers, dates, and the language she wrote in. Do not add or remove sentences, do not add pleasantries, do not make it more formal or more casual, do not "improve" her style.
-The body is HTML. Return the SAME HTML: every tag and attribute must stay exactly where it is. Change only the words inside the tags. Never touch <img> tags.
-If something is already fine, leave it unchanged. If the whole email is clean, return it exactly as it was.
-Reply ONLY with JSON: {"subject": string, "html": string, "changes": string[]} where "changes" lists each edit briefly, like "recieve -> receive" (empty array if none).`,
-      },
-      { role: "user", content: `Subject: ${subject || ""}\n\nBody HTML:\n${html}` },
-    ],
-    { json: true, temperature: 0.1 },
-  );
-  const newHtml = String(out.html ?? "");
-  const newSubject = String(out.subject ?? subject ?? "");
+  const out = await ai.run(prompts.polishEmail, { subject, html });
+  const newHtml = out.html;
+  const newSubject = out.subject ?? subject ?? "";
   const drift = Math.abs(textOf(newHtml).length - textOf(html).length) / Math.max(textOf(html).length, 1);
   if (!newHtml.trim() || tagsOf(newHtml) !== tagsOf(html) || drift > 0.25) {
     throw err(502, "The AI changed too much (or the formatting), so I kept your email as it is. Try again.");
   }
-  return { subject: subject ? newSubject : "", html: cleanHtml(newHtml), changes: Array.isArray(out.changes) ? out.changes.map(String) : [] };
+  return { subject: subject ? newSubject : "", html: cleanHtml(newHtml), changes: out.changes };
 }
 
 export function registerMail(app: Express, prisma: Db, wrap: Wrap, { demo = false }: { demo?: boolean } = {}): void {
