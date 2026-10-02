@@ -9,7 +9,7 @@ import type { Request } from "express";
 import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
 import { notify, getSettings, saveSettings, remind } from "./notify.ts";
-import { type Cleaned, petState, catalogState, cleanPet } from "./pet.ts";
+import type { Cleaned } from "./pet.ts";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { companionReply, isCrisis } from "./chat.ts";
@@ -336,26 +336,7 @@ app.put("/api/profile", wrap(async (req, res) => {
   res.json(cur ? await prisma.profile.update({ where: { id: cur.id }, data: d }) : await prisma.profile.create({ data: d }));
 }));
 
-// ---------- Companion pet ----------
-app.get("/api/pet", wrap(async (_, res) => res.json(await petState(prisma))));
-app.get("/api/pet/catalog", wrap(async (_, res) => res.json(catalogState())));
-app.post("/api/pet", wrap(async (req, res) => {
-  if (await prisma.pet.findFirst()) return res.status(409).json({ error: "You already have a pet." });
-  const c = cleanPet(req.body); // a new pet has earned nothing yet, so only the free clothes are available
-  if (c.error !== undefined) return res.status(400).json({ error: c.error });
-  await prisma.pet.create({ data: c.data });
-  res.json(await petState(prisma));
-}));
-app.patch("/api/pet", wrap(async (req, res) => {
-  const pet = await prisma.pet.findFirst();
-  if (!pet) return res.status(404).json({ error: "No pet yet." });
-  const state = await petState(prisma);
-  if (!state.pet) return res.status(404).json({ error: "No pet yet." }); // never: it was found just above
-  const c = cleanPet(req.body, state, true);
-  if (c.error !== undefined) return res.status(400).json({ error: c.error });
-  await prisma.pet.update({ where: { id: pet.id }, data: c.data });
-  res.json(await petState(prisma));
-}));
+// The companion pet moved to Hono: src/modules/pet (P2-19)
 
 // My reminders moved to Hono: src/modules/reminders (P2-13)
 

@@ -64,6 +64,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-10 | **The study log and timer run on Hono** (`src/modules/study`). The timer is now a **state machine of pure functions** (`session.ts`: running ⇄ paused → stopped, plus continue within 6 hours). Each rule returns "change these fields", "nothing to do" or "refuse with this message", and the routes just apply it. The time checks for a logged session and for edits ("never shorter", with a minute of slack) are pure functions too. Shared schemas `StudySession`, `CreateStudyInput`, `UpdateStudyInput` keep the old messages. `StudySessionEnded` is published only when a session really stops. P2 fix: editing, deleting, stopping or continuing a missing session is a 404 "Session not found." (editing was a 500); pausing or resuming one stays a 409 "This session isn't running.", as before. | 7 in-process state-machine tests · full API suite **210/210** (a new 404/409 contract test) · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-19 | **The companion pet runs on Hono** (`src/modules/pet/routes.ts`): its state, the catalog, choosing it and changing it. XP already comes from events (P2-04, `xp.ts`). The detailed pet rules and their messages stay in `cleanPet()` (species, colors, gender-fitting and unlocked clothes), so the request body is documented as a loose `PetFields` object. Same answers as before: 409 for a second pet, 404 "No pet yet.". | Full API suite **210/210** (the 10 pet contract tests: validation messages, one pet only, traits, wardrobe locks, XP once per achievement) · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -258,7 +260,7 @@ hyperfocus/
 | P2-16 | Port module: **emails + templates + attachments** (behind a `MailProvider` port, Gmail app-password adapter for now) | L | P2-03 | " |
 | P2-17 | Port module: **jobs (applications)** | S | P2-16 | " |
 | P2-18 | Port module: **chat** (threads, crisis safeguard kept and tested) | M | P2-05 | Crisis path has explicit tests |
-| P2-19 | Port module: **pet** (state, catalog, wardrobe) | M | P2-04 | " |
+| ✅ P2-19 | Port module: **pet** (state, catalog, wardrobe) | M | P2-04 | " |
 | P2-20 | Port module: **profile, settings, backups, notify, health, demo mode** (demo becomes a config flag) | M | P1-10 | " |
 | P2-21 | Replace `setInterval` loops with a **scheduler interface** (in-process for now, pg-boss in P4) | S | P2-13, P2-15 | Reminders, scheduler and backups still fire |
 | P2-22 | **Remove Express** once every route is served by Hono | S | P2-06…P2-21 | Express gone from deps, all tests green |

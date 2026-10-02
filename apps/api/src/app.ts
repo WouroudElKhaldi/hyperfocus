@@ -7,6 +7,7 @@ import { problemResponse } from "./http/problem.ts";
 import { defaultHook } from "./http/validation.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
+import { petRouter } from "./modules/pet/routes.ts";
 import { remindersRouter } from "./modules/reminders/routes.ts";
 import { studyRouter } from "./modules/study/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
@@ -65,6 +66,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", remindersRouter(deps));
   app.route("/", goalsRouter(deps));
   app.route("/", studyRouter(deps));
+  app.route("/", petRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {
