@@ -6,6 +6,7 @@ import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
 import { defaultHook } from "./http/validation.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
+import type { EventBus } from "./events.ts";
 import type { Db } from "./types.ts";
 
 // The composition root (P2-01). Everything a route needs comes in through `deps`, so tests can pass fakes and nothing
@@ -15,7 +16,7 @@ import type { Db } from "./types.ts";
 // Routes are declared with createRoute() and Zod schemas (P2-02): the same schema checks the request, types the
 // handler and documents the route. The documentation is served at /api/docs (and the raw spec at /api/openapi.json).
 
-export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger };
+export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger; events: EventBus };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
 export type AppEnv = { Variables: { requestId: string; log: Logger } };
 

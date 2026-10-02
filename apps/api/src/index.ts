@@ -9,7 +9,9 @@ import type { Request } from "express";
 import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
 import { notify, getSettings, saveSettings, remind } from "./notify.ts";
-import { award, awardAtLeast, awardCapture, type Cleaned, XP, taskXp, studyXp, PRIORITIES, petState, catalogState, cleanPet } from "./pet.ts";
+import { type Cleaned, PRIORITIES, petState, catalogState, cleanPet } from "./pet.ts";
+import { EventBus } from "./events.ts";
+import { petEarnsXp } from "./modules/pet/xp.ts";
 import { companionReply, isCrisis } from "./chat.ts";
 import type { AiMessage } from "./ai.ts";
 import { checkReminders, checkMyReminders, REMINDER_REPEATS } from "./reminders.ts";
@@ -30,11 +32,14 @@ const prisma = new PrismaClient({ datasourceUrl: config.databaseUrl });
 if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_API_KEY", "GMAIL_APP_KEY"]) delete process.env[k];
 // The one place the LinkedIn webhook address is read. In the demo it is always empty.
 const n8nUrl = () => config.n8nWebhookUrl;
+// Domain events (P2-04): routes say what happened, subscribers react. The pet earns its XP this way.
+const events = new EventBus((event, err) => log.error({ err, event }, "an event subscriber failed"));
+petEarnsXp(events, prisma);
 const app = express();
 app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
 // The new Hono app answers the routes it already has; Express answers the rest (P2-01, the strangler). It must come before
 // express.json(), so the requests Express answers still have an unread body.
-app.use(honoFirst(createApp({ config, prisma, log })));
+app.use(honoFirst(createApp({ config, prisma, log, events })));
 app.use(express.json({ limit: "1mb" }));
 
 // In the demo nothing can reach your real backups (they live in the project folder) or pop up notifications on this computer.
@@ -61,7 +66,7 @@ app.post("/api/tasks", wrap(async (req, res) => {
   if (!req.body.title?.trim()) return res.status(400).json({ error: "Task needs a title." });
   const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : "normal";
   const created = await prisma.task.create({ data: { title: req.body.title, today: !!req.body.today, dueDay: req.body.dueDay || null, priority }, include: taskInclude });
-  await awardCapture(prisma, "task", created.id);
+  await events.publish("TaskCaptured", { taskId: created.id });
   res.json(created);
 }));
 app.patch("/api/tasks/:id", wrap(async (req, res) => {
@@ -77,7 +82,7 @@ app.patch("/api/tasks/:id", wrap(async (req, res) => {
     data.doneAt = done ? new Date() : null;
   }
   const task = await prisma.task.update({ where: { id: id(req) }, data, include: taskInclude });
-  if (done === true) await award(prisma, `task:${task.id}`, "task", taskXp(task.priority), `Finished: ${task.title}`);
+  if (done === true) await events.publish("TaskCompleted", { taskId: task.id, title: task.title, priority: task.priority });
   res.json(task);
 }));
 app.delete("/api/tasks/:id", wrap(async (req, res) => {
@@ -128,12 +133,12 @@ app.post("/api/posts/:id/publish", wrap(async (req, res) => {
   const r = await sendToN8n(post);
   if (!r.ok) return res.status(502).json({ error: r.error });
   const posted = await prisma.post.update({ where: { id: post.id }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
-  await award(prisma, `post:${post.id}`, "post", XP.post, "Published a LinkedIn post");
+  await events.publish("PostPublished", { postId: post.id });
   res.json(posted);
 }));
 app.post("/api/posts/:id/mark-posted", wrap(async (req, res) => {
   const posted = await prisma.post.update({ where: { id: id(req) }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
-  await award(prisma, `post:${posted.id}`, "post", XP.post, "Published a LinkedIn post");
+  await events.publish("PostPublished", { postId: posted.id });
   res.json(posted);
 }));
 
@@ -209,7 +214,7 @@ async function runScheduler() {
       if (r.ok) {
         await prisma.post.update({ where: { id: p.id }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
         console.log(`Auto-posted post ${p.id}`);
-        await award(prisma, `post:${p.id}`, "post", XP.post, "Published a LinkedIn post");
+        await events.publish("PostPublished", { postId: p.id });
         remind(`posted:${p.id}`, "🎉 Your post is live on LinkedIn", (p.draft.split("\n")[0] || "").slice(0, 100));
       } else {
         const attempts = p.attempts + 1;
@@ -304,7 +309,7 @@ app.post("/api/study/:id/stop", wrap(async (req, res) => {
   // Stopping during a break ends the session when the break began, so the time you were away is never counted.
   const stopped = await prisma.studySession.update({ where: { id: cur.id }, data: { endedAt: cur.pausedAt ?? new Date(), pausedAt: null } });
   const activeMin = Math.round(activeMs(stopped) / 60000);
-  await awardAtLeast(prisma, `study:${stopped.id}`, "study", studyXp(activeMin), `Studied ${activeMin} min${stopped.course ? ": " + stopped.course : ""}`);
+  await events.publish("StudySessionEnded", { sessionId: stopped.id, activeMinutes: activeMin, course: stopped.course });
   res.json(stopped);
 }));
 app.delete("/api/study/:id", wrap(async (req, res) => {
@@ -357,7 +362,7 @@ app.get("/api/wins", wrap(async (_, res) => res.json(await allWins())));
 app.post("/api/wins", wrap(async (req, res) => {
   if (!req.body.text?.trim()) return res.status(400).json({ error: "Write what you did." });
   const w = await prisma.win.create({ data: { text: req.body.text.trim() } });
-  await award(prisma, `win:${w.id}`, "win", XP.win, w.text);
+  await events.publish("WinLogged", { winId: w.id, text: w.text });
   res.json(w);
 }));
 app.delete("/api/wins/:id", wrap(async (req, res) => {
@@ -392,7 +397,7 @@ app.post("/api/reviews", wrap(async (_, res) => {
   const { stats, facts, label } = await gatherWeek(prisma);
   const content = await writeReview(facts);
   const r = await prisma.review.create({ data: { label, stats: JSON.stringify(stats), content: JSON.stringify(content) } });
-  await award(prisma, `review:${r.id}`, "review", XP.review, "Did a weekly review");
+  await events.publish("ReviewWritten", { reviewId: r.id });
   res.json(reviewOut(r));
 }));
 app.delete("/api/reviews/:id", wrap(async (req, res) => {
@@ -423,7 +428,7 @@ app.patch("/api/skills/:id", wrap(async (req, res) => {
   if (req.body.target !== undefined) data.target = clampLevel(req.body.target) || 1;
   const before = await prisma.skill.findUnique({ where: { id: id(req) } });
   const skill = await prisma.skill.update({ where: { id: id(req) }, data });
-  if (before && skill.level > before.level) await award(prisma, `skill:${skill.id}:${skill.level}`, "skill", XP.skill, `Skill level up: ${skill.name}`);
+  if (before && skill.level > before.level) await events.publish("SkillLevelledUp", { skillId: skill.id, name: skill.name, level: skill.level });
   res.json(skill);
 }));
 app.delete("/api/skills/:id", wrap(async (req, res) => {
@@ -617,7 +622,7 @@ app.post("/api/books", wrap(async (req, res) => {
 app.patch("/api/books/:id", wrap(async (req, res) => {
   const { title, author, status, notes } = req.body;
   const book = await prisma.book.update({ where: { id: id(req) }, data: { title, author, status, notes } });
-  if (status === "done") await award(prisma, `book:${book.id}`, "book", XP.book, `Finished a book: ${book.title}`);
+  if (status === "done") await events.publish("BookFinished", { bookId: book.id, title: book.title });
   res.json(book);
 }));
 app.delete("/api/books/:id", wrap(async (req, res) => {
@@ -769,7 +774,7 @@ app.patch("/api/goals/:id", wrap(async (req, res) => {
     if (req.body.targetDate && !targetDate) return res.status(400).json({ error: "Invalid date." });
   }
   const goal = await prisma.goal.update({ where: { id: id(req) }, data, include: goalInclude });
-  if (status === "achieved") await award(prisma, `goal:${goal.id}`, "goal", XP.goal, `Reached a goal: ${(goal.refined || goal.original).slice(0, 80)}`);
+  if (status === "achieved") await events.publish("GoalAchieved", { goalId: goal.id, text: goal.refined || goal.original });
   res.json(goal);
 }));
 app.delete("/api/goals/:id", wrap(async (req, res) => {
@@ -803,7 +808,7 @@ app.post("/api/goals/:id/actions", wrap(async (req, res) => {
 }));
 app.patch("/api/goal-actions/:id", wrap(async (req, res) => {
   const step = await prisma.goalAction.update({ where: { id: id(req) }, data: { done: req.body.done, text: req.body.text } });
-  if (req.body.done === true) await award(prisma, `step:${step.id}`, "step", XP.step, `Goal step done: ${step.text}`);
+  if (req.body.done === true) await events.publish("GoalStepDone", { stepId: step.id, text: step.text });
   res.json(step);
 }));
 app.delete("/api/goal-actions/:id", wrap(async (req, res) => {

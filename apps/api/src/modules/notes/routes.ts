@@ -2,13 +2,12 @@ import { z } from "@hono/zod-openapi";
 import { CreateNoteInput, Note, NoteListItem, UpdateNoteInput } from "@hyperfocus/shared";
 import type { AppDeps } from "../../app.ts";
 import { crudRouter } from "../../http/crud.ts";
-import { awardCapture } from "../../pet.ts";
 import { compact, orNull } from "../../types.ts";
 
 // Notes ("Thoughts & ideas"), the first module on Hono (P2-06). Same answers as the Express routes had, with two fixes
 // planned for P2: a missing id is a 404 "Note not found." instead of a 500, and a wrongly typed field is a 400.
 
-export function notesRouter({ prisma }: AppDeps) {
+export function notesRouter({ prisma, events }: AppDeps) {
   return crudRouter({
     path: "/api/notes",
     tag: "Notes",
@@ -31,7 +30,7 @@ export function notesRouter({ prisma }: AppDeps) {
       },
       create: async (data) => {
         const note = await prisma.note.create({ data });
-        await awardCapture(prisma, "thought", note.id);
+        await events.publish("NoteCaptured", { noteId: note.id });
         return note;
       },
       update: (id, data) => orNull(prisma.note.update({ where: { id }, data: compact(data) })),
