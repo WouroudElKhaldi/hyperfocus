@@ -3,6 +3,7 @@ import express, { type Express, type Request } from "express";
 import nodemailer from "nodemailer";
 import sanitizeHtml from "sanitize-html";
 import { chat } from "./ai.ts";
+import { config } from "./config.ts";
 import { jobSent } from "./jobs.ts";
 import { type Db, errorInfo, httpError as err, type UncheckedJson, type Wrap } from "./types.ts";
 
@@ -14,7 +15,7 @@ const MAX_TOTAL = 24 * 1024 * 1024; // Gmail refuses messages over 25 MB
 const ADDR = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
 const ATT_URL = /\/api\/emails\/attachments\/(\d+)/;
 
-const cfg = () => ({ user: (process.env.GMAIL_USER || "").trim(), pass: (process.env.GMAIL_APP_KEY || "").replace(/\s+/g, "") });
+const cfg = () => ({ user: config.gmail.user, pass: config.gmail.appKey });
 
 // Everything the editor produces is run through this, so a pasted page can never smuggle in scripts.
 export const cleanHtml = (html: unknown): string =>
@@ -179,7 +180,7 @@ export function registerMail(app: Express, prisma: Db, wrap: Wrap, { demo = fals
   app.post("/api/emails/:id/send", wrap(async (req, res) => {
     if (demo) throw err(403, "Sending is switched off in the demo.");
     const { user, pass } = cfg();
-    if (!user || !pass) throw err(400, "Gmail is not set up. Add GMAIL_USER (your address) and GMAIL_APP_KEY (your app password) to apps/api/.env and restart.");
+    if (!user || !pass) throw err(400, "Gmail is not set up. Add GMAIL_USER (your address) and GMAIL_APP_KEY (your app password) to the .env file at the project root and restart.");
     // save what is on screen first, so what is sent is exactly what she sees
     if (req.body && req.body.html !== undefined) {
       const cur = await prisma.email.findUnique({ where: { id: id(req) } });

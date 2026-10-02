@@ -1,3 +1,4 @@
+import { config } from "./config.ts";
 import { playbookPrompt } from "./playbook.ts";
 import { httpError, type UncheckedJson } from "./types.ts";
 
@@ -6,23 +7,21 @@ export type AiMessage = { role: string; content: string };
 /** A JSON reply from the AI. Unchecked until P2-05 (see UncheckedJson). */
 export type AiJson = UncheckedJson;
 
-const URL = process.env.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions"; // the override is only for tests
-
 export async function chat(messages: AiMessage[], opts?: { json?: false; temperature?: number }): Promise<string>;
 export async function chat(messages: AiMessage[], opts: { json: true; temperature?: number }): Promise<AiJson>;
 export async function chat(messages: AiMessage[], { json = false, temperature = 0.7 }: { json?: boolean; temperature?: number } = {}): Promise<string | AiJson> {
-  if (process.env.DEMO_MODE) {
+  if (config.demo) {
     throw httpError(403, "The AI is switched off in this demo, so nobody can spend someone else's credits.");
   }
-  const key = process.env.DEMO_MODE ? "" : process.env.DEEPSEEK_API_KEY;
+  const key = config.deepseek.apiKey; // always empty in the demo
   if (!key) {
-    throw httpError(400, "DEEPSEEK_API_KEY is missing. Add it to apps/api/.env and restart.");
+    throw httpError(400, "DEEPSEEK_API_KEY is missing. Add it to the .env file at the project root and restart.");
   }
-  const res = await fetch(process.env.DEEPSEEK_URL || URL, {
+  const res = await fetch(config.deepseek.url, { // DEEPSEEK_URL overrides it only for tests
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+      model: config.deepseek.model,
       messages,
       temperature,
       ...(json ? { response_format: { type: "json_object" } } : {}),

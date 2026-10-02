@@ -1,5 +1,5 @@
+import { config } from "./config.ts"; // first: loads and checks the settings, and stops the app if they are wrong
 import { SECURITY_HEADERS } from "../../web/security-headers.mjs";
-import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import path from "node:path";
@@ -20,20 +20,13 @@ import { registerJobs } from "./jobs.ts";
 import { activeMs, errorInfo, type UncheckedJson, type Wrap } from "./types.ts";
 import { rewritePost, taskSteps, organize, analyzeGoal, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
-// Accept keys in apps/api/.env or in the project-root .env
-dotenv.config({ path: new URL("../.env", import.meta.url) });
-// Root values fill in anything still empty. They never override a value that is already set, so real environment
-// variables (and apps/api/.env) always win, and an empty value never wipes out a filled one.
-const rootEnv = dotenv.config({ path: new URL("../../../.env", import.meta.url), processEnv: {} }).parsed || {};
-for (const [k, v] of Object.entries(rootEnv)) if (v && !process.env[k]) process.env[k] = v;
-
-// DEMO_MODE is for showing the app to someone else. Secrets are removed so they can never be used or seen.
-const DEMO = !!process.env.DEMO_MODE;
-if (DEMO) process.env.NOTIFY_DRY_RUN = "1";
-const prisma = new PrismaClient(); // note: Prisma reads apps/api/.env itself at this point, so secrets are removed after it
+// DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
+// from the environment so nothing can ever read them.
+const DEMO = config.demo;
+const prisma = new PrismaClient({ datasourceUrl: config.databaseUrl });
 if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_API_KEY", "GMAIL_APP_KEY"]) delete process.env[k];
 // The one place the LinkedIn webhook address is read. In the demo it is always empty.
-const n8nUrl = () => (DEMO ? "" : process.env.N8N_WEBHOOK_URL || "");
+const n8nUrl = () => config.n8nWebhookUrl;
 const app = express();
 app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
 app.use(express.json({ limit: "1mb" }));
@@ -52,7 +45,7 @@ const wrap: Wrap = (fn) => (req, res) => {
 const id = (req: Request) => Number(req.params.id);
 
 app.get("/api/health", (_, res) =>
-  res.json({ ok: true, ai: !!process.env.DEEPSEEK_API_KEY, n8n: !!n8nUrl(), demo: DEMO }),
+  res.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!n8nUrl(), demo: DEMO }),
 );
 
 // ---------- Notes ----------
@@ -871,7 +864,7 @@ if (DEMO) {
   app.get(/^\/(?!api\/).*/, (_, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
-const port = Number(process.env.PORT) || 4000;
+const port = config.port;
 app.listen(port, "127.0.0.1", () => {
   console.log(`API on http://localhost:${port}${DEMO ? " (DEMO MODE)" : ""}`);
   if (DEMO) return; // no scheduler, reminders or automatic backups in the demo

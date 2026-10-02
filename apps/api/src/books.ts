@@ -1,5 +1,6 @@
 import type { Book } from "@hyperfocus/db";
 import { type AiMessage, chat } from "./ai.ts";
+import { config } from "./config.ts";
 import { errorInfo, type UncheckedJson } from "./types.ts";
 
 // Looks up real, legal sources. The AI never invents URLs: every link below comes from an API response.
@@ -46,7 +47,7 @@ async function openLibrary(title: string, author: string): Promise<Candidate[]> 
 async function googleBooks(title: string, author: string): Promise<Candidate[]> {
   const query = q(`intitle:${title}`) + (author ? "+" + q(`inauthor:${author}`) : "");
   // an optional free API key (GOOGLE_BOOKS_API_KEY in .env) avoids Google's strict limits for keyless requests
-  const key = !process.env.DEMO_MODE && process.env.GOOGLE_BOOKS_API_KEY ? `&key=${q(process.env.GOOGLE_BOOKS_API_KEY)}` : "";
+  const key = config.googleBooksApiKey ? `&key=${q(config.googleBooksApiKey)}` : ""; // always empty in the demo
   const d = await get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5&printType=books${key}`, 9000, 2);
   return ((d.items || []) as UncheckedJson[]).map((it) => {
     const v = it.volumeInfo || {}, a = it.accessInfo || {}, s = it.saleInfo || {};

@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { config } from "./config.ts";
 
 // Windows desktop notifications sent by the server, so they work even when the browser is closed.
-const SETTINGS_FILE = process.env.SETTINGS_FILE || fileURLToPath(new URL("../settings.json", import.meta.url));
+const SETTINGS_FILE = config.settingsFile || fileURLToPath(new URL("../settings.json", import.meta.url));
 export type Settings = { reminders: boolean; breakEveryMin: number; morningAt: string; sent: Record<string, number> };
 const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", sent: {} };
 
@@ -30,7 +31,7 @@ const esc = (s: string) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"
 // Resolves with { ok, error }. The PowerShell script is passed encoded so no quoting can break it.
 export function notify(title: string, body: string): Promise<{ ok: boolean; error?: string }> {
   return new Promise((resolve) => {
-    if (process.env.NOTIFY_DRY_RUN) { console.log(`[notify dry-run] ${title} | ${body}`); return resolve({ ok: true }); }
+    if (config.notifyDryRun) { console.log(`[notify dry-run] ${title} | ${body}`); return resolve({ ok: true }); }
     if (process.platform !== "win32") return resolve({ ok: false, error: "Desktop notifications are only set up for Windows." });
     const script = `
 $ProgressPreference = 'SilentlyContinue'

@@ -27,7 +27,11 @@ GitHub Actions runs the same checks on every push and pull request (`.github/wor
 A git hook (lefthook, installed by `pnpm install`) lints your staged files and typechecks the packages you changed before each
 commit (`lefthook.yml`). It takes a second or two. `git commit --no-verify` skips it once.
 
-## Config (`apps/api/.env`)
+## Config (`.env` at the project root)
+Copy `.env.example` to `.env` and fill it in. The API checks it at start-up and refuses to start, with a clear message, if a
+value is wrong (for example a PORT that isn't a number). Real environment variables win over the file. An old `apps/api/.env`
+is still read for now, but you can delete it once its values are in the root `.env`.
+
 - `DEEPSEEK_API_KEY` – from https://platform.deepseek.com/api_keys
 - `N8N_WEBHOOK_URL` – see `n8n/README.md`. Empty = the POST button copies the draft and opens LinkedIn.
 

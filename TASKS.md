@@ -10,7 +10,7 @@
 
 ## Progress
 
-Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591, P1-04 = 5f3aff5, P1-05 = f39825e, P1-06 = 66f81de).
+Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591, P1-04 = 5f3aff5, P1-05 = f39825e, P1-06 = 66f81de, P1-07 = 1b9fa0d, P1-08 = f8b5869, P1-09 = 465bbde).
 
 | Date | Task | What was done | Proof |
 |---|---|---|---|
@@ -43,11 +43,13 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P1-09 | Pre-commit hook with **lefthook 2.1** ([`lefthook.yml`](lefthook.yml)), installed automatically by `pnpm install` (its install script is approved in `pnpm-workspace.yaml`). Before each commit: Biome lints the staged files, and Turborepo typechecks only the packages with staged changes. A change in `packages/shared` or `packages/db` also checks the apps that use them. Jobs run in parallel, and Turbo's cache makes unchanged packages instant. `git commit --no-verify` skips it once. README updated. | Planted type error in a staged website file: hook failed (exit 1), only the website typecheck ran, the other packages were skipped · this commit went through the hook |
 
+| 2026-10-02 | ✅ P1-10 | **One settings file, checked at start-up.** `@hyperfocus/shared/config` has the Zod schema (`parseApiConfig`); `apps/api/src/config.ts` loads the project-root `.env` and checks it, and every API module reads `config` instead of `process.env` (`config.ts` is now the only reader). A wrong value stops the app with one line per problem, e.g. *"PORT must be a whole number between 1 and 65535"* or *"DATABASE_URL is missing. For the local SQLite database use …"*. Same defaults and the same demo rule as before (any non-empty `DEMO_MODE` is on, and every secret is blanked). Blank values count as unset, which the test harness relies on. `apps/api/.env.example` moved to the root `.env.example`, with comments. Your old `apps/api/.env` (identical to the root one) is still read, with a one-line note at start-up; delete it whenever you like. `packages/db/.env` stays, for the Prisma CLI only. Settings that used to be read before `.env` loaded (`BACKUP_DIR`, `SETTINGS_FILE`) now also work from `.env`. Error messages and the Email page now point to the root `.env`. | 9 new config tests (20/20 shared) · your `.env` passes the check · bad PORT/URL and a missing DATABASE_URL each stop the app with exit 1 and the message · test API smoke (health, settings file, backups folder, Gmail off, AI through the fake) · 26/26 API unit tests · typecheck 4/4 · lint 5/5 · full API suite waits for the restart |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
 
-**⏳ Needs you: restart the computer, then run `pnpm test:e2e`.** On 2026-10-02 Windows ran out of temporary network ports: 15,846 of 16,384 were stuck in TIME_WAIT and never expired (the PC had been up since 2026-08-22). New local connections then hang, so the browser suite can't start its servers. A restart clears it. It isn't a code problem (the API suite and every endpoint passed), but the browser suite has not been re-run since P1-05 (API) and P1-06 (website) because of it. **Please run it after the restart**; both changes are type-level and the build passes, so failures are unlikely, but this is the check that proves it.
+**⏳ Needs you: restart the computer, then run `pnpm test:e2e`.** On 2026-10-02 Windows ran out of temporary network ports: 15,846 of 16,384 were stuck in TIME_WAIT and never expired (the PC had been up since 2026-08-22). New local connections then hang, so the browser suite can't start its servers. A restart clears it. It isn't a code problem (the API suite and every endpoint passed), but the browser suite has not been re-run since P1-05 (API) and P1-06 (website) because of it. **Please run `pnpm test` after the restart** (API suite + browser suite); both changes are type-level and the build passes, so failures are unlikely, but this is the check that proves it.
 
 **Known issues found (recorded as tests, fixed later in the phase named):**
 - P2: a missing id on update/delete gives **500** instead of 404 (Prisma "not found" not mapped).
@@ -213,7 +215,7 @@ hyperfocus/
 | ✅ P1-07 | Rename packages from `thought-studio` → `@hyperfocus/*` | S | P1-01 | – |
 | ⏳ P1-08 | **GitHub Actions CI**: install → typecheck → lint → unit → contract → Playwright, with Turbo cache | M | P1-05 | Required check on `main` |
 | ✅ P1-09 | Pre-commit hook (lefthook): biome + typecheck on staged packages | S | P1-02 | – |
-| P1-10 | Typed **config module** (`packages/shared/config` with a Zod-validated env). Merge root and server `.env` into one source. | S | P1-05 | App refuses to start with a clear message if env is invalid |
+| ✅ P1-10 | Typed **config module** (`packages/shared/config` with a Zod-validated env). Merge root and server `.env` into one source. | S | P1-05 | App refuses to start with a clear message if env is invalid |
 
 ## Phase 2: Backend re-architecture (Express → Hono, modular monolith)
 

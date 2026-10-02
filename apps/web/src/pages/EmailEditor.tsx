@@ -187,7 +187,7 @@ export default function EmailEditor() {
 
       {!locked && status && !status.ready && (
         <div className="card warn-card" role="note">
-          <b>Gmail isn't connected yet.</b> You can write and save drafts, but sending needs{!status.hasUser && <> <code>GMAIL_USER</code> (your Gmail address)</>}{!status.hasUser && !status.hasKey && " and"}{!status.hasKey && <> <code>GMAIL_APP_KEY</code> (an app password)</>} in <code>apps/api/.env</code>. Restart the app after adding {status.hasUser || status.hasKey ? "it" : "them"}.
+          <b>Gmail isn't connected yet.</b> You can write and save drafts, but sending needs{!status.hasUser && <> <code>GMAIL_USER</code> (your Gmail address)</>}{!status.hasUser && !status.hasKey && " and"}{!status.hasKey && <> <code>GMAIL_APP_KEY</code> (an app password)</>} in the <code>.env</code> file at the project root. Restart the app after adding {status.hasUser || status.hasKey ? "it" : "them"}.
         </div>
       )}
       {email.status === "failed" && email.lastError && <div className="card warn-card" role="alert"><b>Last attempt failed:</b> {email.lastError}</div>}
