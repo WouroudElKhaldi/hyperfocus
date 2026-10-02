@@ -22,7 +22,7 @@ import { registerJobs } from "./jobs.ts";
 import { createApp } from "./app.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
-import { activeMs, errorInfo, type UncheckedJson, type Wrap } from "./types.ts";
+import { activeMs, errorInfo, parseDate, type UncheckedJson, type Wrap } from "./types.ts";
 import { rewritePost, taskSteps, organize, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
@@ -188,91 +188,7 @@ async function runScheduler() {
   }
 }
 
-// ---------- Study log ----------
-const parseDate = (v: string | number | Date) => {
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-app.get("/api/study", wrap(async (_, res) => {
-  res.json(await prisma.studySession.findMany({ orderBy: { startedAt: "desc" } }));
-}));
-app.post("/api/study", wrap(async (req, res) => {
-  const { course = "", part = "", notes = "" } = req.body;
-  const startedAt = req.body.startedAt ? parseDate(req.body.startedAt) : new Date();
-  const endedAt = req.body.endedAt ? parseDate(req.body.endedAt) : null;
-  if (!startedAt) return res.status(400).json({ error: "Invalid start time." });
-  if (req.body.endedAt && !endedAt) return res.status(400).json({ error: "Invalid end time." });
-  if (endedAt && endedAt <= startedAt) return res.status(400).json({ error: "End time must be after the start time." });
-  if (!endedAt) {
-    const running = await prisma.studySession.findFirst({ where: { endedAt: null } });
-    if (running) return res.status(409).json({ error: "A session is already running. Stop it first." });
-  }
-  // a manual session can record how many minutes of the span were breaks (not counted as study time)
-  const breakMs = Math.max(0, Math.round(Number(req.body.breakMins) || 0)) * 60000;
-  if (endedAt && breakMs >= endedAt.getTime() - startedAt.getTime()) return res.status(400).json({ error: "The break can't be as long as the whole session." });
-  res.json(await prisma.studySession.create({ data: { course, part, notes, startedAt, endedAt, breakMs } }));
-}));
-app.patch("/api/study/:id", wrap(async (req, res) => {
-  const { course, part, notes } = req.body;
-  const data: Prisma.StudySessionUpdateInput = { course, part, notes };
-  const startedAt = req.body.startedAt ? parseDate(req.body.startedAt) : undefined;
-  const endedAt = req.body.endedAt ? parseDate(req.body.endedAt) : undefined;
-  if (startedAt === null || endedAt === null) return res.status(400).json({ error: "Invalid time." });
-  if (startedAt) data.startedAt = startedAt;
-  if (endedAt) data.endedAt = endedAt;
-  const breakMs = req.body.breakMins !== undefined ? Math.max(0, Math.round(Number(req.body.breakMins) || 0)) * 60000 : undefined;
-  if (breakMs !== undefined) data.breakMs = breakMs;
-  const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
-  if (!cur) throw new Error("Session not found."); // a 500, as before (KNOWN: becomes a 404 in P2)
-  const s = startedAt ?? cur.startedAt, e = endedAt ?? cur.endedAt;
-  if (e && e <= s) return res.status(400).json({ error: "End time must be after the start time." });
-  if (e && (breakMs ?? cur.breakMs) >= e.getTime() - s.getTime()) return res.status(400).json({ error: "The break can't be as long as the whole session." });
-  // A saved session can be extended but never shortened (1 minute of slack for minute-precision date fields).
-  if (cur.endedAt && e) {
-    const before = activeMs(cur);
-    const after = e.getTime() - s.getTime() - (breakMs ?? cur.breakMs);
-    if (after < before - 60000) return res.status(400).json({ error: "You can add time to a saved session but not remove it. If it was a mistake, delete the session instead." });
-  }
-  res.json(await prisma.studySession.update({ where: { id: id(req) }, data }));
-}));
-// Undo an accidental stop: reopen the session. The time between stopping and continuing counts as a break.
-const CONTINUE_WITHIN_MS = 6 * 3600 * 1000;
-app.post("/api/study/:id/continue", wrap(async (req, res) => {
-  const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
-  if (!cur) return res.status(404).json({ error: "Session not found." });
-  if (!cur.endedAt) return res.json(cur); // already running
-  if (await prisma.studySession.findFirst({ where: { endedAt: null } })) return res.status(409).json({ error: "Another session is running. Stop it first." });
-  const gap = Date.now() - cur.endedAt.getTime();
-  if (gap > CONTINUE_WITHIN_MS) return res.status(409).json({ error: "That session ended more than 6 hours ago. Start a new session for the same part instead." });
-  res.json(await prisma.studySession.update({ where: { id: cur.id }, data: { endedAt: null, pausedAt: null, breakMs: cur.breakMs + gap } }));
-}));
-// Pause = a break starts. Resume = the break is added to breakMs and study time continues.
-app.post("/api/study/:id/pause", wrap(async (req, res) => {
-  const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
-  if (!cur || cur.endedAt) return res.status(409).json({ error: "This session isn't running." });
-  if (cur.pausedAt) return res.json(cur); // already on a break
-  res.json(await prisma.studySession.update({ where: { id: cur.id }, data: { pausedAt: new Date() } }));
-}));
-app.post("/api/study/:id/resume", wrap(async (req, res) => {
-  const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
-  if (!cur || cur.endedAt) return res.status(409).json({ error: "This session isn't running." });
-  if (!cur.pausedAt) return res.json(cur); // not on a break
-  res.json(await prisma.studySession.update({ where: { id: cur.id }, data: { breakMs: cur.breakMs + (Date.now() - cur.pausedAt.getTime()), pausedAt: null } }));
-}));
-app.post("/api/study/:id/stop", wrap(async (req, res) => {
-  const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
-  if (!cur) return res.status(404).json({ error: "Session not found." });
-  if (cur.endedAt) return res.json(cur);
-  // Stopping during a break ends the session when the break began, so the time you were away is never counted.
-  const stopped = await prisma.studySession.update({ where: { id: cur.id }, data: { endedAt: cur.pausedAt ?? new Date(), pausedAt: null } });
-  const activeMin = Math.round(activeMs(stopped) / 60000);
-  await events.publish("StudySessionEnded", { sessionId: stopped.id, activeMinutes: activeMin, course: stopped.course });
-  res.json(stopped);
-}));
-app.delete("/api/study/:id", wrap(async (req, res) => {
-  await prisma.studySession.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
+// The study log and timer moved to Hono: src/modules/study (P2-10)
 
 // ---------- Settings & reminders ----------
 app.get("/api/settings", wrap(async (_, res) => {

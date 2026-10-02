@@ -62,6 +62,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-08 | **Goals, their actions and progress logs run on Hono** (`src/modules/goals`): the CRUD factory for goals, plus six routes on the same router (AI analysis, add/tick/delete actions, add/delete logs). New shared schemas (`Goal`, `GoalAction`, `GoalLog`, `CreateGoalInput`, `UpdateGoalInput`, `AddGoalActionsInput`, `UpdateGoalActionInput`, `AddGoalLogInput`, `GoalAnalysis`) with the old messages ("Write your goal first.", "Invalid date.", "Write what you did."), and an empty date still clears it. `GoalAchieved` / `GoalStepDone` events kept. P2 fix: 8 cases of a missing goal, step or log entry now answer 404. The analysis still uses `analyzeGoal` until P2-05. Route-building helpers (`IdParam`, `body`, `json`, `problem`, `pathId`, `Ok`) are now exported by `http/crud.ts`, and the tasks module uses them too. | 3 schema tests (29/29 shared) · full API suite **202/202** (a new 404 contract test covering all 8 cases) · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-10 | **The study log and timer run on Hono** (`src/modules/study`). The timer is now a **state machine of pure functions** (`session.ts`: running ⇄ paused → stopped, plus continue within 6 hours). Each rule returns "change these fields", "nothing to do" or "refuse with this message", and the routes just apply it. The time checks for a logged session and for edits ("never shorter", with a minute of slack) are pure functions too. Shared schemas `StudySession`, `CreateStudyInput`, `UpdateStudyInput` keep the old messages. `StudySessionEnded` is published only when a session really stops. P2 fix: editing, deleting, stopping or continuing a missing session is a 404 "Session not found." (editing was a 500); pausing or resuming one stays a 409 "This session isn't running.", as before. | 7 in-process state-machine tests · full API suite **210/210** (a new 404/409 contract test) · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -247,7 +249,7 @@ hyperfocus/
 | ✅ P2-07 | Port module: **tasks + steps** | M | P2-03, P2-04 | " |
 | ✅ P2-08 | Port module: **goals + actions + logs** | M | P2-03 | " |
 | P2-09 | Port module: **skills** (+ suggest, plan, bulk) | M | P2-05 | " |
-| P2-10 | Port module: **study sessions** (state machine: running → paused → stopped) | M | P2-04 | State transitions unit-tested |
+| ✅ P2-10 | Port module: **study sessions** (state machine: running → paused → stopped) | M | P2-04 | State transitions unit-tested |
 | P2-11 | Port module: **books** (+ find, ask, chat) | M | P2-05 | " |
 | P2-12 | Port module: **calendar/events** (+ parse, plan, ics, repeats, skip) | L | P2-05 | Repeat logic unit-tested |
 | ✅ P2-13 | Port module: **reminders** | S | P2-03 | " |

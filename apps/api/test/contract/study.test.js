@@ -78,4 +78,13 @@ describe("study sessions", () => {
     expect(list.some((x) => x.id === s.id)).toBe(true);
     await ok(del(`/api/study/${s.id}`));
   });
+
+  // P2-10: editing, deleting, stopping or continuing a session that doesn't exist is "not found" (editing used to be a 500)
+  it("answers 404 for a session that doesn't exist (pausing one stays a 409: it isn't running)", async () => {
+    for (const r of [await patch("/api/study/999999", { notes: "x" }), await del("/api/study/999999"), await post("/api/study/999999/stop"), await post("/api/study/999999/continue")]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("Session not found.");
+    }
+    expect((await post("/api/study/999999/pause")).status).toBe(409);
+  });
 });

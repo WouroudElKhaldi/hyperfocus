@@ -40,3 +40,9 @@ export async function orNull<T>(query: Promise<T>): Promise<T | null> {
 /** Drops the fields that are undefined (not sent), so a partial update only touches the fields it was given. */
 export const compact = <T extends object>(o: T) =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as { [K in keyof T]?: Exclude<T[K], undefined> };
+
+/** A date from a request (an ISO string or a timestamp), or null when it isn't a real date. */
+export const parseDate = (v: string | number | Date) => {
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+};

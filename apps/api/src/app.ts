@@ -8,6 +8,7 @@ import { defaultHook } from "./http/validation.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { remindersRouter } from "./modules/reminders/routes.ts";
+import { studyRouter } from "./modules/study/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
 import type { EventBus } from "./events.ts";
 import type { Db } from "./types.ts";
@@ -63,6 +64,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", tasksRouter(deps));
   app.route("/", remindersRouter(deps));
   app.route("/", goalsRouter(deps));
+  app.route("/", studyRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {
