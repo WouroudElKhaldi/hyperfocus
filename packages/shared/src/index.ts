@@ -2,6 +2,7 @@
 // when you don't need Zod (keeps it out of the website bundle).
 export * from "./books.ts";
 export * from "./calendar.ts";
+export * from "./chat.ts";
 export * from "./constants.ts";
 export * from "./goals.ts";
 export * from "./notes.ts";

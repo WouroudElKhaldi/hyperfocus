@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { occurrenceDays } from "../../src/modules/calendar/calendar.ts";
-import { isCrisis } from "../../src/chat.ts";
+import { CRISIS_FALLBACK, isCrisis } from "../../src/modules/chat/crisis.ts";
 import { cleanHtml, textOf } from "../../src/mail.ts";
 import { levelFor, studyXp, taskXp } from "../../src/pet.ts";
 import { nextOccurrence } from "../../src/reminders.ts";
@@ -71,6 +71,14 @@ describe("crisis check (support chat safeguard)", () => {
   });
   it.each(["this bug is killing me", "I'm dying to try this", "deadline is tomorrow"])("does not flag everyday phrases: %s", (t) => {
     expect(isCrisis(t)).toBe(false);
+  });
+  // P2-18: more ways of saying it, in any case and inside a longer message
+  it.each(["I KEEP THINKING ABOUT KILLING MYSELF", "honestly i wanna die", "I don't want to be alive", "there's no reason to live", "maybe I'd be better off dead", "I want to end my life", "I cut myself last night", "thoughts of selfharm"])("flags: %s", (t) => {
+    expect(isCrisis(t)).toBe(true);
+  });
+  it("the safe reply (used when the AI can't answer) asks if she is safe and gives the lifeline", () => {
+    expect(CRISIS_FALLBACK).toMatch(/safe right now/);
+    expect(CRISIS_FALLBACK).toMatch(/1564/);
   });
 });
 

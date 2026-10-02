@@ -9,6 +9,8 @@ import { defaultHook } from "./http/validation.ts";
 import { backupsRouter } from "./modules/backups/routes.ts";
 import { booksRouter } from "./modules/books/routes.ts";
 import { calendarRouter } from "./modules/calendar/routes.ts";
+import { chatRouter } from "./modules/chat/routes.ts";
+import { coachRouter } from "./modules/coach/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
@@ -97,6 +99,8 @@ export function createApp(deps: AppDeps) {
   app.route("/", winsRouter(deps));
   app.route("/", reviewsRouter(deps));
   app.route("/", postsRouter(deps));
+  app.route("/", chatRouter(deps));
+  app.route("/", coachRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {

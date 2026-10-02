@@ -1,9 +1,9 @@
-import { type AiGateway, createAiGateway, deepSeek, prompts } from "@hyperfocus/ai";
+import { type AiGateway, createAiGateway, deepSeek } from "@hyperfocus/ai";
 import { config } from "./config.ts";
 import { log } from "./log.ts";
 
-// The API's one AI gateway (P2-05, packages/ai): DeepSeek from the config, switched off in the demo. Hono modules get it
-// through `deps.ai`; the code that hasn't moved to Hono yet uses the functions below, which keep their old names.
+// The API's one AI gateway (P2-05, packages/ai): DeepSeek from the config, switched off in the demo. Modules get it
+// through `deps.ai` and run the prompt templates from @hyperfocus/ai with it.
 
 export type { AiMessage } from "@hyperfocus/ai";
 
@@ -12,12 +12,3 @@ export const ai: AiGateway = createAiGateway({
   disabled: config.demo ? "The AI is switched off in this demo, so nobody can spend someone else's credits." : undefined,
   onRetry: ({ template, attempt, error }) => log.warn({ template, attempt, err: error.message }, "AI call failed, trying again"),
 });
-
-type In<T> = T extends { messages: (input: infer I) => unknown } ? I : never;
-
-export const rewritePost = (input: In<typeof prompts.rewritePost>) => ai.run(prompts.rewritePost, input);
-export const polishDraft = (draft: string, maxDrift?: number) => ai.run(prompts.polishDraft, { draft, ...(maxDrift === undefined ? {} : { maxDrift }) });
-export const postIdeas = (input: In<typeof prompts.postIdeas>) => ai.run(prompts.postIdeas, input);
-export const taskSteps = (task: string) => ai.run(prompts.taskSteps, { task });
-export const organize = (text: string) => ai.run(prompts.organize, { text });
-export const stuckHelp = (input: In<typeof prompts.stuckHelp>) => ai.run(prompts.stuckHelp, input);
