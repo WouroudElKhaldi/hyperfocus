@@ -15,6 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApi, useApiChange } from "@/api/hooks.ts";
+import { FormError, FormField, showServerError, useSchemaForm } from "@/components/form.tsx";
+import { CreateTaskInput } from "@hyperfocus/shared";
+import { Controller } from "react-hook-form";
 import { keyOf, optimistic } from "@/api/query.ts";
 import { contrast } from "@/palettes.ts";
 
@@ -118,6 +121,51 @@ function DataDemo() {
   );
 }
 
+/**
+ * A real form (P3-06): checked by the API's own schema (CreateTaskInput), so its messages are the server's. It creates
+ * the task; if the server still refuses, its message shows on the form.
+ */
+function TaskForm() {
+  const form = useSchemaForm(CreateTaskInput, { defaultValues: { title: "", today: false } });
+  const add = useApiChange("post", "/tasks", { refresh: ["/tasks"], meta: { silent: true } });
+  const { errors, isSubmitting } = form.formState;
+  return (
+    <form
+      className="grid max-w-md gap-4"
+      noValidate
+      onSubmit={form.handleSubmit(async (task) => {
+        try {
+          await add.mutateAsync({ title: task.title, priority: task.priority, ...(task.today ? { today: true } : {}) });
+          toast.success(`Added “${task.title.trim()}”. One thing at a time.`);
+          form.reset();
+        } catch (e) {
+          showServerError(form, e);
+        }
+      })}
+    >
+      <FormField label="Task" hint="Tiny is good: “open the slides” beats “study chapter 4”." error={errors.title?.message}>
+        <Input placeholder="Something small you can start" {...form.register("title")} />
+      </FormField>
+      <Controller
+        control={form.control}
+        name="today"
+        render={({ field }) => (
+          <div className="flex items-center gap-2">
+            <Checkbox id="ui-today" checked={!!field.value} onCheckedChange={(v) => field.onChange(v === true)} />
+            <Label htmlFor="ui-today">Do it today</Label>
+          </div>
+        )}
+      />
+      <FormError message={errors.root?.server?.message} />
+      <div>
+        <Button type="submit" disabled={isSubmitting}>
+          Save
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id} className="mb-8">
@@ -128,10 +176,6 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 export default function DevUi() {
-  const [name, setName] = useState("");
-  const [tried, setTried] = useState(false);
-  const [agree, setAgree] = useState(false);
-  const nameError = tried && !name.trim() ? "Give the task a name, even a messy one." : "";
 
   return (
     <div className="page">
@@ -174,47 +218,7 @@ export default function DevUi() {
       </Section>
 
       <Section id="forms" title="Form fields">
-        <form
-          className="grid max-w-md gap-4"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTried(true);
-            if (name.trim()) toast.success(`Saved “${name.trim()}”. One thing at a time.`);
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor="ui-name">Task</Label>
-            <Input
-              id="ui-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Something small you can start"
-              aria-invalid={!!nameError}
-              aria-describedby={nameError ? "ui-name-error" : "ui-name-hint"}
-            />
-            {nameError ? (
-              <p id="ui-name-error" role="alert" className="m-0 text-sm text-destructive">
-                {nameError}
-              </p>
-            ) : (
-              <p id="ui-name-hint" className="m-0 text-sm text-muted-foreground">
-                Tiny is good: “open the slides” beats “study chapter 4”.
-              </p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="ui-notes">Notes (optional)</Label>
-            <Textarea id="ui-notes" placeholder="Anything that helps future you" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="ui-today" checked={agree} onCheckedChange={(v) => setAgree(v === true)} />
-            <Label htmlFor="ui-today">Do it today</Label>
-          </div>
-          <div>
-            <Button type="submit">Save</Button>
-          </div>
-        </form>
+        <TaskForm />
       </Section>
 
       <Section id="cards" title="Cards and badges">

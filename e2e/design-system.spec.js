@@ -80,18 +80,41 @@ test.describe("design system: keyboard, focus and motion", () => {
     }
   });
 
-  test("a form error is announced and tied to its field", async ({ page }) => {
+  // P3-06: the form is checked by the API's own schema, so its message IS the server's message
+  test("a form error is announced, tied to its field, and the same words the server uses", async ({ page }) => {
     await open(page);
-    await page.getByRole("button", { name: "Save" }).click();
     const field = page.getByRole("textbox", { name: "Task" });
-    const error = page.locator("#ui-name-error");
-    await expect(error).toHaveText("Give the task a name, even a messy one.");
+    await field.fill("   ");
+    await page.getByRole("button", { name: "Save" }).click();
+    const errorId = await field.getAttribute("aria-describedby");
+    const error = page.locator(`[id="${errorId}"]`);
     await expect(error).toHaveAttribute("role", "alert"); // announced by screen readers as soon as it appears
     await expect(field).toHaveAttribute("aria-invalid", "true");
-    await expect(field).toHaveAttribute("aria-describedby", "ui-name-error");
-    await field.fill("Open the slides");
+    const server = await (await page.request.post("/api/tasks", { data: { title: "   " } })).json();
+    expect(server.error).toBe("Task needs a title.");
+    await expect(error).toHaveText(server.error);
+  });
+
+  test("a valid form creates the task", async ({ page }) => {
+    await open(page);
+    const title = `Form task ${Date.now()}`;
+    await page.getByRole("textbox", { name: "Task" }).fill(title);
     await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Saved “Open the slides”. One thing at a time.")).toBeVisible();
+    await expect(page.getByText(`Added “${title}”. One thing at a time.`)).toBeVisible();
+    await expect.poll(async () => (await (await page.request.get("/api/tasks")).json()).some((t) => t.title === title)).toBe(true);
+  });
+
+  test.describe("when the server refuses a form", () => {
+    test.use({ allowedConsoleErrors: [/status of 409/] });
+    test("its message shows on the form", async ({ page }) => {
+      await open(page);
+      await page.route("**/api/tasks", (route) =>
+        route.request().method() === "POST" ? route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "You already have that task." }) }) : route.continue(),
+      );
+      await page.getByRole("textbox", { name: "Task" }).fill("Duplicate");
+      await page.getByRole("button", { name: "Save" }).click();
+      await expect(page.getByRole("alert").filter({ hasText: "You already have that task." })).toBeVisible();
+    });
   });
 
   test("with reduced motion, nothing animates", async ({ page }) => {
