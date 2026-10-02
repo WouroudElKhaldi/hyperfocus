@@ -3,7 +3,7 @@ node_modules
 *.db
 *.db-journal
 dist
-backups
+/backups/
 logs
 apps/api/settings.json
 demo

@@ -4,6 +4,8 @@ export * from "./constants.ts";
 export * from "./goals.ts";
 export * from "./notes.ts";
 export * from "./primitives.ts";
+export * from "./profile.ts";
 export * from "./reminders.ts";
+export * from "./settings.ts";
 export * from "./study.ts";
 export * from "./tasks.ts";

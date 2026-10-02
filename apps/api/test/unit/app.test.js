@@ -32,6 +32,22 @@ describe("health (served by Hono)", () => {
   });
 });
 
+describe("demo mode (P2-20: a config flag)", () => {
+  it("switches off backups, test notifications and email, and nothing else", async () => {
+    const app = make({ demo: true });
+    for (const [method, path] of [["GET", "/api/backups"], ["POST", "/api/backups"], ["GET", "/api/backups/x.db/download"], ["POST", "/api/notify/test"]]) {
+      const r = await app.request(path, { method });
+      expect(r.status, `${method} ${path}`).toBe(403);
+      expect((await r.json()).error).toBe("This is switched off in the demo.");
+    }
+    expect((await app.request("/api/health")).status).toBe(200);
+  });
+  it("leaves them on outside the demo", async () => {
+    // (no database in this test, so reaching the route at all is what counts: it isn't the demo's 403)
+    expect((await make().request("/api/backups/not-a-backup.db/download")).status).toBe(404);
+  });
+});
+
 describe("request id and logging", () => {
   it("gives every response an X-Request-Id, and keeps one the caller sent", async () => {
     const app = make();

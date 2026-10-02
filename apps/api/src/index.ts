@@ -8,7 +8,7 @@ import { type ChatThread, type Event, type Post, type Prisma, PrismaClient, type
 import type { Request } from "express";
 import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
-import { notify, getSettings, saveSettings, remind } from "./notify.ts";
+import { remind } from "./notify.ts";
 import type { Cleaned } from "./pet.ts";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
@@ -16,7 +16,7 @@ import { companionReply, isCrisis } from "./chat.ts";
 import type { AiMessage } from "./ai.ts";
 import { checkReminders, checkMyReminders } from "./reminders.ts";
 import { buildCalendar, buildIcs, parseEventText, planStudyBlocks, CATEGORIES, REPEATS, DAY_RE, TIME_RE, toMin } from "./calendar.ts";
-import { createBackup, listBackups, backupPath, backupDir, startAutoBackup } from "./backup.ts";
+import { startAutoBackup } from "./backup.ts";
 import { registerMail } from "./mail.ts";
 import { registerJobs } from "./jobs.ts";
 import { createApp } from "./app.ts";
@@ -42,8 +42,8 @@ app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1):\d+$/ }));
 app.use(honoFirst(createApp({ config, prisma, log, events })));
 app.use(express.json({ limit: "1mb" }));
 
-// In the demo nothing can reach your real backups (they live in the project folder) or pop up notifications on this computer.
-if (DEMO) app.use(["/api/backups", "/api/notify", "/api/emails", "/api/email-templates"], (_, res) => res.status(403).json({ error: "This is switched off in the demo." }));
+// The demo switch for the routes Express still answers (email, until P2-16). Hono has its own (app.ts).
+if (DEMO) app.use(["/api/emails", "/api/email-templates"], (_, res) => res.status(403).json({ error: "This is switched off in the demo." }));
 
 // TODO(types): request bodies (req.body) are unchecked until each module moves to Hono with Zod schemas (P2).
 const wrap: Wrap = (fn) => (req, res) => {
@@ -190,20 +190,7 @@ async function runScheduler() {
 
 // The study log and timer moved to Hono: src/modules/study (P2-10)
 
-// ---------- Settings & reminders ----------
-app.get("/api/settings", wrap(async (_, res) => {
-  const { sent, ...rest } = getSettings();
-  res.json(rest);
-}));
-app.patch("/api/settings", wrap(async (req, res) => {
-  const { sent, ...rest } = saveSettings({ ...req.body, sent: undefined });
-  res.json(rest);
-}));
-app.post("/api/notify/test", wrap(async (_, res) => {
-  const r = await notify("💜 Hyperfocus", "This is how your reminders will look.");
-  if (!r.ok) return res.status(500).json({ error: "Couldn't show a notification: " + r.error });
-  res.json({ ok: true });
-}));
+// Settings and the test notification moved to Hono: src/modules/settings (P2-20)
 
 app.post("/api/ai/post-ideas", wrap(async (req, res) => {
   const { course = "", part = "", notes = "" } = req.body;
@@ -319,22 +306,7 @@ app.post("/api/skills/:id/plan", wrap(async (req, res) => {
   res.json(await skillPlan({ name: s.name, level: s.level, target: s.target }));
 }));
 
-// ---------- Profile (the person using the app; no login, just saved here) ----------
-const PROFILE_MAX = { name: 60, role: 80, location: 80, email: 120, linkedin: 200, about: 600, helps: 800 };
-const EMPTY_PROFILE = { name: "", role: "", location: "", email: "", linkedin: "", about: "", helps: "", avatar: "#7447e6" };
-app.get("/api/profile", wrap(async (_, res) => res.json((await prisma.profile.findFirst()) ?? EMPTY_PROFILE)));
-app.put("/api/profile", wrap(async (req, res) => {
-  const d: Partial<Record<keyof typeof PROFILE_MAX | "avatar", string>> = {};
-  for (const k of Object.keys(PROFILE_MAX) as (keyof typeof PROFILE_MAX)[]) if (req.body[k] !== undefined) d[k] = String(req.body[k]).trim().slice(0, PROFILE_MAX[k]);
-  if (d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return res.status(400).json({ error: "That email doesn't look right." });
-  if (d.linkedin && !/^https?:\/\/\S+\.\S+/.test(d.linkedin)) return res.status(400).json({ error: "The LinkedIn link should start with https://" });
-  if (req.body.avatar !== undefined) {
-    if (!/^#[0-9a-fA-F]{6}$/.test(req.body.avatar)) return res.status(400).json({ error: "Pick a color for your avatar." });
-    d.avatar = req.body.avatar.toLowerCase();
-  }
-  const cur = await prisma.profile.findFirst();
-  res.json(cur ? await prisma.profile.update({ where: { id: cur.id }, data: d }) : await prisma.profile.create({ data: d }));
-}));
+// The profile moved to Hono: src/modules/profile (P2-20)
 
 // The companion pet moved to Hono: src/modules/pet (P2-19)
 
@@ -418,20 +390,7 @@ app.post("/api/chat", wrap(async (req, res) => {
   res.json({ user: userMsg, assistant: botMsg, crisis, thread });
 }));
 
-// ---------- Backups ----------
-app.get("/api/backups", wrap(async (_, res) => {
-  res.json({ backups: listBackups(), folder: backupDir() });
-}));
-app.post("/api/backups", wrap(async (_, res) => {
-  const name = await createBackup(prisma);
-  res.json({ name, backups: listBackups(), folder: backupDir() });
-}));
-app.get("/api/backups/:name/download", wrap(async (req, res) => {
-  const name = String(req.params.name);
-  const file = backupPath(name);
-  if (!file) return res.status(404).json({ error: "Backup not found." });
-  res.download(file, name);
-}));
+// Backups moved to Hono: src/modules/backups (P2-20)
 
 // ---------- Books ----------
 app.get("/api/books", wrap(async (_, res) => {

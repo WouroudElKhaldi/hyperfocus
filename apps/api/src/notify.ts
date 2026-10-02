@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.ts";
+import { compact } from "./types.ts";
 
 // Windows desktop notifications sent by the server, so they work even when the browser is closed.
 const SETTINGS_FILE = config.settingsFile || fileURLToPath(new URL("../settings.json", import.meta.url));
@@ -15,13 +16,9 @@ export function getSettings(): Settings {
     return { ...DEFAULTS };
   }
 }
-export function saveSettings(patch: Partial<Settings>): Settings {
-  const cur = getSettings();
-  const next = { ...cur };
-  if (typeof patch.reminders === "boolean") next.reminders = patch.reminders;
-  if (patch.breakEveryMin !== undefined && Number.isFinite(patch.breakEveryMin)) next.breakEveryMin = Math.min(180, Math.max(15, Math.round(patch.breakEveryMin)));
-  if (patch.morningAt && /^([01]\d|2[0-3]):[0-5]\d$/.test(patch.morningAt)) next.morningAt = patch.morningAt;
-  if (patch.sent) next.sent = patch.sent;
+// The values are checked before they get here (UpdateSettingsInput in @hyperfocus/shared); fields left undefined are kept.
+export function saveSettings(patch: { [K in keyof Settings]?: Settings[K] | undefined }): Settings {
+  const next = { ...getSettings(), ...compact(patch) };
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(next, null, 2));
   return next;
 }

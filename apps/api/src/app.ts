@@ -5,14 +5,17 @@ import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
 import { defaultHook } from "./http/validation.ts";
+import { backupsRouter } from "./modules/backups/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
+import { profileRouter } from "./modules/profile/routes.ts";
 import { remindersRouter } from "./modules/reminders/routes.ts";
+import { settingsRouter } from "./modules/settings/routes.ts";
 import { studyRouter } from "./modules/study/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
 import type { EventBus } from "./events.ts";
-import type { Db } from "./types.ts";
+import { type Db, httpError } from "./types.ts";
 
 // The composition root (P2-01). Everything a route needs comes in through `deps`, so tests can pass fakes and nothing
 // reaches for globals. Routes move here from Express one module at a time (P2-06 … P2-21); until then Express answers
@@ -33,6 +36,10 @@ const Health = z
     demo: z.boolean().openapi({ description: "Running as the demo (no AI, posting, email or backups)" }),
   })
   .openapi("Health");
+
+// In the demo nothing can reach your real backups, pop up notifications on this computer, or send email.
+const DEMO_OFF = ["/api/backups", "/api/notify", "/api/emails", "/api/email-templates"];
+const switchedOffInDemo = (path: string) => DEMO_OFF.some((p) => path === p || path.startsWith(`${p}/`));
 
 const healthRoute = createRoute({
   method: "get",
@@ -57,6 +64,12 @@ export function createApp(deps: AppDeps) {
     reqLog.info({ method: c.req.method, path: c.req.path, status: c.res.status, ms: Math.round(performance.now() - started) }, "request");
   });
   app.onError((err, c) => problemResponse(c, err));
+  if (config.demo) {
+    app.use(async (c, next) => {
+      if (switchedOffInDemo(c.req.path)) throw httpError(403, "This is switched off in the demo.");
+      await next();
+    });
+  }
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
 
@@ -67,6 +80,9 @@ export function createApp(deps: AppDeps) {
   app.route("/", goalsRouter(deps));
   app.route("/", studyRouter(deps));
   app.route("/", petRouter(deps));
+  app.route("/", profileRouter(deps));
+  app.route("/", settingsRouter());
+  app.route("/", backupsRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {

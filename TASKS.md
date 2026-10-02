@@ -66,6 +66,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-19 | **The companion pet runs on Hono** (`src/modules/pet/routes.ts`): its state, the catalog, choosing it and changing it. XP already comes from events (P2-04, `xp.ts`). The detailed pet rules and their messages stay in `cleanPet()` (species, colors, gender-fitting and unlocked clothes), so the request body is documented as a loose `PetFields` object. Same answers as before: 409 for a second pet, 404 "No pet yet.". | Full API suite **210/210** (the 10 pet contract tests: validation messages, one pet only, traits, wardrobe locks, XP once per achievement) · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-20 | **Profile, settings, the test notification and backups run on Hono** (`src/modules/{profile,settings,backups}`); health was already there (P2-01). New shared schemas `Profile`, `UpdateProfileInput`, `Settings`, `UpdateSettingsInput` keep the old rules and messages: profile fields trimmed and cut to length, email/LinkedIn/avatar checked in that order; settings with a wrong type or an impossible time are quietly ignored and the break reminder is clamped to 15–180 min. `saveSettings()` now only merges (the schema cleans). Backup downloads stream the file with the same `Content-Disposition`, and only names the backup module made can be downloaded. **Demo mode is a config flag:** a Hono middleware reads `config.demo` and answers 403 "This is switched off in the demo." for backups, notifications and email; Express keeps its own switch only for email until P2-16. | 5 schema tests (34/34 shared) · 2 new in-process demo tests (first tests of the demo switch) · full API suite **212/212** · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -261,7 +263,7 @@ hyperfocus/
 | P2-17 | Port module: **jobs (applications)** | S | P2-16 | " |
 | P2-18 | Port module: **chat** (threads, crisis safeguard kept and tested) | M | P2-05 | Crisis path has explicit tests |
 | ✅ P2-19 | Port module: **pet** (state, catalog, wardrobe) | M | P2-04 | " |
-| P2-20 | Port module: **profile, settings, backups, notify, health, demo mode** (demo becomes a config flag) | M | P1-10 | " |
+| ✅ P2-20 | Port module: **profile, settings, backups, notify, health, demo mode** (demo becomes a config flag) | M | P1-10 | " |
 | P2-21 | Replace `setInterval` loops with a **scheduler interface** (in-process for now, pg-boss in P4) | S | P2-13, P2-15 | Reminders, scheduler and backups still fire |
 | P2-22 | **Remove Express** once every route is served by Hono | S | P2-06…P2-21 | Express gone from deps, all tests green |
 | P2-23 | Security: rate limiting, body size limits per route, CORS from config, security headers moved into middleware | S | P2-22 | – |
