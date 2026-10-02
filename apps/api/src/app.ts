@@ -63,6 +63,16 @@ const healthRoute = createRoute({
   responses: { 200: { description: "The API is up", content: { "application/json": { schema: Health } } } },
 });
 
+/** The OpenAPI document's header. Also used to generate the website's API types (scripts/api-types.mjs, P3-03). */
+export const OPENAPI_DOC = {
+  openapi: "3.1.0",
+  info: {
+    title: "Hyperfocus API",
+    version: "0.1.0",
+    description: "Every route of the Hyperfocus API. Errors are problem+json (RFC 9457) with the message in `error` too.",
+  },
+};
+
 export function createApp(deps: AppDeps) {
   const { config, log } = deps;
   const app = new OpenAPIHono<AppEnv>({ defaultHook }); // a request that breaks a schema gets a 400 with its message
@@ -113,14 +123,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", jobsRouter(deps));
 
   // ---------- documentation ----------
-  app.doc31("/api/openapi.json", {
-    openapi: "3.1.0",
-    info: {
-      title: "Hyperfocus API",
-      version: "0.1.0",
-      description: "Every route of the Hyperfocus API. Errors are problem+json (RFC 9457) with the message in `error` too.",
-    },
-  });
+  app.doc31("/api/openapi.json", OPENAPI_DOC);
   app.get("/api/docs", Scalar({ url: "/api/openapi.json", pageTitle: "Hyperfocus API" }));
 
   return app;

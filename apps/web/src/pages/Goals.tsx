@@ -25,18 +25,18 @@ function GoalCard({ goal, onChange, onDelete }: { goal: Goal; onChange: (g: Goal
   const [logText, setLogText] = useState("");
   const [original, setOriginal] = useState(goal.original);
 
-  const patch = async (body: Partial<Goal>) => onChange(await api.patch<Goal>(`/goals/${goal.id}`, body));
+  const patch = async (body: Partial<Goal>) => onChange(await api.patch(`/goals/${goal.id}`, body));
   const analyze = async () => {
     setBusy(true);
     try {
-      const out = await api.post<GoalAnalysis>(`/goals/${goal.id}/analyze`);
+      const out = await api.post(`/goals/${goal.id}/analyze`);
       onChange(out.goal);
       setProposed(out.actions);
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };
   const addActions = async (texts: string[]) => {
-    onChange(await api.post<Goal>(`/goals/${goal.id}/actions`, { texts }));
+    onChange(await api.post(`/goals/${goal.id}/actions`, { texts }));
     setNewAction("");
   };
   const toggleAction = async (a: GoalAction) => {
@@ -49,7 +49,7 @@ function GoalCard({ goal, onChange, onDelete }: { goal: Goal; onChange: (g: Goal
   };
   const addLog = async () => {
     if (!logText.trim()) return;
-    onChange(await api.post<Goal>(`/goals/${goal.id}/logs`, { text: logText }));
+    onChange(await api.post(`/goals/${goal.id}/logs`, { text: logText }));
     setLogText("");
   };
   const delLog = async (l: GoalLog) => {
@@ -169,11 +169,11 @@ export default function Goals() {
   const [text, setText] = useState("");
   const [date, setDate] = useState("");
 
-  useEffect(() => { api.get<Goal[]>("/goals").then(setGoals).catch((e) => toast(e.message, "err")); }, []);
+  useEffect(() => { api.get("/goals").then(setGoals).catch((e) => toast(e.message, "err")); }, []);
 
   const add = async () => {
     try {
-      const g = await api.post<Goal>("/goals", { original: text, targetDate: date || null });
+      const g = await api.post("/goals", { original: text, targetDate: date || null });
       setGoals([g, ...goals]);
       setText(""); setDate("");
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }

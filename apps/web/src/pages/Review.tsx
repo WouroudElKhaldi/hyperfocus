@@ -26,13 +26,13 @@ export default function Review() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.get<ReviewData[]>("/reviews").then((r) => { setReviews(r); setCurrent(r[0] || null); }).catch((e) => toast(e.message, "err"));
+    api.get("/reviews").then((r) => { setReviews(r); setCurrent(r[0] || null); }).catch((e) => toast(e.message, "err"));
   }, []);
 
   const generate = async () => {
     setBusy(true);
     try {
-      const r = await api.post<ReviewData>("/reviews");
+      const r = await api.post("/reviews");
       setReviews((l) => [r, ...l]);
       setCurrent(r);
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
@@ -53,7 +53,7 @@ export default function Review() {
   };
   const toPost = async () => {
     if (!current) return;
-    const p = await api.post<Post>("/posts", { thought: current.content.postIdea });
+    const p = await api.post("/posts", { thought: current.content.postIdea });
     nav(`/posts/${p.id}`);
   };
 

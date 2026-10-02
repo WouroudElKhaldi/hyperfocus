@@ -1,4 +1,5 @@
 import { NOTE_KINDS, type NoteKind } from "@hyperfocus/shared/constants";
+import type { ApiUrl, BodyOf, Method, NeedsBody, ResponseOf } from "./api/typed.ts";
 
 /** An error from the API: `status` is the HTTP status, `code` the raw error text (some callers branch on it). */
 export type ApiError = Error & { status?: number; code?: string };
@@ -15,7 +16,7 @@ async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
       body: body ? JSON.stringify(body) : null,
     });
   } catch {
-    throw new Error("Can't reach the server. Is `npm run dev` running?");
+    throw new Error("Can't reach the server. Is `pnpm dev` running?");
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -29,13 +30,16 @@ async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
   return data as T;
 }
 
-// Each call names the type it gets back (see types.ts). TODO(types): P3-03 infers these from the typed Hono client.
+// The API, typed from its own description (P3-03, see api/typed.ts), written without "/api": api.get(`/tasks/${id}`).
+// The address is checked against the real routes (a typo or the wrong method doesn't compile), the body against what the
+// route accepts, and the answer has the route's response type.
+type Body<M extends Method, U extends string> = NeedsBody<M, U> extends true ? [body: BodyOf<M, U>] : [body?: BodyOf<M, U>];
 export const api = {
-  get: <T>(u: string) => req<T>("GET", u),
-  post: <T = unknown>(u: string, b?: unknown) => req<T>("POST", u, b ?? {}),
-  put: <T = unknown>(u: string, b?: unknown) => req<T>("PUT", u, b ?? {}),
-  patch: <T = unknown>(u: string, b?: unknown) => req<T>("PATCH", u, b),
-  del: <T = unknown>(u: string) => req<T>("DELETE", u),
+  get: <const U extends string>(u: U & ApiUrl<"get", U>) => req<ResponseOf<"get", U>>("GET", u),
+  post: <const U extends string>(u: U & ApiUrl<"post", U>, ...[b]: Body<"post", U>) => req<ResponseOf<"post", U>>("POST", u, b ?? {}),
+  put: <const U extends string>(u: U & ApiUrl<"put", U>, ...[b]: Body<"put", U>) => req<ResponseOf<"put", U>>("PUT", u, b ?? {}),
+  patch: <const U extends string>(u: U & ApiUrl<"patch", U>, ...[b]: Body<"patch", U>) => req<ResponseOf<"patch", U>>("PATCH", u, b),
+  del: <const U extends string>(u: U & ApiUrl<"delete", U>) => req<ResponseOf<"delete", U>>("DELETE", u),
 };
 
 // The kinds come from @hyperfocus/shared (the same list the API uses); only the labels live here.
@@ -53,3 +57,7 @@ const studyEnd = (s: Timed, now: number) => (s.endedAt ? new Date(s.endedAt).get
 export const studySecs = (s: Timed, now = Date.now()) =>
   Math.max(0, Math.floor((studyEnd(s, now) - new Date(s.startedAt).getTime() - (s.breakMs || 0)) / 1000));
 export const studyMins = (s: Timed, now = Date.now()) => Math.round(studySecs(s, now) / 60);
+
+/** A value from a <select> (plain text) as one of the allowed values, or the fallback. */
+export const oneOf = <const T extends readonly string[]>(allowed: T, value: string, fallback: T[number]): T[number] =>
+  (allowed as readonly string[]).includes(value) ? (value as T[number]) : fallback;

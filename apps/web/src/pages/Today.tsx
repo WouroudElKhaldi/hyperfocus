@@ -52,8 +52,8 @@ export default function Today() {
   const [recent, setRecent] = useState<Note[]>([]);
 
   const load = () => {
-    api.get<Task[]>("/tasks").then((t) => setTasks(t.filter((x) => x.today && !x.done))).catch((e) => toast(e.message, "err"));
-    api.get<Note[]>("/notes").then((n) => setRecent(n.filter((x) => !x.archived && !x.posted).slice(0, 4))).catch(() => {});
+    api.get("/tasks").then((t) => setTasks(t.filter((x) => x.today && !x.done))).catch((e) => toast(e.message, "err"));
+    api.get("/notes").then((n) => setRecent(n.filter((x) => !x.archived && !x.posted).slice(0, 4))).catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -68,7 +68,7 @@ export default function Today() {
 
   const sortIt = async () => {
     setBusy(true);
-    try { setSorted((await api.post<{ items: OrganizedItem[] }>("/ai/organize", { text })).items); }
+    try { setSorted((await api.post("/ai/organize", { text })).items); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };

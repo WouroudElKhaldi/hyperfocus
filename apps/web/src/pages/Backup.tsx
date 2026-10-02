@@ -26,23 +26,23 @@ export default function Backup() {
     return () => window.removeEventListener("theme-change", sync);
   }, []);
 
-  useEffect(() => { api.get<Settings>("/settings").then(setPrefs).catch(() => {}); }, []);
+  useEffect(() => { api.get("/settings").then(setPrefs).catch(() => {}); }, []);
   const savePrefs = async (patch: Partial<Settings>) => {
     setPrefs((p) => (p ? { ...p, ...patch } : p));
-    try { setPrefs(await api.patch<Settings>("/settings", patch)); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+    try { setPrefs(await api.patch("/settings", patch)); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
   const testNotification = async () => {
     try { await api.post("/notify/test"); toast("Sent. Look at the corner of your screen 🔔"); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
 
-  const load = () => api.get<Backups>("/backups").then(setData).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/backups").then(setData).catch((e) => toast(e.message, "err"));
   useEffect(() => { load(); }, []);
 
   const backupNow = async () => {
     setBusy(true);
     try {
-      const out = await api.post<Backups>("/backups");
+      const out = await api.post("/backups");
       setData({ backups: out.backups, folder: out.folder });
       toast("Backup saved 💾 Everything you have right now is safe.");
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }

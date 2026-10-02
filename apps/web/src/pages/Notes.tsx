@@ -14,7 +14,7 @@ export default function Notes() {
   const [editing, setEditing] = useState<Note | null>(null);
   const [draft, setDraft] = useState({ kind: "thought", title: "", body: "" });
 
-  const load = () => api.get<Note[]>("/notes").then(setNotes).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/notes").then(setNotes).catch((e) => toast(e.message, "err"));
   useEffect(() => { load(); }, []);
 
   const add = async () => {
@@ -37,7 +37,7 @@ export default function Notes() {
   // a note that already has a post opens that post instead of making a second one
   const toPost = async (n: Note) => {
     if (n.postIds.length) return nav(`/posts/${n.postIds.at(-1)}`);
-    const p = await api.post<Post>("/posts", { thought: n.body, noteId: n.id });
+    const p = await api.post("/posts", { thought: n.body, noteId: n.id });
     nav(`/posts/${p.id}`);
   };
   const toTask = async (n: Note) => {

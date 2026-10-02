@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { prompts } from "@hyperfocus/ai";
 import type { Prisma } from "@hyperfocus/db";
-import { EmailFieldsInput, PolishEmailInput, RenameTemplateInput, SaveTemplateInput, UploadQuery } from "@hyperfocus/shared";
+import { Attachment, Email, EmailFieldsInput, EmailListItem, EmailSent, EmailTemplate, MailStatus, PolishEmailInput, PolishedEmail, RenameTemplateInput, SaveTemplateInput, TemplateRef, UploadQuery } from "@hyperfocus/shared";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { IdParam, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
@@ -18,7 +18,6 @@ import { MAX_FILE, MAX_TOTAL, SAFE_IMAGE, addrList, checkAddrs, cleanHtml, email
 const EMAIL_404 = "Email not found.";
 const TEMPLATE_404 = "Template not found.";
 const jobPick = { select: { id: true, company: true, title: true } } as const;
-const Loose = z.looseObject({});
 /** A JSON body that may be left out (the website sends some of these requests without one). */
 const optionalBody = <S extends z.ZodType>(schema: S) => ({ content: { "application/json": { schema } }, required: false as const });
 
@@ -30,13 +29,13 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   const total = async (where: Prisma.EmailAttachmentWhereInput) => (await prisma.emailAttachment.aggregate({ where, _sum: { size: true } }))._sum.size || 0;
 
   app.openapi(
-    createRoute({ method: "get", path: "/api/emails/status", tags, summary: "Is sending set up (Gmail address and App Password)", responses: { 200: json(Loose, "{ ready, user, hasKey, hasUser }") } }),
+    createRoute({ method: "get", path: "/api/emails/status", tags, summary: "Is sending set up (Gmail address and App Password)", responses: { 200: json(MailStatus, "Whether sending is set up") } }),
     (c) => c.json(mail.status(), 200),
   );
 
   // ---------- emails ----------
   app.openapi(
-    createRoute({ method: "get", path: "/api/emails", tags, summary: "Every email, most recently changed first, with a preview", responses: { 200: json(z.array(Loose), "The emails") } }),
+    createRoute({ method: "get", path: "/api/emails", tags, summary: "Every email, most recently changed first, with a preview", responses: { 200: json(z.array(EmailListItem), "The emails") } }),
     async (c) => {
       const rows = await prisma.email.findMany({
         orderBy: { updatedAt: "desc" },
@@ -46,14 +45,14 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     },
   );
   app.openapi(
-    createRoute({ method: "post", path: "/api/emails", tags, summary: "Start a draft (empty, or with what is sent)", request: { body: optionalBody(EmailFieldsInput) }, responses: { 200: json(Loose, "The draft") } }),
+    createRoute({ method: "post", path: "/api/emails", tags, summary: "Start a draft (empty, or with what is sent)", request: { body: optionalBody(EmailFieldsInput) }, responses: { 200: json(Email, "The draft") } }),
     async (c) => {
       const b = c.req.valid("json") ?? {};
       return c.json(full(await prisma.email.create({ data: Object.keys(b).length ? emailFields(b) : {} })), 200);
     },
   );
   app.openapi(
-    createRoute({ method: "get", path: "/api/emails/{id}", tags, summary: "One email with its files and job", request: { params: IdParam }, responses: { 200: json(Loose, "The email"), 404: problem("No such email") } }),
+    createRoute({ method: "get", path: "/api/emails/{id}", tags, summary: "One email with its files and job", request: { params: IdParam }, responses: { 200: json(Email, "The email"), 404: problem("No such email") } }),
     async (c) => {
       const e = await prisma.email.findUnique({ where: { id: emailId(c.req.param("id")) }, include: { attachments: { select: SLIM, orderBy: { id: "asc" } }, job: jobPick } });
       if (!e) throw httpError(404, EMAIL_404);
@@ -63,7 +62,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   app.openapi(
     createRoute({
       method: "put", path: "/api/emails/{id}", tags, summary: "Save the draft (the whole draft is replaced)", request: { params: IdParam, body: optionalBody(EmailFieldsInput) },
-      responses: { 200: json(Loose, "The draft"), 404: problem("No such email"), 409: problem("Already sent") },
+      responses: { 200: json(Email, "The draft"), 404: problem("No such email"), 409: problem("Already sent") },
     }),
     async (c) => {
       const cur = await prisma.email.findUnique({ where: { id: emailId(c.req.param("id")) } });
@@ -80,7 +79,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     },
   );
   app.openapi(
-    createRoute({ method: "post", path: "/api/emails/{id}/duplicate", tags, summary: "A copy of any email (a sent one too) as a new draft, with its files", request: { params: IdParam }, responses: { 200: json(Loose, "The new draft"), 404: problem("No such email") } }),
+    createRoute({ method: "post", path: "/api/emails/{id}/duplicate", tags, summary: "A copy of any email (a sent one too) as a new draft, with its files", request: { params: IdParam }, responses: { 200: json(Email, "The new draft"), 404: problem("No such email") } }),
     async (c) => {
       const src = await prisma.email.findUnique({ where: { id: emailId(c.req.param("id")) }, include: { attachments: true } });
       if (!src) throw httpError(404, EMAIL_404);
@@ -94,7 +93,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
       method: "post", path: owner === "email" ? "/api/emails/{id}/attachments" : "/api/email-templates/{id}/attachments", tags,
       summary: `Add a file to ${owner === "email" ? "an email" : "a template"} (inline=1: an image inside the body)`,
       request: { params: IdParam, query: UploadQuery, body: { content: { "application/octet-stream": { schema: z.string().openapi({ format: "binary" }) } }, required: true } },
-      responses: { 200: json(Loose, "The file (without its bytes)"), 400: problem("Empty, or not an image for the body"), 404: problem("Not found"), 409: problem("Already sent"), 413: problem("Too big") },
+      responses: { 200: json(Attachment, "The file (without its bytes)"), 400: problem("Empty, or not an image for the body"), 404: problem("Not found"), 409: problem("Already sent"), 413: problem("Too big") },
     });
   for (const owner of ["email", "template"] as const) {
     const notFound = owner === "email" ? EMAIL_404 : TEMPLATE_404;
@@ -149,7 +148,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     createRoute({
       method: "post", path: "/api/emails/{id}/send", tags, summary: "Send it (what is on screen is saved first). A double click is harmless.",
       request: { params: IdParam, body: optionalBody(EmailFieldsInput) },
-      responses: { 200: json(Loose, "{ ok: true, email }"), 400: problem("Not set up, or something to fix"), 409: problem("Already sent or being sent"), 502: problem("Gmail failed") },
+      responses: { 200: json(EmailSent, "Sent"), 400: problem("Not set up, or something to fix"), 409: problem("Already sent or being sent"), 502: problem("Gmail failed") },
     }),
     async (c) => {
       const why = mail.unavailable();
@@ -198,7 +197,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
 
   // ---------- templates ----------
   app.openapi(
-    createRoute({ method: "get", path: "/api/email-templates", tags, summary: "The templates, with a preview", responses: { 200: json(z.array(Loose), "The templates") } }),
+    createRoute({ method: "get", path: "/api/email-templates", tags, summary: "The templates, with a preview", responses: { 200: json(z.array(EmailTemplate), "The templates") } }),
     async (c) => {
       const rows = await prisma.emailTemplate.findMany({ orderBy: { updatedAt: "desc" }, include: { _count: { select: { attachments: { where: { inline: false } } } } } });
       return c.json(rows.map(({ _count, html, ...t }) => ({ ...t, preview: textOf(html).slice(0, 160), files: _count.attachments })), 200);
@@ -207,7 +206,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   app.openapi(
     createRoute({
       method: "post", path: "/api/emails/{id}/save-template", tags, summary: "Save an email as a template (with its files)", request: { params: IdParam, body: optionalBody(SaveTemplateInput) },
-      responses: { 200: json(z.object({ id: z.number(), name: z.string() }), "The template"), 404: problem("No such email") },
+      responses: { 200: json(TemplateRef, "The template"), 404: problem("No such email") },
     }),
     async (c) => {
       const src = await prisma.email.findUnique({ where: { id: emailId(c.req.param("id")) }, include: { attachments: true } });
@@ -221,7 +220,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   app.openapi(
     createRoute({
       method: "patch", path: "/api/email-templates/{id}", tags, summary: "Rename a template", request: { params: IdParam, body: { content: { "application/json": { schema: RenameTemplateInput } }, required: true } },
-      responses: { 200: json(z.object({ id: z.number(), name: z.string() }), "The template"), 400: problem("No name"), 404: problem("No such template") },
+      responses: { 200: json(TemplateRef, "The template"), 400: problem("No name"), 404: problem("No such template") },
     }),
     async (c) => {
       const id = pathId(c.req.param("id"), TEMPLATE_404);
@@ -238,7 +237,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     },
   );
   app.openapi(
-    createRoute({ method: "post", path: "/api/email-templates/{id}/use", tags, summary: "A new draft from a template (with its files)", request: { params: IdParam }, responses: { 200: json(Loose, "The new draft"), 404: problem("No such template") } }),
+    createRoute({ method: "post", path: "/api/email-templates/{id}/use", tags, summary: "A new draft from a template (with its files)", request: { params: IdParam }, responses: { 200: json(Email, "The new draft"), 404: problem("No such template") } }),
     async (c) => {
       const t = await prisma.emailTemplate.findUnique({ where: { id: pathId(c.req.param("id"), TEMPLATE_404) }, include: { attachments: true } });
       if (!t) throw httpError(404, TEMPLATE_404);
@@ -250,7 +249,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   app.openapi(
     createRoute({
       method: "post", path: "/api/ai/polish-email", tags: ["AI"], summary: "AI: fix the English of an email, keeping every tag", request: { body: { content: { "application/json": { schema: PolishEmailInput } }, required: true } },
-      responses: { 200: json(z.object({ subject: z.string(), html: z.string(), changes: z.array(z.string()) }), "The fixed email"), 400: problem("Nothing to polish"), 502: problem("The AI changed too much") },
+      responses: { 200: json(PolishedEmail, "The fixed email"), 400: problem("Nothing to polish"), 502: problem("The AI changed too much") },
     }),
     async (c) => {
       const b = c.req.valid("json");

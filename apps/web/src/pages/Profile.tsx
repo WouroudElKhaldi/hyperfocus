@@ -33,7 +33,7 @@ export default function Profile() {
     e.preventDefault();
     setBusy(true);
     try {
-      const p = await api.put<ProfileData>("/profile", f);
+      const p = await api.put("/profile", f);
       setProfileCache(p);
       toast("Saved. Your info stays on this computer.");
     } catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }

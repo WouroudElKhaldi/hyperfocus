@@ -14,7 +14,7 @@ async function refresh() {
   if (inflight) { again = true; return; } // something changed while loading: load once more afterwards
   inflight = true;
   try {
-    const next = await api.get<PetResponse>("/pet");
+    const next = await api.get("/pet");
     state = next;
     subs.forEach((f) => f(next));
   } catch { /* the server may be restarting, the next refresh will catch up */ }

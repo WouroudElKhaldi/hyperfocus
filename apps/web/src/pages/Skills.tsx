@@ -34,10 +34,10 @@ function SkillRow({ skill, onChange, onDelete }: { skill: Skill; onChange: (s: S
   const [notes, setNotes] = useState(skill.notes);
   const gap = skill.level > 0 ? Math.max(0, skill.target - skill.level) : null;
 
-  const patch = async (body: Partial<Skill>) => onChange(await api.patch<Skill>(`/skills/${skill.id}`, body));
+  const patch = async (body: Partial<Skill>) => onChange(await api.patch(`/skills/${skill.id}`, body));
   const getPlan = async () => {
     setBusy(true);
-    try { setPlan(await api.post<SkillPlan>(`/skills/${skill.id}/plan`)); }
+    try { setPlan(await api.post(`/skills/${skill.id}/plan`)); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };
@@ -101,21 +101,21 @@ export default function Skills() {
   const [ideas, setIdeas] = useState<SkillSuggestion[]>([]);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { api.get<Skill[]>("/skills").then(setSkills).catch((e) => toast(e.message, "err")); }, []);
+  useEffect(() => { api.get("/skills").then(setSkills).catch((e) => toast(e.message, "err")); }, []);
   const replace = (s: Skill) => setSkills((l) => l.map((x) => (x.id === s.id ? s : x)));
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    try { const s = await api.post<Skill>("/skills", { name, area }); setSkills((l) => [...l, s]); setName(""); }
+    try { const s = await api.post("/skills", { name, area }); setSkills((l) => [...l, s]); setName(""); }
     catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
   };
   const remove = async (s: Skill) => { await api.del(`/skills/${s.id}`); setSkills((l) => l.filter((x) => x.id !== s.id)); };
-  const addMany = async (items: NewSkill[]) => { setSkills(await api.post<Skill[]>("/skills/bulk", { items })); };
+  const addMany = async (items: NewSkill[]) => { setSkills(await api.post("/skills/bulk", { items })); };
 
   const suggest = async () => {
     setBusy(true);
-    try { setIdeas((await api.post<{ skills: SkillSuggestion[] }>("/skills/suggest", { context })).skills); }
+    try { setIdeas((await api.post("/skills/suggest", { context })).skills); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };

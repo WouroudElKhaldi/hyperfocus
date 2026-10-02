@@ -12,8 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Toaster } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
+import { useApi, useApiChange } from "@/api/hooks.ts";
+import { keyOf, optimistic } from "@/api/query.ts";
 import { contrast } from "@/palettes.ts";
 
 // The design system page (P3-02), only in development (/dev/ui). Every shadcn/ui building block in the app's colors,
@@ -62,6 +64,57 @@ function Swatches() {
         </div>
       ))}
     </div>
+  );
+}
+
+type NoteRow = { id: number; body: string; pending?: boolean };
+
+/** Reading and changing data with TanStack Query (P3-03): the list is cached, and a new thought shows at once. */
+function DataDemo() {
+  const client = useQueryClient();
+  const notes = useApi("/notes");
+  const [text, setText] = useState("");
+  const add = useApiChange("post", "/notes", {
+    refresh: ["/notes"],
+    // optimistic: the thought is in the list before the server answers; if it says no, it is taken out again
+    onMutate: ({ body }) => optimistic<NoteRow[]>(client, keyOf("/notes"), (list) => [{ id: -Date.now(), body, pending: true }, ...(list ?? [])]),
+    onError: (_error, _body, undo) => undo?.(),
+  });
+  const list = (notes.data ?? []) as NoteRow[];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Your latest thoughts</CardTitle>
+        <CardDescription>Read with useApi, added with useApiChange. A new one shows at once; if the server refuses, it disappears again with a message.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <form
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!text.trim()) return;
+            add.mutate({ body: text.trim(), kind: "thought" });
+            setText("");
+          }}
+        >
+          <Label htmlFor="ui-thought" className="sr-only">A thought</Label>
+          <Input id="ui-thought" value={text} onChange={(e) => setText(e.target.value)} placeholder="A thought, any size" />
+          <Button type="submit">Add</Button>
+        </form>
+        {notes.isPending ? (
+          <Skeleton className="h-4 w-1/2" />
+        ) : (
+          <ul aria-label="Latest thoughts" className="m-0 grid list-none gap-1 p-0 text-sm">
+            {list.slice(0, 3).map((n) => (
+              <li key={n.id} className={n.pending ? "text-muted-foreground" : "text-foreground"}>
+                {n.body}
+                {n.pending ? " (saving…)" : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -244,6 +297,10 @@ export default function DevUi() {
         </Dialog>
       </Section>
 
+      <Section id="data" title="Data (TanStack Query)">
+        <DataDemo />
+      </Section>
+
       <Section id="empty" title="Empty state">
         <Card>
           <EmptyState
@@ -265,7 +322,6 @@ export default function DevUi() {
         Components live in <code>src/components/ui</code> (shadcn/ui, owned by us). Their colors come from the app’s tokens (
         <code>src/tailwind.css</code>).
       </p>
-      <Toaster />
     </div>
   );
 }

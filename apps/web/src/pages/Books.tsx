@@ -14,10 +14,10 @@ function BookCard({ book, onChange, onDelete }: { book: Book; onChange: (b: Book
   const [f, setF] = useState({ title: book.title, author: book.author });
   const res = useMemo(() => parse(book.result), [book.result]);
 
-  const patch = async (body: Partial<Book>) => onChange(await api.patch<Book>(`/books/${book.id}`, body));
+  const patch = async (body: Partial<Book>) => onChange(await api.patch(`/books/${book.id}`, body));
   const find = async () => {
     setBusy(true);
-    try { onChange(await api.post<Book>(`/books/${book.id}/find`)); }
+    try { onChange(await api.post(`/books/${book.id}/find`)); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };
@@ -85,13 +85,13 @@ export default function Books() {
   const [author, setAuthor] = useState("");
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => { api.get<Book[]>("/books").then(setBooks).catch((e) => toast(e.message, "err")); }, []);
+  useEffect(() => { api.get("/books").then(setBooks).catch((e) => toast(e.message, "err")); }, []);
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     try {
-      const b = await api.post<Book>("/books", { title, author });
+      const b = await api.post("/books", { title, author });
       setBooks([b, ...books]); setTitle(""); setAuthor("");
     } catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
   };

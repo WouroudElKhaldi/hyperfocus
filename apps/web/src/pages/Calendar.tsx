@@ -37,8 +37,8 @@ export default function Calendar() {
   const days = useMemo(() => (view === "month" ? monthGrid(anchor) : view === "week" ? weekDays(anchor) : [anchor]), [view, anchor]);
 
   const load = useCallback(() => {
-    api.get<CalendarData>(`/calendar?from=${days[0]}&to=${days.at(-1)}`).then(setData).catch((e) => toast(e.message, "err"));
-    api.get<CalendarData>(`/calendar?from=${todayStr()}&to=${addDays(todayStr(), 7)}`).then(setAgenda).catch(() => {});
+    api.get(`/calendar?from=${days[0]}&to=${days.at(-1)}`).then(setData).catch((e) => toast(e.message, "err"));
+    api.get(`/calendar?from=${todayStr()}&to=${addDays(todayStr(), 7)}`).then(setAgenda).catch(() => {});
   }, [days.join(",")]);
 
   useEffect(() => { load(); }, [load]);
@@ -119,7 +119,7 @@ export default function Calendar() {
   const deleteEvent = async (scope: "day" | "all") => {
     if (!editor) return;
     try {
-      if (scope === "day") await api.post(`/events/${editor.id}/skip`, { day: editor.occDay });
+      if (scope === "day") await api.post(`/events/${editor.id}/skip`, { day: editor.occDay ?? editor.day });
       else await api.del(`/events/${editor.id}`);
       setEditor(null);
       toast("Event deleted");
@@ -151,7 +151,7 @@ export default function Calendar() {
     if (!quick.trim()) return;
     setQuickBusy(true);
     try {
-      const p = await api.post<ParsedEvent>("/calendar/parse", { text: quick });
+      const p = await api.post("/calendar/parse", { text: quick });
       setEditor({ ...blankEvent(p.day, p.startTime, p.endTime), ...p, remindMin: p.startTime ? 10 : -1 });
       setQuick("");
     } catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
@@ -159,7 +159,7 @@ export default function Calendar() {
   };
   const makePlan = async () => {
     setPlanBusy(true);
-    try { setPlan(await api.post<{ blocks: StudyBlock[]; note: string }>("/calendar/plan")); }
+    try { setPlan(await api.post("/calendar/plan")); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setPlanBusy(false);
   };

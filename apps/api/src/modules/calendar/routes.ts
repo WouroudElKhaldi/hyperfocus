@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { CalendarEvent, CalendarRangeQuery, EventFields, ParseEventInput, SkipDayInput } from "@hyperfocus/shared";
+import { CalendarEvent, CalendarRange, CalendarRangeQuery, EventFields, ParseEventInput, ParsedEvent, SkipDayInput, StudyPlan } from "@hyperfocus/shared";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { IdParam, Ok, body, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
@@ -12,9 +12,6 @@ import { cleanEvent } from "./event-rules.ts";
 // that doesn't exist is a 404 "Event not found." (it was a 500).
 
 const EVENT_404 = "Event not found.";
-const Calendar = z.looseObject({ from: z.string(), to: z.string(), events: z.array(z.looseObject({})) }).openapi("CalendarRange");
-const ParsedEvent = z.looseObject({ title: z.string(), day: z.string(), allDay: z.boolean() }).openapi("ParsedEvent");
-const StudyPlan = z.object({ blocks: z.array(z.looseObject({})), note: z.string() }).openapi("StudyPlan");
 
 export function calendarRouter({ prisma, ai }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
@@ -75,7 +72,7 @@ export function calendarRouter({ prisma, ai }: AppDeps) {
   app.openapi(
     createRoute({
       method: "get", path: "/api/calendar", tags, summary: "Everything for a date range (at most 100 days): events, tasks, goals, study, posts",
-      request: { query: CalendarRangeQuery }, responses: { 200: json(Calendar, "The range"), 400: problem("Not a valid range") },
+      request: { query: CalendarRangeQuery }, responses: { 200: json(CalendarRange, "The range"), 400: problem("Not a valid range") },
     }),
     async (c) => {
       const { from = "", to = "" } = c.req.valid("query");

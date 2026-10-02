@@ -13,7 +13,7 @@ export default function Wins() {
   const [summary, setSummary] = useState<WinsSummary | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = () => api.get<Win[]>("/wins").then(setWins).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/wins").then(setWins).catch((e) => toast(e.message, "err"));
   useEffect(() => { load(); }, []);
 
   const add = async (e: FormEvent) => {
@@ -25,7 +25,7 @@ export default function Wins() {
   const remove = async (w: Win) => { await api.del(`/wins/${w.winId}`); load(); };
   const makeSummary = async () => {
     setBusy(true);
-    try { setSummary(await api.post<WinsSummary>("/wins/summary")); }
+    try { setSummary(await api.post("/wins/summary")); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };

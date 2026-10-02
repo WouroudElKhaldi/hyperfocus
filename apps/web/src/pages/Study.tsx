@@ -84,7 +84,7 @@ export default function Study() {
   const [ideas, setIdeas] = useState<Record<number, PostIdea[]>>({}); // post ideas per session id
   const [ideaBusy, setIdeaBusy] = useState<number | null>(null);
 
-  const load = () => api.get<StudySession[]>("/study").then(setSessions).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/study").then(setSessions).catch((e) => toast(e.message, "err"));
   useEffect(() => { load(); }, []);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
@@ -190,20 +190,20 @@ export default function Study() {
   const getIdeas = async (s: StudySession) => {
     setIdeaBusy(s.id);
     try {
-      const out = await api.post<{ ideas: PostIdea[] }>("/ai/post-ideas", { course: s.course, part: s.part, notes: s.notes });
+      const out = await api.post("/ai/post-ideas", { course: s.course, part: s.part, notes: s.notes });
       setIdeas((m) => ({ ...m, [s.id]: out.ideas }));
     }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setIdeaBusy(null);
   };
   const takeIdea = async (idea: PostIdea) => {
-    const p = await api.post<Post>("/posts", { thought: idea.thought });
+    const p = await api.post("/posts", { thought: idea.thought });
     nav(`/posts/${p.id}`);
   };
   const remove = async (s: StudySession) => { if (confirm("Delete this session?")) { await api.del(`/study/${s.id}`); load(); } };
   const toPost = async (s: StudySession) => {
     const thought = `${[s.course, s.part].filter(Boolean).join(" - ")}\n\n${s.notes}`.trim();
-    const p = await api.post<Post>("/posts", { thought });
+    const p = await api.post("/posts", { thought });
     nav(`/posts/${p.id}`);
   };
 

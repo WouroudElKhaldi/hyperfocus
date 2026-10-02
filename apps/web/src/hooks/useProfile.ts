@@ -6,7 +6,7 @@ import type { Profile } from "../types.ts";
 let cache: Profile | null = null;
 const subs = new Set<(p: Profile) => void>();
 async function load() {
-  try { const p = await api.get<Profile>("/profile"); cache = p; subs.forEach((f) => f(p)); } catch { /* try again on the next visit */ }
+  try { const p = await api.get("/profile"); cache = p; subs.forEach((f) => f(p)); } catch { /* try again on the next visit */ }
 }
 export function setProfileCache(p: Profile) { cache = p; subs.forEach((f) => f(p)); }
 

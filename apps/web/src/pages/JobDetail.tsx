@@ -25,19 +25,20 @@ export default function JobDetail() {
   const load = (first = false) => {
     if (first) setLoadErr(null);
     if (first && !isId(id)) return setLoadErr(notFound);
-    return api.get<JobData>(`/jobs/${id}`).then((j) => { setJob(j); setF(formOf(j)); }).catch((e) => (first ? setLoadErr(e) : toast(e.message, "err")));
+    return api.get(`/jobs/${id}`).then((j) => { setJob(j); setF(formOf(j)); }).catch((e) => (first ? setLoadErr(e) : toast(e.message, "err")));
   };
-  useEffect(() => { load(true); api.get<EmailListItem[]>("/emails").then(setEmails).catch(() => {}); }, [id]);
+  useEffect(() => { load(true); api.get("/emails").then(setEmails).catch(() => {}); }, [id]);
 
   const dirty = job && f && EDIT.some((k) => (f[k] ?? "") !== (job[k] ?? ""));
   const save = async () => {
+    if (!f) return;
     try { await api.patch(`/jobs/${id}`, f); toast("Saved"); load(); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
   const patch = async (data: Partial<Job>) => { try { await api.patch(`/jobs/${id}`, data); load(); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); } };
   const link = async (emailId: number | string, jobId: number | null) => {
-    try { await api.put(`/emails/${emailId}/job`, { jobId }); setPick(""); load(); api.get<EmailListItem[]>("/emails").then(setEmails); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
+    try { await api.put(`/emails/${emailId}/job`, { jobId }); setPick(""); load(); api.get("/emails").then(setEmails); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
-  const write = async () => { const m = await api.post<Email>(`/jobs/${id}/email`); nav(`/emails/${m.id}`); };
+  const write = async () => { const m = await api.post(`/jobs/${id}/email`); nav(`/emails/${m.id}`); };
   const remove = async () => {
     if (!confirm("Delete this job? Your emails stay, they just won't be linked to it.")) return;
     await api.del(`/jobs/${id}`);

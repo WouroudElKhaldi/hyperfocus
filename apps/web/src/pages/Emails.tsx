@@ -17,13 +17,13 @@ export default function Emails() {
   const [q, setQ] = useState("");
 
   const load = () => {
-    api.get<EmailListItem[]>("/emails").then(setEmails).catch((e) => toast(e.message, "err"));
-    api.get<EmailTemplate[]>("/email-templates").then(setTemplates).catch((e) => toast(e.message, "err"));
+    api.get("/emails").then(setEmails).catch((e) => toast(e.message, "err"));
+    api.get("/email-templates").then(setTemplates).catch((e) => toast(e.message, "err"));
   };
   useEffect(() => { load(); }, []);
 
-  const create = async () => nav(`/emails/${(await api.post<Email>("/emails")).id}`);
-  const applyTemplate = async (t: EmailTemplate) => nav(`/emails/${(await api.post<Email>(`/email-templates/${t.id}/use`)).id}`);
+  const create = async () => nav(`/emails/${(await api.post("/emails")).id}`);
+  const applyTemplate = async (t: EmailTemplate) => nav(`/emails/${(await api.post(`/email-templates/${t.id}/use`)).id}`);
   const rename = async (t: EmailTemplate) => {
     const name = window.prompt("Template name", t.name);
     if (!name?.trim()) return;

@@ -23,12 +23,12 @@ export default function Posts() {
   const [view, setView] = useState(() => load("posts-view", "table"));
   const [filter, setFilter] = useState("all");
 
-  const refresh = () => api.get<Post[]>("/posts").then(setPosts).catch((e) => toast(e.message, "err"));
+  const refresh = () => api.get("/posts").then(setPosts).catch((e) => toast(e.message, "err"));
   useEffect(() => { refresh(); }, []);
 
   const changeView = (v: string) => { setView(v); save("posts-view", v); };
   const create = async () => {
-    const p = await api.post<Post>("/posts", { thought: "(write your raw thought here)" });
+    const p = await api.post("/posts", { thought: "(write your raw thought here)" });
     nav(`/posts/${p.id}`);
   };
   const remove = async (e: MouseEvent, p: Post) => {

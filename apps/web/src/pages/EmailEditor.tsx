@@ -51,7 +51,7 @@ export default function EmailEditor() {
     loaded.current = false;
     setEmail(null); setHistory([]); setFixes([]); setLoadErr(null);
     if (!isId(id)) { setLoadErr(notFound); return; }
-    api.get<Email>(`/emails/${id}`).then((e) => {
+    api.get(`/emails/${id}`).then((e) => {
       setEmail(e); setHtml(e.html); setFiles(e.attachments);
       setF({ toAddr: e.toAddr, ccAddr: e.ccAddr, bccAddr: e.bccAddr, subject: e.subject });
       setShowCc(!!(e.ccAddr || e.bccAddr));
@@ -59,8 +59,8 @@ export default function EmailEditor() {
       // the first edit event after loading is not a change
       setTimeout(() => { loaded.current = true; }, 0);
     }).catch(setLoadErr);
-    api.get<MailStatus>("/emails/status").then(setStatus).catch(() => {});
-    api.get<JobListItem[]>("/jobs").then(setJobs).catch(() => {});
+    api.get("/emails/status").then(setStatus).catch(() => {});
+    api.get("/jobs").then(setJobs).catch(() => {});
   }, [id, attempt]);
 
   const locked = !!email && (email.status === "sent" || email.status === "sending");
@@ -95,7 +95,7 @@ export default function EmailEditor() {
     setBusy("polish");
     try {
       const before = current();
-      const out = await api.post<{ subject: string; html: string; changes: string[] }>("/ai/polish-email", { subject: before.subject, html: before.html });
+      const out = await api.post("/ai/polish-email", { subject: before.subject, html: before.html });
       if (out.html === before.html && out.subject === before.subject) toast("Already clean, nothing to fix ✨");
       else {
         setHistory((h) => [...h, before]);
@@ -132,13 +132,13 @@ export default function EmailEditor() {
     setBusy("send");
     clearTimeout(timer.current);
     try {
-      const out = await api.post<{ ok: boolean; email: Email }>(`/emails/${id}/send`, d);
+      const out = await api.post(`/emails/${id}/send`, d);
       loaded.current = false;
       setEmail({ ...out.email, attachments: files });
       toast("Sent ✉️");
     } catch (caught) { const e = errorOf(caught);
       toast(e.message, "err");
-      api.get<Email>(`/emails/${id}`).then(setEmail).catch(() => {});
+      api.get(`/emails/${id}`).then(setEmail).catch(() => {});
     }
     setBusy("");
   };
@@ -146,9 +146,9 @@ export default function EmailEditor() {
   // linking works even after sending, that is how a sent email proves an application
   const setJob = async (jobId: string) => {
     try {
-      const out = await api.put<{ jobId: number | null }>(`/emails/${id}/job`, { jobId });
+      const out = await api.put(`/emails/${id}/job`, { jobId });
       setEmail((m) => (m ? { ...m, jobId: out.jobId } : m));
-      api.get<JobListItem[]>("/jobs").then(setJobs);
+      api.get("/jobs").then(setJobs);
       toast(out.jobId ? "Linked to the job 💼" : "Unlinked from the job");
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
@@ -160,7 +160,7 @@ export default function EmailEditor() {
     await api.del(`/emails/${id}`);
     nav("/emails");
   };
-  const duplicate = async () => { const c = await api.post<Email>(`/emails/${id}/duplicate`); nav(`/emails/${c.id}`); };
+  const duplicate = async () => { const c = await api.post(`/emails/${id}/duplicate`); nav(`/emails/${c.id}`); };
 
   if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel="Back to email" onRetry={() => setAttempt((a) => a + 1)} />;
   if (!email) return <p className="muted">Loading…</p>;

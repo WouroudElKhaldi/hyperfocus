@@ -139,13 +139,13 @@ export default function Pet() {
   const [said, setSaid] = useState("");
   const [jump, setJump] = useState(0);
 
-  const load = () => api.get<PetResponse>("/pet").then(setS).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/pet").then(setS).catch((e) => toast(e.message, "err"));
   useEffect(() => {
     load();
     window.addEventListener("data-changed", load);
     return () => window.removeEventListener("data-changed", load);
   }, []);
-  useEffect(() => { if (s && !s.pet && !catalog) api.get<PetCatalog>("/pet/catalog").then(setCatalog).catch((e) => toast(e.message, "err")); }, [s?.pet]);
+  useEffect(() => { if (s && !s.pet && !catalog) api.get("/pet/catalog").then(setCatalog).catch((e) => toast(e.message, "err")); }, [s?.pet]);
 
   const st = s?.pet ? s : null; // the pet's state once there is a pet
   const talk = useMemo(() => (st ? sayings(st) : []), [st?.xp, st?.mood, st?.pet.name, st?.pet.traits.join()]);
@@ -155,13 +155,13 @@ export default function Pet() {
 
   const create = async (f: PetFormValues) => {
     setBusy(true);
-    try { setS(await api.post<PetResponse>("/pet", f)); toast("An egg appeared 🥚 Keep going and it will hatch."); }
+    try { setS(await api.post("/pet", f)); toast("An egg appeared 🥚 Keep going and it will hatch."); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };
   const patch = async (body: Partial<PetFormValues> | WardrobeChange, okMsg?: string) => {
     setBusy(true);
-    try { setS(await api.patch<PetResponse>("/pet", body)); if (okMsg) toast(okMsg); }
+    try { setS(await api.patch("/pet", body)); if (okMsg) toast(okMsg); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };

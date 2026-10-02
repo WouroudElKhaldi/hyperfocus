@@ -1,5 +1,6 @@
+import { REMINDER_REPEATS, type ReminderRepeat } from "@hyperfocus/shared/constants";
 import { useEffect, useState } from "react";
-import { api, errorOf } from "../api.ts";
+import { api, errorOf, oneOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import More from "./More.tsx";
 import type { Reminder } from "../types.ts";
@@ -33,10 +34,10 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
   const [list, setList] = useState<Reminder[] | null>(null);
   const [title, setTitle] = useState("");
   const [at, setAt] = useState(() => toInput(inMin(60)));
-  const [repeat, setRepeat] = useState("none");
+  const [repeat, setRepeat] = useState<ReminderRepeat>("none");
   const [busy, setBusy] = useState(false);
 
-  const load = () => api.get<Reminder[]>("/reminders").then(setList).catch((e) => { toast(e.message, "err"); setList([]); });
+  const load = () => api.get("/reminders").then(setList).catch((e) => { toast(e.message, "err"); setList([]); });
   useEffect(() => { load(); const id = setInterval(load, 30000); return () => clearInterval(id); }, []);
 
   const create = async (when: Date) => {
@@ -69,7 +70,7 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
         </div>
         <More label="Pick an exact time or repeat" className="inline">
           <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Date and time" />
-          <select value={repeat} onChange={(e) => setRepeat(e.target.value)} aria-label="Repeat">
+          <select value={repeat} onChange={(e) => setRepeat(oneOf(REMINDER_REPEATS, e.target.value, "none"))} aria-label="Repeat">
             {REPEATS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
           <button className="primary" disabled={!title.trim() || !at || busy}>Add reminder</button>

@@ -7,6 +7,7 @@ import Stuck from "./components/Stuck.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import PetWidget, { PetCelebration } from "./components/PetWidget.tsx";
 import Quotes from "./components/Quotes.tsx";
+import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
 import Today from "./pages/Today.tsx";
 import Tasks from "./pages/Tasks.tsx";
@@ -105,7 +106,7 @@ export default function App() {
     setTimeout(() => setToast((t) => (t && t.id === id ? null : t)), 4000);
   }, []);
 
-  useEffect(() => { api.get<Health>("/health").then(setHealth).catch(() => setHealth({ ok: false })); }, []);
+  useEffect(() => { api.get("/health").then(setHealth).catch(() => setHealth({ ok: false })); }, []);
   useEffect(() => { setSheet(false); window.scrollTo(0, 0); }, [location.pathname]);
   useEffect(() => lsSet("sb-width", sbWidth), [sbWidth]);
   useEffect(() => lsSet("sb-collapsed", collapsed), [collapsed]);
@@ -261,6 +262,7 @@ export default function App() {
         <PetCelebration />
         <Quotes />
         <Suspense fallback={null}><MusicPlayer /></Suspense>
+        <Toaster />
         {toast && <div key={toast.id} className={"toast " + toast.kind} role="status">{toast.msg}</div>}
       </div>
     </ToastCtx.Provider>

@@ -25,12 +25,19 @@ export type CreateWinInput = z.input<typeof CreateWinInput>;
 export const WinsSummary = z.object({ bullets: z.array(z.string()), paragraph: z.string() });
 export type WinsSummary = z.infer<typeof WinsSummary>;
 
+/** The week in numbers, from her own data (the AI never makes these up). Minutes are active study time. */
+export const ReviewStats = z.object({
+  studyMinutes: z.number(), studyMinutesLastWeek: z.number(), studySessions: z.number(), studyDays: z.number(),
+  tasksDone: z.number(), tasksOpen: z.number(), tasksOverdue: z.number(), goalStepsDone: z.number(), goalUpdates: z.number(),
+  postsPublished: z.number(), draftsWaiting: z.number(), scheduled: z.number(),
+});
+
 /** A saved weekly review: `stats` are computed from her data, `content` is the AI's write-up. */
 export const Review = z.object({
   id: Id,
   label: z.string(),
   createdAt: IsoDateTime,
-  stats: z.record(z.string(), z.unknown()),
+  stats: ReviewStats,
   content: z.object({
     headline: z.string(),
     wins: z.array(z.string()),

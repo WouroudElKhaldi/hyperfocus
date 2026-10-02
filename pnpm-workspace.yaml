@@ -15,6 +15,8 @@ minimumReleaseAgeExclude:
   - '@turbo/windows-64@2.11.6'
   - '@turbo/windows-arm64@2.11.6'
   - turbo@2.11.6
+  - '@tanstack/query-core@5.104.1'
+  - '@tanstack/react-query@5.104.1'
 # Security: every Prisma 6 release pins deepmerge-ts 7 (GHSA-ggr8-5vv4-36mx). Remove when Prisma is upgraded (P4-02).
 overrides:
   deepmerge-ts: ^8.0.0

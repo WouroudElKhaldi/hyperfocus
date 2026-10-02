@@ -29,7 +29,7 @@ function Ask({ book }: { book: Book }) {
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { api.get<BookMessage[]>(`/books/${book.id}/chat`).then(setMsgs).catch((e) => { toast(e.message, "err"); setMsgs([]); }); }, [book.id]);
+  useEffect(() => { api.get(`/books/${book.id}/chat`).then(setMsgs).catch((e) => { toast(e.message, "err"); setMsgs([]); }); }, [book.id]);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, busy]);
 
   const send = async (q = text) => {
@@ -39,7 +39,7 @@ function Ask({ book }: { book: Book }) {
     const tmp: Msg = { id: `tmp${Date.now()}`, role: "user", content: question };
     setMsgs((m) => [...(m ?? []), tmp]);
     try {
-      const out = await api.post<{ user: BookMessage; assistant: BookMessage }>(`/books/${book.id}/ask`, { question });
+      const out = await api.post(`/books/${book.id}/ask`, { question });
       setMsgs((m) => [...(m ?? []).filter((x) => x.id !== tmp.id), out.user, out.assistant]);
     } catch (caught) { const e = errorOf(caught);
       setMsgs((m) => (m ?? []).filter((x) => x.id !== tmp.id)); setText(question); toast(e.message, "err");
@@ -94,7 +94,7 @@ export default function BookDetail() {
   useEffect(() => {
     setBook(null); setMissing(false);
     if (!Number.isInteger(bookId)) { setMissing(true); return; }
-    api.get<Book>(`/books/${bookId}`).then((b) => {
+    api.get(`/books/${bookId}`).then((b) => {
       setBook(b); setNotes(b.notes); setF({ title: b.title, author: b.author });
       if (slug !== bookPath(b).split("/").pop()) nav(bookPath(b), { replace: true }); // tidy the address to /books/12-clean-code
     }).catch(() => setMissing(true));
@@ -103,10 +103,10 @@ export default function BookDetail() {
   if (missing) return <><h1>Book not found</h1><p className="sub">It may have been removed.</p><Link className="btn primary" to="/books">Back to my books</Link></>;
   if (!book) return <div className="empty">Loading…</div>;
 
-  const patch = async (body: Partial<Book>) => { const b = await api.patch<Book>(`/books/${book.id}`, body); setBook(b); return b; };
+  const patch = async (body: Partial<Book>) => { const b = await api.patch(`/books/${book.id}`, body); setBook(b); return b; };
   const find = async () => {
     setBusy(true);
-    try { setBook(await api.post<Book>(`/books/${book.id}/find`)); toast("Search done."); }
+    try { setBook(await api.post(`/books/${book.id}/find`)); toast("Search done."); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };

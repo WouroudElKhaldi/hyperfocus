@@ -17,7 +17,7 @@ export default function Stuck({ inline = false }: { inline?: boolean }) {
 
   const help = async () => {
     setBusy(true);
-    try { setOut(await api.post<StuckHelp>("/stuck", { energy, blocker })); }
+    try { setOut(await api.post("/stuck", { energy, blocker })); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };

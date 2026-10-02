@@ -44,3 +44,25 @@ export const CalendarRangeQuery = z.object({ from: z.string().optional(), to: z.
 export const ParseEventInput = z.object({
   text: z.preprocess((v) => String(v || ""), z.string().refine((s) => s.trim().length > 0, "Type what you want to add, like: study Friday 3pm for 1h.")),
 });
+
+// ---------- what the API sends back (P3-03) ----------
+/** One day on which an event happens (a repeating event has many): occId = "<id>_<day>", baseDay = the series' first day. */
+export const Occurrence = CalendarEvent.pick({ id: true, title: true, day: true, startTime: true, endTime: true, allDay: true, category: true, location: true, notes: true, repeat: true, repeatUntil: true, remindMin: true })
+  .extend({ occId: z.string(), baseDay: Day });
+/** Everything the calendar shows for a date range. Tasks and goals here always have a day (only dated ones are sent). */
+export const CalendarRange = z.object({
+  from: Day,
+  to: Day,
+  events: z.array(Occurrence),
+  tasks: z.array(z.object({ id: Id, title: z.string(), day: Day, done: z.boolean() })),
+  goals: z.array(z.object({ id: Id, title: z.string(), day: Day, status: z.string() })),
+  study: z.array(z.object({ id: Id, course: z.string(), part: z.string(), startedAt: IsoDateTime, endedAt: IsoDateTime.nullable(), pausedAt: IsoDateTime.nullable(), breakMs: z.number().int() })),
+  posts: z.array(z.object({ id: Id, title: z.string(), status: z.string(), at: IsoDateTime.nullable() })),
+});
+/** An event read from a sentence by the AI, to confirm before saving. */
+export const ParsedEvent = z.object({ title: z.string(), day: Day, allDay: z.boolean(), startTime: z.string(), endTime: z.string(), category: z.string(), repeat: z.string(), location: z.string() });
+/** Proposed study blocks for the next 7 days (not saved); note explains when there are none. */
+export const StudyPlan = z.object({
+  blocks: z.array(z.object({ day: Day, startTime: z.string(), endTime: z.string(), minutes: z.number().int(), title: z.string(), why: z.string() })),
+  note: z.string(),
+});

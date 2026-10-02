@@ -137,7 +137,7 @@ export type PetData = {
   id: number; name: string; species: string; gender: string; color: string; traits: string[]; bio: string; style: string;
   outfit: string; pattern: string; aura: string; backdrop: string; createdAt: string;
 };
-export type Outfit = Partial<Record<string, string>>;
+export type Outfit = Record<string, string>;
 export type PetStats = { tasks: number; steps: number; goals: number; posts: number; wins: number; reviews: number; books: number; studyMinutes: number; streak: number; bestStreak: number };
 export type Badge = { id: string; label: string; desc: string; unlocked: boolean; progress: number; have: number; need: number };
 export type Quest = { id: string; label: string; need: number; bonus: number; have: number; done: boolean };

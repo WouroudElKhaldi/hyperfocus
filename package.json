@@ -5,6 +5,7 @@
   "packageManager": "pnpm@12.8.1",
   "scripts": {
     "bootstrap": "pnpm install && pnpm --filter @hyperfocus/db db:push",
+    "api:types": "node apps/api/scripts/api-types.mjs",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "test": "turbo run test && playwright test --project=desktop --project=phone",
@@ -23,7 +24,9 @@
     "@biomejs/biome": "^2.5.15",
     "@playwright/test": "^1.63.0",
     "lefthook": "^2.1.15",
+    "openapi-typescript": "^7.13.0",
     "turbo": "^2.11.6",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "typescript5": "npm:typescript@^5.9.3"
   }
 }

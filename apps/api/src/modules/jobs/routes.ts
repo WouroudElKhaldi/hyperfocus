@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Email, Job, JobDetail, JobListItem, LinkedEmail } from "@hyperfocus/shared";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { IdParam, Ok, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
@@ -10,7 +11,6 @@ import { JOB_STATUSES, emailPick, fields, jobSent } from "./rules.ts";
 // { ok: true }), and a request body that isn't an object is a 400.
 
 const JOB_404 = "Job not found.";
-const Loose = z.looseObject({});
 // the detailed checks (and their messages) are in rules.ts; the body is documented here
 const JobFields = z
   .looseObject({
@@ -30,18 +30,18 @@ export function jobsRouter({ prisma }: AppDeps) {
   const bodyOf = <S extends z.ZodType>(schema: S) => ({ content: { "application/json": { schema } }, required: true as const });
 
   app.openapi(
-    createRoute({ method: "get", path: "/api/jobs", tags, summary: "Every job, most recently changed first, with its email count", responses: { 200: json(z.array(Loose), "The jobs") } }),
+    createRoute({ method: "get", path: "/api/jobs", tags, summary: "Every job, most recently changed first, with its email count", responses: { 200: json(z.array(JobListItem), "The jobs") } }),
     async (c) => {
       const rows = await prisma.jobApplication.findMany({ orderBy: { updatedAt: "desc" }, include: { emails: { select: { id: true, status: true, sentAt: true } } } });
       return c.json(rows.map(({ emails, ...j }) => ({ ...j, emailCount: emails.length, lastSentAt: emails.filter((e) => e.sentAt).map((e) => e.sentAt).sort().pop() || null })), 200);
     },
   );
   app.openapi(
-    createRoute({ method: "post", path: "/api/jobs", tags, summary: "Add a job (the company is required; starts on the wishlist)", request: { body: bodyOf(JobFields) }, responses: { 200: json(Loose, "The job"), 400: problem("Something to fix") } }),
+    createRoute({ method: "post", path: "/api/jobs", tags, summary: "Add a job (the company is required; starts on the wishlist)", request: { body: bodyOf(JobFields) }, responses: { 200: json(Job, "The job"), 400: problem("Something to fix") } }),
     async (c) => c.json(await prisma.jobApplication.create({ data: fields(c.req.valid("json"), false) }), 200),
   );
   app.openapi(
-    createRoute({ method: "get", path: "/api/jobs/{id}", tags, summary: "One job with its emails", request: { params: IdParam }, responses: { 200: json(Loose, "The job"), 404: problem("No such job") } }),
+    createRoute({ method: "get", path: "/api/jobs/{id}", tags, summary: "One job with its emails", request: { params: IdParam }, responses: { 200: json(JobDetail, "The job"), 404: problem("No such job") } }),
     async (c) => {
       const j = await prisma.jobApplication.findUnique({ where: { id: jobId(c.req.param("id")) }, include: { emails: { select: emailPick, orderBy: { updatedAt: "desc" } } } });
       if (!j) throw httpError(404, JOB_404);
@@ -51,7 +51,7 @@ export function jobsRouter({ prisma }: AppDeps) {
   app.openapi(
     createRoute({
       method: "patch", path: "/api/jobs/{id}", tags, summary: "Change a job (only the fields sent change)", request: { params: IdParam, body: bodyOf(JobFields) },
-      responses: { 200: json(Loose, "The job"), 400: problem("Something to fix"), 404: problem("No such job") },
+      responses: { 200: json(Job, "The job"), 400: problem("Something to fix"), 404: problem("No such job") },
     }),
     async (c) => {
       const data = fields(c.req.valid("json"), true);
@@ -75,7 +75,7 @@ export function jobsRouter({ prisma }: AppDeps) {
   app.openapi(
     createRoute({
       method: "put", path: "/api/emails/{id}/job", tags, summary: "Link an email to a job, or unlink it (jobId null)", request: { params: IdParam, body: bodyOf(LinkInput) },
-      responses: { 200: json(Loose, "The email with its job"), 404: problem("No such email or job") },
+      responses: { 200: json(LinkedEmail, "The email, in short, with its job"), 404: problem("No such email or job") },
     }),
     async (c) => {
       const raw = c.req.valid("json").jobId;
@@ -90,12 +90,13 @@ export function jobsRouter({ prisma }: AppDeps) {
 
   // start an application email for a job: a draft already linked, addressed and titled
   app.openapi(
-    createRoute({ method: "post", path: "/api/jobs/{id}/email", tags, summary: "Start an application email for this job (linked, addressed, titled)", request: { params: IdParam }, responses: { 200: json(Loose, "The draft"), 404: problem("No such job") } }),
+    createRoute({ method: "post", path: "/api/jobs/{id}/email", tags, summary: "Start an application email for this job (linked, addressed, titled)", request: { params: IdParam }, responses: { 200: json(Email, "The draft"), 404: problem("No such job") } }),
     async (c) => {
       const j = await prisma.jobApplication.findUnique({ where: { id: jobId(c.req.param("id")) } });
       if (!j) throw httpError(404, JOB_404);
       const subject = `Application: ${j.title || "Open position"}${j.company ? ` at ${j.company}` : ""}`.slice(0, 300);
-      return c.json(await prisma.email.create({ data: { jobId: j.id, toAddr: j.contactEmail, subject } }), 200);
+      // (with its empty file list, like every other route that answers with an email)
+      return c.json({ ...(await prisma.email.create({ data: { jobId: j.id, toAddr: j.contactEmail, subject } })), attachments: [] }, 200);
     },
   );
 

@@ -30,14 +30,14 @@ function Schedule({ post, blockedReason, flush, onChange }: ScheduleProps) {
     setBusy(true);
     try {
       await flush(); // make sure the latest text is what gets posted
-      onChange(await api.post<Post>(`/posts/${post.id}/schedule`, { scheduledAt: new Date(when).toISOString() }));
+      onChange(await api.post(`/posts/${post.id}/schedule`, { scheduledAt: new Date(when).toISOString() }));
       setChanging(false);
       toast("Scheduled ⏰ It will post by itself at that time.");
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
     setBusy(false);
   };
   const cancel = async () => {
-    try { onChange(await api.post<Post>(`/posts/${post.id}/unschedule`)); toast("Schedule cancelled. It's a draft again."); }
+    try { onChange(await api.post(`/posts/${post.id}/unschedule`)); toast("Schedule cancelled. It's a draft again."); }
     catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };
 
@@ -110,7 +110,7 @@ export default function PostEditor() {
   useEffect(() => {
     setLoadErr(null);
     if (!isId(id)) { setLoadErr(notFound); return; }
-    api.get<Post>(`/posts/${id}`).then((p) => {
+    api.get(`/posts/${id}`).then((p) => {
       setPost(p); setThought(p.thought); setDraft(p.draft);
       setTimeout(() => (loaded.current = true), 0);
     }).catch(setLoadErr);
@@ -121,7 +121,7 @@ export default function PostEditor() {
     if (!post || !["scheduled", "posting"].includes(post.status)) return;
     const t = setInterval(async () => {
       try {
-        const p = await api.get<Post>(`/posts/${id}`);
+        const p = await api.get(`/posts/${id}`);
         if (p.status !== post.status) {
           setPost((cur) => (cur ? { ...cur, status: p.status, postedAt: p.postedAt, scheduledAt: p.scheduledAt, attempts: p.attempts, lastError: p.lastError } : cur));
           if (p.status === "posted") toast("Your scheduled post just went live on LinkedIn 🎉");
@@ -144,7 +144,7 @@ export default function PostEditor() {
   const applyAI = async (instr?: string) => {
     setBusy(true);
     try {
-      const out = await api.post<RewriteResult>("/ai/rewrite", { thought, draft: instr ? draft : undefined, instruction: instr });
+      const out = await api.post("/ai/rewrite", instr ? { thought, draft, instruction: instr } : { thought });
       setHistory((h) => [...h, draft]);
       setDraft(out.draft);
       setSuggestions(out.suggestions);
@@ -159,7 +159,7 @@ export default function PostEditor() {
     setBusy(true);
     try {
       // cleans the thought itself (tiny fixes only) BEFORE generating a post; the previous text is kept for undo
-      const out = await api.post<PolishResult>("/ai/polish", { text: thought });
+      const out = await api.post("/ai/polish", { text: thought });
       if (out.draft === thought) toast("Already clean, nothing to fix ✨");
       else { setThoughtHistory((h) => [...h, thought]); setThought(out.draft); }
       setChanges(out.changes);
@@ -191,7 +191,7 @@ export default function PostEditor() {
     setBusy(true);
     try {
       await api.patch(`/posts/${id}`, { thought, draft });
-      setPost(await api.post<Post>(`/posts/${id}/publish`));
+      setPost(await api.post(`/posts/${id}/publish`));
       toast("Posted to LinkedIn! 🎉 Proud of you.");
     } catch (caught) { const e = errorOf(caught);
       if (e.code === "n8n_not_configured") {
@@ -203,7 +203,7 @@ export default function PostEditor() {
     setBusy(false);
   };
 
-  const markPosted = async () => setPost(await api.post<Post>(`/posts/${id}/mark-posted`));
+  const markPosted = async () => setPost(await api.post(`/posts/${id}/mark-posted`));
   const remove = async () => { if (confirm("Delete this post?")) { await api.del(`/posts/${id}`); nav("/posts"); } };
 
   if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel="Back to posts" onRetry={() => setAttempt((a) => a + 1)} />;

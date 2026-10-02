@@ -111,7 +111,7 @@ export default function Chat() {
   const box = useRef<HTMLTextAreaElement>(null);
   const temp = mode === "temp";
 
-  const loadThreads = () => api.get<ChatThread[]>("/chat/threads").then(setThreads).catch((e) => { toast(e.message, "err"); setThreads([]); });
+  const loadThreads = () => api.get("/chat/threads").then(setThreads).catch((e) => { toast(e.message, "err"); setThreads([]); });
   useEffect(() => { loadThreads(); }, []);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, busy]);
   useEffect(() => { if (temp) TEMP = msgs; }, [msgs, temp]);
@@ -121,7 +121,7 @@ export default function Chat() {
   const newTemp = () => reset("temp");
   const open = async (id: number) => {
     try {
-      const r = await api.get<{ thread: ChatThread; messages: ChatMessage[] }>(`/chat/threads/${id}`);
+      const r = await api.get(`/chat/threads/${id}`);
       setMode("saved"); setThreadId(id); setMsgs(r.messages); TEMP = []; setCrisis(false); setShowHistory(false);
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); loadThreads(); }
   };
@@ -135,7 +135,7 @@ export default function Chat() {
     const before = msgs;
     setMsgs((m) => [...m, tmp]);
     try {
-      const out = await api.post<ChatReply>("/chat", temp ? { message, temporary: true, history: before.map(({ role, content }) => ({ role, content })) } : { message, threadId });
+      const out = await api.post("/chat", temp ? { message, temporary: true, history: before.map(({ role, content }) => ({ role, content })) } : { message, threadId });
       setMsgs((m) => [...m.filter((x) => x.id !== tmp.id), out.user, out.assistant]);
       if (out.thread) setThreadId(out.thread.id);
       if (!temp) loadThreads();

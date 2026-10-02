@@ -1,6 +1,6 @@
-import { TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+import { TASK_PRIORITIES, TASK_PRIORITY_POINTS, type TaskPriority } from "@hyperfocus/shared/constants";
 import { type FormEvent, useEffect, useState } from "react";
-import { api, errorOf } from "../api.ts";
+import { api, errorOf, oneOf } from "../api.ts";
 import { useToast } from "../App.tsx";
 import More from "../components/More.tsx";
 import type { Step, Task } from "../types.ts";
@@ -15,10 +15,10 @@ export default function Tasks() {
   const toast = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState("normal");
+  const [priority, setPriority] = useState<TaskPriority>("normal");
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const load = () => api.get<Task[]>("/tasks").then(setTasks).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/tasks").then(setTasks).catch((e) => toast(e.message, "err"));
   useEffect(() => { load(); }, []);
 
   const add = async (e: FormEvent) => {
@@ -36,7 +36,7 @@ export default function Tasks() {
     load();
   };
   const setDue = async (t: Task, v: string) => { await api.patch(`/tasks/${t.id}`, { dueDay: v || null }); load(); };
-  const setPrio = async (t: Task, p: string) => { await api.patch(`/tasks/${t.id}`, { priority: p }); load(); };
+  const setPrio = async (t: Task, p: TaskPriority) => { await api.patch(`/tasks/${t.id}`, { priority: p }); load(); };
   const remove = async (t: Task) => { await api.del(`/tasks/${t.id}`); load(); };
   const removeStep = async (s: Step) => { await api.del(`/steps/${s.id}`); load(); };
   const clearSteps = async (t: Task) => { await Promise.all(t.steps.map((s) => api.del(`/steps/${s.id}`))); load(); };
@@ -44,7 +44,7 @@ export default function Tasks() {
   const breakDown = async (t: Task) => {
     setBusyId(t.id);
     try {
-      const { steps } = await api.post<{ steps: string[] }>("/ai/steps", { task: t.title });
+      const { steps } = await api.post("/ai/steps", { task: t.title });
       await api.post(`/tasks/${t.id}/steps`, { steps });
       load();
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
@@ -85,7 +85,7 @@ export default function Tasks() {
               </button>
             )}
             <More label="Options" className="inline">
-              <select className="mini-select" value={t.priority} onChange={(e) => setPrio(t, e.target.value)} aria-label="How important">
+              <select className="mini-select" value={t.priority} onChange={(e) => setPrio(t, oneOf(TASK_PRIORITIES, e.target.value, "normal"))} aria-label="How important">
                 {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label} (+{p.pts})</option>)}
               </select>
               <input type="date" className="mini-date" title="Due date (shows on the calendar)" value={t.dueDay || ""} onChange={(e) => setDue(t, e.target.value)} />
@@ -111,7 +111,7 @@ export default function Tasks() {
         <input className="grow" placeholder="New task…" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="New task" />
         <button className="primary">Add</button>
         <More label="How important?" className="inline">
-          <select value={priority} onChange={(e) => setPriority(e.target.value)} aria-label="How important">
+          <select value={priority} onChange={(e) => setPriority(oneOf(TASK_PRIORITIES, e.target.value, "normal"))} aria-label="How important">
             {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label} (+{p.pts})</option>)}
           </select>
         </More>

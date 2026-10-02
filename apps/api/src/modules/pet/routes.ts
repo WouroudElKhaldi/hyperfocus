@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { PetCatalog, PetResponse, PetState } from "@hyperfocus/shared";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { body, json, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
@@ -17,17 +18,15 @@ const PetFields = z
   .partial()
   .openapi("PetFields", { description: "Checked by the pet rules: unknown species, colors or locked items are refused with a message." });
 // before choosing a pet: { pet: null }; after: the pet with its age, XP, stats, quests, badges and what it can wear
-const PetState = z.looseObject({ pet: z.looseObject({}).nullable() }).openapi("PetState");
-const Catalog = z.looseObject({}).openapi("PetCatalog");
 
 export function petRouter({ prisma }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   app.openapi(
-    createRoute({ method: "get", path: "/api/pet", tags: ["Pet"], summary: "The pet and everything about it", responses: { 200: json(PetState, "The pet, or { pet: null }") } }),
+    createRoute({ method: "get", path: "/api/pet", tags: ["Pet"], summary: "The pet and everything about it", responses: { 200: json(PetResponse, "The pet, or { pet: null }") } }),
     async (c) => c.json(await petState(prisma), 200),
   );
   app.openapi(
-    createRoute({ method: "get", path: "/api/pet/catalog", tags: ["Pet"], summary: "What exists and what is free, for choosing a pet", responses: { 200: json(Catalog, "The catalog") } }),
+    createRoute({ method: "get", path: "/api/pet/catalog", tags: ["Pet"], summary: "What exists and what is free, for choosing a pet", responses: { 200: json(PetCatalog, "The catalog") } }),
     (c) => c.json(catalogState(), 200),
   );
   app.openapi(

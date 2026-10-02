@@ -19,12 +19,12 @@ export default function Jobs() {
   const [form, setForm] = useState({ company: "", title: "", url: "" });
   const [adding, setAdding] = useState(false);
 
-  const load = () => api.get<JobListItem[]>("/jobs").then(setJobs).catch((e) => toast(e.message, "err"));
+  const load = () => api.get("/jobs").then(setJobs).catch((e) => toast(e.message, "err"));
   useEffect(() => { load(); }, []);
 
   const add = async () => {
     try {
-      const j = await api.post<Job>("/jobs", form);
+      const j = await api.post("/jobs", form);
       nav(`/jobs/${j.id}`);
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
   };

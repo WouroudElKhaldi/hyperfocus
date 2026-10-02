@@ -52,6 +52,9 @@ jobs:
       - name: Package tests (shared schemas, AI gateway)
         run: pnpm test:packages
 
+      - name: Website unit tests (data cache rules)
+        run: pnpm --filter @hyperfocus/web test
+
       - name: API tests (unit + contract)
         run: pnpm test:api
 

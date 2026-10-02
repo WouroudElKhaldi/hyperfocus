@@ -5,12 +5,14 @@ import { test as base, expect } from "@playwright/test";
 // and in light and dark, plus what axe can't see: keyboard use, focus, error messages and reduced motion.
 
 const test = base.extend({
-  page: async ({ page }, use) => {
+  // console errors a test expects on purpose (like the browser logging a refused request)
+  allowedConsoleErrors: [[], { option: true }],
+  page: async ({ page, allowedConsoleErrors }, use) => {
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     page.on("pageerror", (e) => errors.push(e.message));
     await use(page);
-    expect(errors, "console errors on the page").toEqual([]);
+    expect(errors.filter((e) => !allowedConsoleErrors.some((re) => re.test(e))), "console errors on the page").toEqual([]);
   },
 });
 
@@ -98,5 +100,37 @@ test.describe("design system: keyboard, focus and motion", () => {
     await page.getByRole("button", { name: "Plan a study block" }).click();
     const duration = await page.getByRole("dialog").evaluate((d) => getComputedStyle(d).animationDuration);
     expect(Number.parseFloat(duration)).toBeLessThanOrEqual(0.01);
+  });
+});
+
+// P3-03: reading and changing data through TanStack Query, with an optimistic change that is undone on failure.
+test.describe("design system: data (TanStack Query)", () => {
+  test("a new thought shows at once, then is really saved", async ({ page }) => {
+    await open(page);
+    const text = `Optimistic ${Date.now()}`;
+    await page.getByLabel("A thought").fill(text);
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.getByRole("list", { name: "Latest thoughts" }).getByText(text)).toBeVisible();
+    await expect.poll(async () => (await (await page.request.get("/api/notes")).json()).some((n) => n.body === text)).toBe(true);
+  });
+
+  test.describe("when the server refuses", () => {
+    test.use({ allowedConsoleErrors: [/status of 500/] });
+    test("the thought shows at once, then is taken out again with a message", async ({ page }) => {
+      await open(page);
+      await page.route("**/api/notes", async (route) => {
+        if (route.request().method() !== "POST") return route.continue();
+        await new Promise((r) => setTimeout(r, 800)); // long enough to see the optimistic row
+        await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "The notes couldn't be saved just now." }) });
+      });
+      const text = `Refused ${Date.now()}`;
+      await page.getByLabel("A thought").fill(text);
+      await page.getByRole("button", { name: "Add", exact: true }).click();
+      const row = page.getByRole("list", { name: "Latest thoughts" }).getByText(text);
+      await expect(row).toBeVisible(); // optimistic
+      await expect(row).toContainText("saving");
+      await expect(page.getByText("The notes couldn't be saved just now.")).toBeVisible(); // the error toast
+      await expect(row).toBeHidden(); // undone
+    });
   });
 });
