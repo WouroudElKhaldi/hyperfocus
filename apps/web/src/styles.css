@@ -461,8 +461,7 @@ button.big { padding: var(--s-2) var(--s-5); font-size: .98rem; border-radius: 1
 .pet-wing-l { transform-box: fill-box; transform-origin: 100% 50%; animation: flap-l 2.4s ease-in-out infinite; }
 .pet-wing-r { transform-box: fill-box; transform-origin: 0% 50%; animation: flap-r 2.4s ease-in-out infinite; }
 
-/* ---------- phone navigation ---------- */
-.tabbar, .sheet-bg { display: none; }
+/* (phone navigation: Tailwind classes in App.tsx, P3-17) */
 
 /* ---------- motion ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -502,23 +501,9 @@ button.big { padding: var(--s-2) var(--s-5); font-size: .98rem; border-radius: 1
   .pet-home { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
-  .sidebar { display: none; }
   .grid2, .pet-form { grid-template-columns: minmax(0, 1fr); }
   .pet-stage { position: static; }
   h1 { font-size: 1.45rem; }
-  .tabbar {
-    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; height: calc(var(--tab-h) + env(safe-area-inset-bottom, 0px));
-    padding: var(--s-2) var(--s-2) env(safe-area-inset-bottom, 0px); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px); border-top: 1px solid var(--line);
-  }
-  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-0); background: transparent; color: var(--muted); font-size: .68rem; font-weight: 600; padding: var(--s-1) var(--s-0); border-radius: 12px; text-decoration: none; min-width: 0; }
-  .tab:hover:not(:disabled) { background: transparent; transform: none; }
-  .tab.active { color: var(--accent-strong); } .tab.active svg { transform: translateY(-1px) scale(1.08); }
-  .tab svg { transition: transform .2s; }
-  .sheet-bg { display: block; position: fixed; inset: 0; z-index: 34; background: rgba(28, 18, 60, .45); animation: fade .2s both; }
-  .more-sheet { position: fixed; left: 8px; right: 8px; bottom: calc(var(--tab-h) + 8px + env(safe-area-inset-bottom, 0px)); max-height: 72vh; overflow-y: auto; margin: 0; animation: slide-up .25s both; display: grid; gap: var(--s-2); }
-  .more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-1); }
-  .more-grid .nav { border: 1px solid var(--line); background: var(--surface-2); }
-  .more-grid .nav.active { background: var(--accent); }
   .toast { left: 12px; right: 12px; bottom: calc(var(--tab-h) + 76px + env(safe-area-inset-bottom, 0px)); max-width: none; }
   .quote-card { left: 12px; right: 12px; width: auto; bottom: calc(var(--tab-h) + 12px + env(safe-area-inset-bottom, 0px)); }
   .chat-card { height: calc(100vh - 290px); min-height: 360px; }

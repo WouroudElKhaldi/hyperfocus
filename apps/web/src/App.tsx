@@ -49,6 +49,8 @@ const NAV: NavGroup[] = [
   ] },
 ];
 const ALL = NAV.flatMap((g) => g.items);
+// one tab of the phone's bottom bar (P3-17)
+const TAB = "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[12px] bg-transparent px-0.5 py-1 text-[.68rem] font-semibold text-[var(--muted)] no-underline hover:bg-transparent hover:transform-none [&.active]:text-[var(--accent-strong)] [&_svg]:transition-transform [&_svg]:duration-200 [&.active_svg]:-translate-y-px [&.active_svg]:scale-[1.08] small:min-h-[52px] small:text-[.72rem] small:[&_svg]:size-6";
 
 // Sidebar size and which groups are folded are remembered in this browser.
 const SB = { min: 190, max: 380, def: 240, rail: 68 };
@@ -127,7 +129,7 @@ export default function App() {
     <ToastCtx.Provider value={show}>
       <a className="skip" href="#main">Skip to content</a>
       <div className={"shell" + (resizing ? " resizing" : "") + (collapsed ? " is-collapsed" : "")}>
-        <div className="sidebar-wrap" style={{ width }}>
+        <div className="sidebar-wrap phone:hidden" style={{ width }}>
           <aside className={"sidebar" + (collapsed ? " collapsed" : "")} aria-label="Sidebar">
             <Brand collapsed={collapsed} />
             {!collapsed && (
@@ -186,27 +188,28 @@ export default function App() {
           </main>
         </div>
 
-        <nav className="tabbar" aria-label="Quick menu">
+        {/* phones only: the bottom tab bar and the "More" sheet (P3-17: Tailwind, was the phone layer in styles.css) */}
+        <nav className="hidden phone:flex fixed inset-x-0 bottom-0 z-35 h-[calc(var(--tab-h)+env(safe-area-inset-bottom,0px))] border-t border-line bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] px-2 pt-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-[10px] small:pt-1" aria-label="Quick menu">
           {ALL.filter((i) => i.tab).map((i) => (
-            <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="tab" activeProps={{ className: "active" }}>
+            <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className={TAB} activeProps={{ className: "active" }}>
               <Icon name={i.icon} size={22} /><span>{i.label.replace("Talk it out", "Talk")}</span>
             </Link>
           ))}
-          <button className={"tab" + (sheet ? " active" : "")} onClick={() => setSheet(!sheet)} aria-expanded={sheet}>
+          <button className={TAB + (sheet ? " active" : "")} onClick={() => setSheet(!sheet)} aria-expanded={sheet}>
             <Icon name="more" size={22} /><span>More</span>
           </button>
         </nav>
 
         {sheet && (
-          <div className="sheet-bg" onClick={() => setSheet(false)}>
-            <div className="more-sheet card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="All pages">
+          <div className="hidden phone:block fixed inset-0 z-34 animate-[fade_.2s_both] bg-[rgba(28,18,60,.45)]" onClick={() => setSheet(false)}>
+            <div className="card fixed inset-x-2 bottom-[calc(var(--tab-h)+8px+env(safe-area-inset-bottom,0px))] grid max-h-[72vh] animate-[slide-up_.25s_both] gap-2 overflow-y-auto small:max-h-[78vh] small:p-3" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="All pages">
               <PetWidget compact />
-              <div className="more-grid">
+              <div className="grid grid-cols-2 gap-1">
                 {ALL.map((i) => (
-                  <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{i.label}</span></Link>
+                  <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav border border-line bg-surface-2 [&.active]:bg-[var(--accent)] small:min-h-12 small:text-[1rem]" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{i.label}</span></Link>
                 ))}
               </div>
-              <div className="more-appearance"><span>Light or dark</span><ThemeSwitch /></div>
+              <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-surface-2 px-3 py-2 font-semibold text-ink-2"><span>Light or dark</span><ThemeSwitch /></div>
               <Stuck inline />
             </div>
           </div>

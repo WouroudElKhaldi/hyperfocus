@@ -2,18 +2,37 @@
    Tailwind v4 + shadcn/ui (P3-01), added next to the existing design system without changing how anything looks.
 
    - No preflight (Tailwind's reset): the existing base styles in styles.css stay in charge until each page moves
-     over (P3-07 …). Only Tailwind's theme variables and utility classes are added, in cascade layers, so the existing
-     (unlayered) styles always win where both apply.
+     over. Since P3-17 they sit in the "legacy" layer below Tailwind's classes (see below), so a class written on an
+     element wins, and moving a rule to Tailwind is: add the class, delete the old rule, check the screenshots.
    - shadcn's colors are mapped onto the existing tokens (--bg, --ink, --accent …). Those are what palettes.ts and the
      light/dark/auto setting change, so every palette and both modes reach shadcn components with no extra work.
      The raw shadcn variable names (--muted, --accent …) are NOT defined: the app already uses --muted (a text color)
      and --accent (the brand color) with other meanings. Components only use the Tailwind colors below.
    ============================================================ */
 
-@layer theme, base, components, utilities;
+@layer theme, base, legacy, components, utilities, guarantees;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "tw-animate-css";
+
+/* The existing design system (styles.css, shell.css) sits in its own "legacy" layer (P3-17): above Tailwind's base,
+   below components and utilities. So a Tailwind class on an element wins over the old rules (that is how pages move
+   over, one rule at a time), while the old rules keep their order among themselves. */
+@import "./styles.css" layer(legacy);
+@import "./shell.css" layer(legacy);
+
+/* The old CSS uses these words as plain markers (.more.inline, .trait.static, .timer.paused). As Tailwind classes they
+   would change display, position and animation, so Tailwind never makes them. */
+@source not inline("inline static paused");
+
+/* What no class may take away, so it sits above everything: a clear keyboard focus ring (WCAG 2.2: 2.4.7, 2.4.11).
+   shadcn components carry `outline-none` and draw a softer ring; the app's own ring is the one people can rely on. */
+@layer guarantees {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
 
 /* shadcn/ui components expect Tailwind's reset (preflight), which this app doesn't load (see above). This is the part
    they rely on, for them only (they all carry data-slot), in the base layer so their own classes still win. Without it
@@ -29,6 +48,10 @@
     padding: 0;
   }
 }
+
+/* phone: and small: are the app's two phone sizes (the same breakpoints as the old CSS): up to 900px, up to 560px */
+@custom-variant phone (@media (max-width: 900px));
+@custom-variant small (@media (max-width: 560px));
 
 /* `dark:` follows the app's own setting: the "dark" choice, or "auto" while the system is dark */
 @custom-variant dark {

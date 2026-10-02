@@ -6,9 +6,7 @@ import "@fontsource-variable/figtree";
 import { createQueryClient, refreshOnDataChanged } from "./api/query.ts";
 import { router } from "./router.tsx";
 import { applyTheme, getTheme } from "./theme.ts";
-import "./tailwind.css"; // Tailwind + shadcn tokens (P3-01), before the existing styles so they keep the last word
-import "./styles.css";
-import "./shell.css";
+import "./tailwind.css"; // Tailwind + shadcn tokens, and (in a lower layer) the existing styles.css and shell.css
 
 applyTheme(getTheme());
 

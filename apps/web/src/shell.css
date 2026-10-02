@@ -124,7 +124,6 @@
 
 @media (max-width: 1100px) { .profile-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 900px) {
-  .sidebar-wrap, .resize-handle { display: none; }
   .topbar { padding: var(--s-2) var(--s-3); min-height: 56px; gap: var(--s-2); }
   .sb-toggle { display: none; }
   .tb-hello small, .pc-text small, .pc-bar { display: none; }
@@ -419,7 +418,7 @@ a.book-title:hover { color: var(--accent-strong); text-decoration: underline; }
    Phones. Calmer and easier to use with one thumb: fewer words, one thing at a time, big touch targets,
    nothing crowded at the top, and filters that scroll sideways instead of stacking into rows.
    ============================================================ */
-.tb-brand, .more-appearance { display: none; }
+.tb-brand { display: none; }
 .tb-brand-mark { width: 24px; height: 24px; border-radius: 8px; background: var(--accent); display: inline-block; position: relative; flex: none; }
 .tb-brand-mark::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--on-accent); }
 .tb-brand { align-items: center; gap: var(--s-2); text-decoration: none; color: var(--ink); font-family: var(--font-display); }
@@ -437,7 +436,6 @@ a.book-title:hover { color: var(--accent-strong); text-decoration: underline; }
   .tb-right { gap: var(--s-2); }
   .pet-chip .pc-text small { display: none; }
   .pet-chip { padding: var(--s-1) var(--s-3) var(--s-2) var(--s-1); }
-  .more-appearance { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-2) var(--s-3); border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); font-weight: 600; color: var(--ink-2); }
 
   /* less to read: the one-line explanations are for the big screen */
   .sub, .page > .sub { display: none; }
@@ -469,11 +467,6 @@ a.book-title:hover { color: var(--accent-strong); text-decoration: underline; }
   .music-fab { width: 48px; height: 48px; opacity: .96; }
 
   /* bottom tab bar: roomier labels and icons */
-  .tabbar { padding-top: var(--s-1); }
-  .tab { font-size: .72rem; gap: var(--s-0); min-height: 52px; }
-  .tab svg { width: 24px; height: 24px; }
-  .more-sheet { max-height: 78vh; padding: var(--s-3); }
-  .more-grid .nav { min-height: 48px; font-size: 1rem; }
 
   /* cards: simpler, with less shadow and less chrome */
   .card { box-shadow: none; border-radius: 16px; }

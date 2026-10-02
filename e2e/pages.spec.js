@@ -834,3 +834,43 @@ test.describe("music", () => {
     await expect(frame).toHaveAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");
   });
 });
+
+// P3-17: the phone layout. These run on the phone project (Pixel 7) as well as on desktop where they make sense.
+test.describe("phone layout @phone", () => {
+  test.skip(({ isMobile }) => !isMobile, "phone only");
+
+  test("no page scrolls sideways", async ({ page }) => {
+    const wide = [];
+    for (const path of ROUTES) {
+      await page.goto(path);
+      await expect(page.locator("main h1").first()).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      const { scroll, view } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, view: document.documentElement.clientWidth }));
+      if (scroll > view + 1) wide.push(`${path} (${scroll}px wide on a ${view}px screen)`);
+    }
+    expect(wide).toEqual([]);
+  });
+
+  test("the bottom tab bar and the More sheet take you everywhere; the sidebar stays hidden", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("complementary", { name: "Sidebar" })).toBeHidden();
+    const tabs = page.getByRole("navigation", { name: "Quick menu" });
+    await tabs.getByRole("link", { name: "Tasks" }).click();
+    await expect(page).toHaveURL(/\/tasks$/);
+    await expect(tabs.getByRole("link", { name: "Tasks" })).toHaveClass(/active/);
+    await tabs.getByRole("button", { name: "More" }).click();
+    const sheet = page.getByRole("dialog", { name: "All pages" });
+    await sheet.getByRole("link", { name: "Books" }).click();
+    await expect(page).toHaveURL(/\/books$/);
+    await expect(page.getByRole("heading", { name: "Books", level: 1 })).toBeVisible();
+  });
+
+  test("the tab bar's buttons are big enough to tap", async ({ page }) => {
+    await page.goto("/");
+    const sizes = await page.getByRole("navigation", { name: "Quick menu" }).locator("a, button").evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { name: e.textContent, w: r.width, h: r.height }; }));
+    for (const s of sizes) {
+      expect(s.h, `${s.name} height`).toBeGreaterThanOrEqual(44);
+      expect(s.w, `${s.name} width`).toBeGreaterThanOrEqual(44);
+    }
+  });
+});
