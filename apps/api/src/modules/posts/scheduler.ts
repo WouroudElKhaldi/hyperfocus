@@ -10,9 +10,12 @@ import { MAX_ATTEMPTS, afterFailure, autoPostProblem, dueAction } from "./rules.
 type Deps = { prisma: Db; publisher: SocialPublisher; events: EventBus };
 
 /** On start-up: a post left "posting" means the app stopped while sending it. It may be live, so it's never re-sent. */
-export const failInterrupted = (prisma: Db) =>
+// Only posts stuck for over 5 minutes (a real send takes seconds): with several copies of the API (P4-05), one starting
+// up must never fail a post another copy is sending right now.
+const STUCK_MS = 5 * 60 * 1000;
+export const failInterrupted = (prisma: Db, now = new Date()) =>
   prisma.post.updateMany({
-    where: { status: "posting" },
+    where: { status: "posting", OR: [{ lastAttemptAt: null }, { lastAttemptAt: { lt: new Date(now.getTime() - STUCK_MS) } }] },
     data: { status: "failed", lastError: "The app stopped while this was being sent. Check your LinkedIn profile before posting it again, it may already be there." },
   });
 

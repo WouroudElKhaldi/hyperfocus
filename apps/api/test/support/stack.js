@@ -65,6 +65,11 @@ export async function startTestStack({ port } = {}) {
   };
   delete env.DEMO_MODE;
 
+  // a run that was killed (not stopped) leaves its schemas behind: each run clears those older than an hour
+  prismaCli(["db", "execute", "--url", TEST_DB, "--stdin"], env, `DO $$ DECLARE s text; BEGIN
+    FOR s IN SELECT schema_name FROM information_schema.schemata
+      WHERE schema_name ~ '^run_[0-9]+_' AND split_part(schema_name, '_', 2)::bigint < extract(epoch FROM now()) * 1000 - 3600000
+    LOOP EXECUTE format('DROP SCHEMA %I CASCADE', s); END LOOP; END $$;`);
   prismaCli(["migrate", "deploy"], env); // the same migrations the app runs, into this run's own schema
 
   const log = path.join(tmp, "api.log");
@@ -83,7 +88,7 @@ export async function startTestStack({ port } = {}) {
     books.server.close();
     fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     try {
-      prismaCli(["db", "execute", "--url", TEST_DB, "--stdin"], env, `DROP SCHEMA IF EXISTS "${schema}" CASCADE;`);
+      prismaCli(["db", "execute", "--url", TEST_DB, "--stdin"], env, `DROP SCHEMA IF EXISTS "${schema}" CASCADE; DROP SCHEMA IF EXISTS "${schema}_jobs" CASCADE;`);
     } catch { /* already gone */ }
   };
   try {

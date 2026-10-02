@@ -8,7 +8,7 @@ import { gmailAppPassword } from "./modules/emails/mail-provider.ts";
 import { createApp } from "./app.ts";
 import { n8nPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
-import { inProcessScheduler } from "./jobs/scheduler.ts";
+import { pgBossScheduler } from "./jobs/pgboss.ts";
 import { createServer } from "./server.ts";
 import { log } from "./log.ts";
 import { ai } from "./ai.ts";
@@ -36,7 +36,8 @@ const port = config.port;
 serve({ fetch: server.fetch, port, hostname: "127.0.0.1" }, () => {
   console.log(`API on http://localhost:${port}${DEMO ? " (DEMO MODE)" : ""}`);
   if (DEMO) return; // no scheduler, reminders or automatic backups in the demo
-  const scheduler = inProcessScheduler({ log });
+  // a queue in PostgreSQL (P4-05), so the jobs run once even with several copies of the API
+  const scheduler = pgBossScheduler({ databaseUrl: config.databaseUrl, log });
   for (const job of backgroundJobs({ prisma, publisher, events })) scheduler.add(job);
   scheduler.start();
 });
