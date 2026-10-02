@@ -1,23 +1,21 @@
-import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../api.ts";
-import type { Profile } from "../../../types.ts";
+import { useApi } from "../../../api/hooks.ts";
+import { keyOf } from "../../../api/query.ts";
+import type { BodyOf } from "../../../api/typed.ts";
 
-// The saved profile, shared by the top bar, the greeting and the Profile page.
-let cache: Profile | null = null;
-const subs = new Set<(p: Profile) => void>();
-async function load() {
-  try { const p = await api.get("/profile"); cache = p; subs.forEach((f) => f(p)); } catch { /* try again on the next visit */ }
-}
-export function setProfileCache(p: Profile) { cache = p; subs.forEach((f) => f(p)); }
+// The saved profile, shared by the top bar, the greeting and the Profile page (P3-14: one cached copy, so saving it on
+// the Profile page updates the top bar and the greeting at once).
 
-export function useProfile(): Profile | null {
-  const [p, setP] = useState<Profile | null>(cache);
-  useEffect(() => {
-    subs.add(setP);
-    if (!cache) load(); else setP(cache);
-    return () => { subs.delete(setP); };
-  }, []);
-  return p;
+/** The profile, or null until it has loaded (a failed load just keeps the defaults; it is tried again later). */
+export const useProfile = () => useApi("/profile", { meta: { silent: true } }).data ?? null;
+
+export function useSaveProfile() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (profile: BodyOf<"put", "/profile">) => api.put("/profile", profile),
+    onSuccess: (p) => client.setQueryData(keyOf("/profile"), p),
+  });
 }
 
 export const initialsOf = (name: string | undefined) => {

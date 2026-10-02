@@ -150,7 +150,12 @@ export default function Goals() {
   const [text, setText] = useState("");
   const [date, setDate] = useState("");
 
-  const add = () => addGoal.mutate({ original: text, targetDate: date || null }, { onSuccess: () => { setText(""); setDate(""); } });
+  // the box empties right away (so the goal never shows twice) and gets the text back if the server says no
+  const add = () => {
+    const typed = { text, date };
+    setText(""); setDate("");
+    addGoal.mutate({ original: typed.text, targetDate: typed.date || null }, { onError: () => { setText(typed.text); setDate(typed.date); } });
+  };
   const remove = (g: Goal) => { if (confirm("Delete this goal and its plan?")) deleteGoal.mutate(g.id); };
 
   return (

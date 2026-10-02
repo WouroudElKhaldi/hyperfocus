@@ -1,34 +1,29 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { api, errorOf } from "../../../api.ts";
+import { type FormEvent, useMemo, useState } from "react";
+import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import type { Win, WinsSummary } from "../../../types.ts";
+import { useAddWin, useDeleteWin, useWins } from "../api.ts";
 
 const ICON: Record<string, string> = { win: "🏆", task: "✅", post: "💼", study: "📚" };
 const dayLabel = (iso: string) => new Date(iso).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
 
 export default function Wins() {
   const toast = useToast();
-  const [wins, setWins] = useState<Win[]>([]);
+  const wins = useWins().data ?? [];
+  const addWin = useAddWin();
+  const deleteWin = useDeleteWin();
   const [text, setText] = useState("");
   const [summary, setSummary] = useState<WinsSummary | null>(null);
-  const [busy, setBusy] = useState(false);
+  const summarize = useApiChange("post", "/wins/summary", { onSuccess: setSummary });
+  const busy = summarize.isPending;
 
-  const load = () => api.get("/wins").then(setWins).catch((e) => toast(e.message, "err"));
-  useEffect(() => { load(); }, []);
-
-  const add = async (e: FormEvent) => {
+  const add = (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    try { await api.post("/wins", { text }); setText(""); toast("Logged 🏆 You did that."); load(); }
-    catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
+    addWin.mutate(text, { onSuccess: () => { setText(""); toast("Logged 🏆 You did that."); } });
   };
-  const remove = async (w: Win) => { await api.del(`/wins/${w.winId}`); load(); };
-  const makeSummary = async () => {
-    setBusy(true);
-    try { setSummary(await api.post("/wins/summary")); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
+  const remove = (w: Win) => { if (w.winId) deleteWin.mutate(w.winId); };
+  const makeSummary = () => summarize.mutate(undefined);
   const copy = () => {
     if (!summary) return;
     navigator.clipboard.writeText(summary.bullets.map((b) => `• ${b}`).join("\n") + "\n\n" + summary.paragraph);

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { MyReminders } from "../../reminders/index.ts";
 import More from "../../../components/More.tsx";
-import { api, errorOf } from "../../../api.ts";
+import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import { type ThemeMode, getTheme, setTheme } from "../../../theme.ts";
-import type { Backups, Settings } from "../../../types.ts";
+import type { Settings } from "../../../types.ts";
+import { useBackupNow, useBackups, useSaveSettings, useSettings } from "../api.ts";
 import { type QuoteSettings, readQuoteSettings, writeQuoteSettings } from "../../../components/Quotes.tsx";
 import { QUOTE_CATEGORIES } from "../../../data/quotes.ts";
 
@@ -13,9 +14,13 @@ const when = (d: string) => new Date(d).toLocaleString([], { weekday: "short", d
 
 export default function Backup() {
   const toast = useToast();
-  const [data, setData] = useState<Backups>({ backups: [], folder: "" });
-  const [busy, setBusy] = useState(false);
-  const [prefs, setPrefs] = useState<Settings | null>(null);
+  const data = useBackups().data ?? { backups: [], folder: "" };
+  const backup = useBackupNow();
+  const busy = backup.isPending;
+  const prefs = useSettings().data ?? null;
+  const saveSettings = useSaveSettings();
+  const notifyTest = useApiChange("post", "/notify/test");
+  const [breakEvery, setBreakEvery] = useState<number | null>(null); // while typing; saved when you leave the box
   const [theme, setThemeState] = useState(getTheme());
   const [quotes, setQuotes] = useState(readQuoteSettings());
   const saveQuotes = (patch: Partial<QuoteSettings>) => { const next = { ...quotes, ...patch }; setQuotes(next); writeQuoteSettings(next); };
@@ -26,28 +31,9 @@ export default function Backup() {
     return () => window.removeEventListener("theme-change", sync);
   }, []);
 
-  useEffect(() => { api.get("/settings").then(setPrefs).catch(() => {}); }, []);
-  const savePrefs = async (patch: Partial<Settings>) => {
-    setPrefs((p) => (p ? { ...p, ...patch } : p));
-    try { setPrefs(await api.patch("/settings", patch)); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-  const testNotification = async () => {
-    try { await api.post("/notify/test"); toast("Sent. Look at the corner of your screen 🔔"); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-  };
-
-  const load = () => api.get("/backups").then(setData).catch((e) => toast(e.message, "err"));
-  useEffect(() => { load(); }, []);
-
-  const backupNow = async () => {
-    setBusy(true);
-    try {
-      const out = await api.post("/backups");
-      setData({ backups: out.backups, folder: out.folder });
-      toast("Backup saved 💾 Everything you have right now is safe.");
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
+  const savePrefs = (patch: Partial<Settings>) => saveSettings.mutate(patch);
+  const testNotification = () => notifyTest.mutate(undefined, { onSuccess: () => toast("Sent. Look at the corner of your screen 🔔") });
+  const backupNow = () => backup.mutate(undefined, { onSuccess: () => toast("Backup saved 💾 Everything you have right now is safe.") });
 
   const newest = data.backups[0];
 
@@ -118,9 +104,9 @@ export default function Backup() {
           </ul>
           <div className="row">
             <label className="muted">Break nudge after
-              <input type="number" min="15" max="180" style={{ width: 70, margin: "0 var(--s-2)" }} value={prefs.breakEveryMin}
-                onChange={(e) => setPrefs({ ...prefs, breakEveryMin: Number(e.target.value) })}
-                onBlur={() => savePrefs({ breakEveryMin: prefs.breakEveryMin })} /> min of studying
+              <input type="number" min="15" max="180" style={{ width: 70, margin: "0 var(--s-2)" }} value={breakEvery ?? prefs.breakEveryMin}
+                onChange={(e) => setBreakEvery(Number(e.target.value))}
+                onBlur={() => { if (breakEvery !== null) savePrefs({ breakEveryMin: breakEvery }); setBreakEvery(null); }} /> min of studying
             </label>
             <label className="muted">Morning note at
               <input type="time" style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.morningAt} onChange={(e) => savePrefs({ morningAt: e.target.value })} />

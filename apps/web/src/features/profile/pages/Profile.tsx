@@ -1,7 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { api, errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
-import { initialsOf, setProfileCache, useProfile } from "../hooks/useProfile.ts";
+import { initialsOf, useProfile, useSaveProfile } from "../hooks/useProfile.ts";
 import { PALETTE_GROUPS, type Palette, paletteTokens } from "../../../palettes.ts";
 import type { Profile as ProfileData } from "../../../types.ts";
 import { getPalette, setPalette } from "../../../theme.ts";
@@ -14,7 +13,8 @@ export default function Profile() {
   const toast = useToast();
   const saved = useProfile();
   const [f, setF] = useState<Form | null>(null);
-  const [busy, setBusy] = useState(false);
+  const saveProfile = useSaveProfile();
+  const busy = saveProfile.isPending;
   const [palette, setPal] = useState(getPalette());
 
   useEffect(() => { if (saved && !f) setF(formOf(saved)); }, [saved]);
@@ -29,15 +29,9 @@ export default function Profile() {
     set({ avatar: paletteTokens(p, "light")["--accent"] ?? f.avatar }); // your avatar takes the new color (saved with Save)
   };
 
-  const save = async (e: FormEvent) => {
+  const save = (e: FormEvent) => {
     e.preventDefault();
-    setBusy(true);
-    try {
-      const p = await api.put("/profile", f);
-      setProfileCache(p);
-      toast("Saved. Your info stays on this computer.");
-    } catch (caught) { const err = errorOf(caught); toast(err.message, "err"); }
-    setBusy(false);
+    saveProfile.mutate(f, { onSuccess: () => toast("Saved. Your info stays on this computer.") });
   };
 
   return (

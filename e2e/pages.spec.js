@@ -697,3 +697,54 @@ test.describe("Jobs keep their data", () => {
     await expect(page.getByRole("button", { name: "Unlink this email" })).toHaveCount(0);
   });
 });
+
+// P3-14: Chat, Wins, Profile and Settings on the shared cache.
+test.describe("Chat, Wins, Profile and Settings keep their data", () => {
+  test("a saved chat shows in History, can be renamed and deleted", async ({ page }) => {
+    await page.goto("/chat");
+    await page.getByRole("textbox").last().fill("E2E hello chat");
+    await page.getByRole("button", { name: "Send" }).click();
+    await expect(page.getByText("Fake companion reply.")).toBeVisible();
+    const history = page.getByRole("navigation", { name: "Saved chats" });
+    if (!(await history.isVisible())) await page.getByRole("button", { name: /^History/ }).click();
+    const rename = history.getByRole("button", { name: /^Rename / }).first();
+    await rename.click();
+    await page.getByLabel("Chat name").fill("E2E renamed chat");
+    await page.getByLabel("Chat name").press("Enter");
+    await expect(history.getByText("E2E renamed chat")).toBeVisible();
+    await history.getByRole("button", { name: "Delete E2E renamed chat" }).click();
+    await history.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(history.getByText("E2E renamed chat")).toHaveCount(0);
+  });
+
+  test("a logged win can be deleted", async ({ page }) => {
+    await page.goto("/wins");
+    await page.getByRole("textbox").first().fill("E2E win to delete");
+    await page.getByRole("button", { name: "Add win" }).click();
+    const row = page.locator(".item").filter({ hasText: "E2E win to delete" });
+    await expect(page.getByText("E2E win to delete")).toBeVisible();
+    await row.getByRole("button", { name: "✕" }).click();
+    await expect(page.getByText("E2E win to delete")).toHaveCount(0);
+  });
+
+  test("a name saved on Profile greets you on Today without a reload", async ({ page }) => {
+    await page.goto("/profile");
+    await page.getByPlaceholder("What should I call you?").fill("Zed Tester");
+    await page.getByRole("button", { name: /Save/ }).first().click();
+    await expect(page.getByText(/Saved\./)).toBeVisible();
+    await page.locator(".sidebar").getByRole("link", { name: "Today", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/, Zed$/);
+  });
+
+  test("a setting is kept after a reload", async ({ page }) => {
+    await page.goto("/backup");
+    await page.getByText("What and when").click();
+    const morning = page.locator("label").filter({ hasText: "Morning note at" }).locator("input");
+    await morning.fill("07:45");
+    await expect(morning).toHaveValue("07:45");
+    await page.waitForLoadState("networkidle");
+    await page.reload();
+    await page.getByText("What and when").click();
+    await expect(page.locator("label").filter({ hasText: "Morning note at" }).locator("input")).toHaveValue("07:45");
+  });
+});

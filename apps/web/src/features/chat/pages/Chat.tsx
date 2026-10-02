@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, errorOf } from "../../../api.ts";
+import { useDeleteThreads, useOpenThread, useRenameThread, useSendChat, useThreads } from "../api.ts";
 import { useToast } from "../../../App.tsx";
 import type { ChatMessage, ChatReply, ChatThread } from "../../../types.ts";
 
@@ -45,7 +45,7 @@ const dayLabel = (d: string) => {
 
 type HistoryProps = {
   threads: ChatThread[]; activeId: number | null; mode: string;
-  onOpen: (id: number) => void; onRename: (id: number, title: string) => Promise<void>; onDelete: (id: number) => void; onDeleteAll: () => void;
+  onOpen: (id: number) => void; onRename: (id: number, title: string) => void; onDelete: (id: number) => void; onDeleteAll: () => void;
 };
 function History({ threads, activeId, mode, onOpen, onRename, onDelete, onDeleteAll }: HistoryProps) {
   const [editing, setEditing] = useState<number | null>(null);
@@ -58,7 +58,7 @@ function History({ threads, activeId, mode, onOpen, onRename, onDelete, onDelete
     if (!g) { g = { label: l, items: [] }; groups.push(g); }
     g.items.push(t);
   }
-  const commit = async () => { const id = editing; setEditing(null); if (id !== null && title.trim()) await onRename(id, title.trim()); };
+  const commit = () => { const id = editing; setEditing(null); if (id !== null && title.trim()) onRename(id, title.trim()); };
 
   return (
     <nav className="chat-history" aria-label="Saved chats">
@@ -98,12 +98,15 @@ function History({ threads, activeId, mode, onOpen, onRename, onDelete, onDelete
 
 export default function Chat() {
   const toast = useToast();
-  const [threads, setThreads] = useState<ChatThread[] | null>(null);
+  const threads = useThreads().data ?? null;
+  const sendChat = useSendChat();
+  const openThread = useOpenThread();
+  const renameThread = useRenameThread();
+  const deleteThreads = useDeleteThreads();
   const [mode, setMode] = useState(TEMP.length ? "temp" : "saved");
   const [threadId, setThreadId] = useState<number | null>(null); // null = a new chat that has not been saved yet
   const [msgs, setMsgs] = useState<Msg[]>(TEMP.length ? TEMP : []);
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
   const [crisis, setCrisis] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -111,47 +114,40 @@ export default function Chat() {
   const box = useRef<HTMLTextAreaElement>(null);
   const temp = mode === "temp";
 
-  const loadThreads = () => api.get("/chat/threads").then(setThreads).catch((e) => { toast(e.message, "err"); setThreads([]); });
-  useEffect(() => { loadThreads(); }, []);
+  const busy = sendChat.isPending;
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, busy]);
   useEffect(() => { if (temp) TEMP = msgs; }, [msgs, temp]);
 
   const reset = (m: string) => { setMode(m); setThreadId(null); setMsgs([]); TEMP = []; setCrisis(false); setShowHistory(false); box.current?.focus(); };
   const newChat = () => reset("saved");
   const newTemp = () => reset("temp");
-  const open = async (id: number) => {
-    try {
-      const r = await api.get(`/chat/threads/${id}`);
-      setMode("saved"); setThreadId(id); setMsgs(r.messages); TEMP = []; setCrisis(false); setShowHistory(false);
-    } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); loadThreads(); }
-  };
+  const open = (id: number) =>
+    openThread.mutate(id, {
+      onSuccess: (r) => { setMode("saved"); setThreadId(id); setMsgs(r.messages); TEMP = []; setCrisis(false); setShowHistory(false); },
+    });
 
-  const send = async (t = text) => {
+  // the message shows at once; if it fails it goes back into the box (the reason shows in a toast)
+  const send = (t = text) => {
     const message = t.trim();
     if (!message || busy) return;
     setText("");
-    setBusy(true);
     const tmp: Msg = { id: `tmp${Date.now()}`, role: "user", content: message };
     const before = msgs;
     setMsgs((m) => [...m, tmp]);
-    try {
-      const out = await api.post("/chat", temp ? { message, temporary: true, history: before.map(({ role, content }) => ({ role, content })) } : { message, threadId });
-      setMsgs((m) => [...m.filter((x) => x.id !== tmp.id), out.user, out.assistant]);
-      if (out.thread) setThreadId(out.thread.id);
-      if (!temp) loadThreads();
-      if (out.crisis) setCrisis(true);
-    } catch (caught) { const e = errorOf(caught);
-      setMsgs((m) => m.filter((x) => x.id !== tmp.id));
-      setText(message);
-      toast(e.message, "err");
-    }
-    setBusy(false);
-    box.current?.focus();
+    sendChat.mutate(temp ? { message, temporary: true, history: before.map(({ role, content }) => ({ role, content })) } : { message, threadId }, {
+      onSuccess: (out) => {
+        setMsgs((m) => [...m.filter((x) => x.id !== tmp.id), out.user, out.assistant]);
+        if (out.thread) setThreadId(out.thread.id);
+        if (out.crisis) setCrisis(true);
+      },
+      onError: () => { setMsgs((m) => m.filter((x) => x.id !== tmp.id)); setText(message); },
+      onSettled: () => box.current?.focus(),
+    });
   };
 
-  const rename = async (id: number, title: string) => { try { await api.patch(`/chat/threads/${id}`, { title }); loadThreads(); } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); } };
-  const remove = async (id: number) => { await api.del(`/chat/threads/${id}`); if (id === threadId) newChat(); loadThreads(); };
-  const removeAll = async () => { await api.del("/chat/threads"); newChat(); loadThreads(); toast("All saved chats deleted."); };
+  const rename = (id: number, title: string) => renameThread.mutate({ id, title });
+  const remove = (id: number) => deleteThreads.mutate(id, { onSuccess: () => { if (id === threadId) newChat(); } });
+  const removeAll = () => deleteThreads.mutate(undefined, { onSuccess: () => { newChat(); toast("All saved chats deleted."); } });
 
   return (
     <div className="chat-page">
