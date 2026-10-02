@@ -25,3 +25,14 @@ for (const mode of ["light", "dark"]) {
     });
   }
 }
+
+// P3-15: every pet drawing (each species at every age, both builds, moods, every item, pattern and aura) must stay
+// pixel-identical while the pet code moves. /dev/pet exists only in development, which is what the tests run.
+test("every pet drawing looks the same @visual", async ({ page }) => {
+  await page.goto("/dev/pet");
+  // only the drawings: the app around them (greeting, music button) changes with the time of day
+  await page.addStyleTag({ content: ".topbar, .music-panel, [class*=\"music\"] { visibility: hidden !important; }" });
+  await expect(page.getByRole("heading", { name: "every item (adult cat)" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByTestId("pet-gallery")).toHaveScreenshot("pet-gallery.png", { animations: "disabled", maxDiffPixels: 0 });
+});

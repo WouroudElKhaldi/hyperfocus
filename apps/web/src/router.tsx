@@ -36,6 +36,8 @@ const Pet = lazyRouteComponent(() => import("./features/pet/pages/Pet.tsx"));
 const Profile = lazyRouteComponent(() => import("./features/profile/pages/Profile.tsx"));
 // the design system page (P3-02): development only, so it never ships in the built app
 const DevUi = import.meta.env.DEV ? lazyRouteComponent(() => import("./features/dev/pages/DevUi.tsx")) : null;
+// every pet drawing on one page (P3-15), for the visual test: development only too
+const PetGallery = import.meta.env.DEV ? lazyRouteComponent(() => import("./features/dev/pages/PetGallery.tsx")) : null;
 
 /** An address that isn't a page: say so kindly, with one way back. */
 function NotFound() {
@@ -77,7 +79,7 @@ const routes = [
   page("/pet", Pet),
   page("/profile", Profile),
 ] as const;
-const devRoutes = DevUi ? [page("/dev/ui", DevUi)] : [];
+const devRoutes = DevUi && PetGallery ? [page("/dev/ui", DevUi), page("/dev/pet", PetGallery)] : [];
 
 export const router = createRouter({
   routeTree: root.addChildren([...routes, ...devRoutes]),

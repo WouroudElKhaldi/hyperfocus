@@ -1,11 +1,11 @@
 import type { Pet } from "@hyperfocus/db";
-import { TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+import { PET_GENDERS, PET_SPECIES, TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
 import { activeMs, type Db, errorInfo, type UncheckedJson } from "./types.ts";
 
 // The companion pet. All growth comes from things she really completed or added (see award()), never from clicking for points.
-export const SPECIES = ["cat", "fox", "bunny", "dragon", "blob"];
-// The pet can be a boy, a girl, or either. It changes how it looks and which clothes it can wear (items marked for one gender).
-export const GENDERS = ["boy", "girl", "neutral"];
+// The species and genders are shared with the website (@hyperfocus/shared), which draws them.
+export const SPECIES: readonly string[] = PET_SPECIES;
+export const GENDERS: readonly string[] = PET_GENDERS;
 
 // ---------- ages ----------
 // The pet has an age that depends on the XP she has earned. Each age looks different (see PetArt on the website).

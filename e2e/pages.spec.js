@@ -8,6 +8,9 @@ const test = base.extend({
   allowedConsoleErrors: [[], { option: true }],
   // Fails the test if the page logs an error or throws, so silent breakage can't hide.
   page: async ({ page, allowedConsoleErrors }, use) => {
+    // the pet grows from points earned by every test, so its "grew up" celebration could pop up in the middle of any
+    // test; here every growth counts as already seen (the celebration has its own test, which turns this off)
+    await page.addInitScript(() => { if (!sessionStorage.getItem("e2e-celebrate")) localStorage.setItem("pet-stage-seen", "99"); });
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     page.on("pageerror", (e) => errors.push(e.message));
@@ -746,5 +749,42 @@ test.describe("Chat, Wins, Profile and Settings keep their data", () => {
     await page.reload();
     await page.getByText("What and when").click();
     await expect(page.locator("label").filter({ hasText: "Morning note at" }).locator("input")).toHaveValue("07:45");
+  });
+});
+
+// P3-15: the pet is one shared copy: points earned anywhere show on the sidebar card without a reload.
+test.describe("the pet keeps its data", () => {
+  test("finishing a task gives the pet points, shown at once", async ({ page }) => {
+    const current = await (await page.request.get("/api/pet")).json();
+    if (!current.pet) await page.request.post("/api/pet", { data: { name: "Pixel", species: "cat", gender: "neutral", color: "#9b7bff", traits: [] } });
+    await page.goto("/tasks");
+    const card = page.locator(".sidebar .pet-widget");
+    const points = async () => Number((await card.locator("small").first().innerText()).match(/(\d+) points/)?.[1]);
+    await expect(card.locator("small").first()).toContainText("points");
+    const before = await points();
+    await page.getByPlaceholder("New task…").fill("E2E pet task");
+    await page.getByPlaceholder("New task…").press("Enter");
+    await page.getByRole("checkbox", { name: "Done: E2E pet task" }).click();
+    await expect.poll(points).toBeGreaterThan(before);
+  });
+
+  test("when the pet grows, a celebration shows once", async ({ page }) => {
+    // a hatched pet: an achieved goal is worth more than the 30 points an egg needs
+    const current = await (await page.request.get("/api/pet")).json();
+    if (!current.pet) await page.request.post("/api/pet", { data: { name: "Pixel", species: "cat", gender: "neutral", color: "#9b7bff", traits: [] } });
+    if (!(current.stage >= 1)) {
+      const goal = await (await page.request.post("/api/goals", { data: { original: "E2E hatch goal", targetDate: null } })).json();
+      await page.request.patch(`/api/goals/${goal.id}`, { data: { status: "achieved" } });
+    }
+    expect((await (await page.request.get("/api/pet")).json()).stage).toBeGreaterThanOrEqual(1);
+    await page.addInitScript(() => sessionStorage.setItem("e2e-celebrate", "1"));
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("pet-stage-seen", "0")); // as if it was still an egg last time
+    await page.reload();
+    await expect(page.getByRole("dialog", { name: "Your pet grew" })).toBeVisible();
+    await page.getByRole("button", { name: "Later" }).click();
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Your pet grew" })).toHaveCount(0); // only once
   });
 });

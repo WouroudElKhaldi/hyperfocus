@@ -1,9 +1,10 @@
+import { PET_GENDERS, PET_SPECIES, type PetGender, type PetSpecies } from "@hyperfocus/shared/constants";
 import { useEffect, useMemo, useState } from "react";
-import { api, errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
 import PetArt from "../components/PetArt.tsx";
 import Wardrobe, { type WardrobeChange } from "../components/Wardrobe.tsx";
-import type { Outfit, PetCatalog, PetResponse, PetState, Personality } from "../../../types.ts";
+import type { Outfit, PetCatalog, PetState, Personality } from "../../../types.ts";
+import { usePetCatalog, usePetChanges, usePetQuery } from "../api.ts";
 
 /** The fields of the create / edit form. */
 type PetFormValues = {
@@ -11,11 +12,12 @@ type PetFormValues = {
 };
 import { MOOD_VOICE, VOICE } from "../../../data/personalities.ts";
 
-const SPECIES = [
-  { id: "cat", label: "Cat" }, { id: "fox", label: "Fox" }, { id: "bunny", label: "Bunny" },
-  { id: "dragon", label: "Dragon" }, { id: "blob", label: "Axolotl" },
-];
-const GENDERS = [{ id: "boy", label: "Boy" }, { id: "girl", label: "Girl" }, { id: "neutral", label: "Either" }];
+// The species and genders come from @hyperfocus/shared (the same lists the API checks); only the labels live here,
+// and a new species without a label is a type error.
+const SPECIES_LABEL: Record<PetSpecies, string> = { cat: "Cat", fox: "Fox", bunny: "Bunny", dragon: "Dragon", blob: "Axolotl" };
+const GENDER_LABEL: Record<PetGender, string> = { boy: "Boy", girl: "Girl", neutral: "Either" };
+const SPECIES = PET_SPECIES.map((id) => ({ id, label: SPECIES_LABEL[id] }));
+const GENDERS = PET_GENDERS.map((id) => ({ id, label: GENDER_LABEL[id] }));
 const COLORS = ["#9b7bff", "#ff8fb8", "#ffb27a", "#62d6a8", "#6cb8ff", "#ffd36b", "#ff7a7a", "#b07a5a", "#8d8fa8"] as const;
 const SOURCE_LABEL: Record<string, string> = { task: "Task", step: "Goal step", goal: "Goal", post: "Post", study: "Study", win: "Win", review: "Review", skill: "Skill", book: "Book", quest: "Daily quest", add: "Added" };
 const PERK_NAME: Record<string, string> = { task: "task points", study: "study points", step: "goal step points", goal: "goal points", post: "post points", win: "win points", review: "review points", skill: "skill level-up points", book: "book points" };
@@ -132,20 +134,13 @@ function PetForm({ initial, catalog, creating, busy, onSubmit }: PetFormProps) {
 
 export default function Pet() {
   const toast = useToast();
-  const [s, setS] = useState<PetResponse | undefined>(undefined); // undefined = loading, {pet:null} = no pet yet
-  const [catalog, setCatalog] = useState<PetCatalog | null>(null);
+  const s = usePetQuery().data; // undefined = loading, {pet:null} = no pet yet
+  const catalog = usePetCatalog(!!s && !s.pet).data ?? null;
+  const change = usePetChanges();
+  const busy = change.create.isPending || change.update.isPending;
   const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState("");
   const [jump, setJump] = useState(0);
-
-  const load = () => api.get("/pet").then(setS).catch((e) => toast(e.message, "err"));
-  useEffect(() => {
-    load();
-    window.addEventListener("data-changed", load);
-    return () => window.removeEventListener("data-changed", load);
-  }, []);
-  useEffect(() => { if (s && !s.pet && !catalog) api.get("/pet/catalog").then(setCatalog).catch((e) => toast(e.message, "err")); }, [s?.pet]);
 
   const st = s?.pet ? s : null; // the pet's state once there is a pet
   const talk = useMemo(() => (st ? sayings(st) : []), [st?.xp, st?.mood, st?.pet.name, st?.pet.traits.join()]);
@@ -153,18 +148,9 @@ export default function Pet() {
   useEffect(() => { if (talk.length) setSaid(anyLine()); }, [talk]);
   const poke = () => { if (talk.length) { setSaid(anyLine()); setJump((j) => j + 1); } };
 
-  const create = async (f: PetFormValues) => {
-    setBusy(true);
-    try { setS(await api.post("/pet", f)); toast("An egg appeared 🥚 Keep going and it will hatch."); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
-  const patch = async (body: Partial<PetFormValues> | WardrobeChange, okMsg?: string) => {
-    setBusy(true);
-    try { setS(await api.patch("/pet", body)); if (okMsg) toast(okMsg); }
-    catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
-    setBusy(false);
-  };
+  const create = (f: PetFormValues) => change.create.mutate(f, { onSuccess: () => toast("An egg appeared 🥚 Keep going and it will hatch.") });
+  const patch = (body: Partial<PetFormValues> | WardrobeChange, okMsg?: string) =>
+    change.update.mutate(body, { onSuccess: () => { if (okMsg) toast(okMsg); } });
 
   if (s === undefined) return <div className="empty">Waking things up…</div>;
 

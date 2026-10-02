@@ -42,20 +42,22 @@ export function PetCelebration() {
     if (!s?.pet) return;
     const seen = read("pet-stage-seen");
     if (seen === null) write("pet-stage-seen", s.stage); // first time we see this pet: just remember it
-    else if (s.stage > Number(seen)) { setParty(s); write("pet-stage-seen", s.stage); }
+    else if (s.stage > Number(seen)) setParty(s);
   }, [s?.pet ? s.stage : null, s?.pet?.id]);
 
+  // it counts as seen only once you close it, so a reload while it is showing never loses it
+  const close = () => { if (party) write("pet-stage-seen", party.stage); setParty(null); };
   if (!party) return null;
   return (
-    <div className="modal-bg party" onClick={() => setParty(null)}>
+    <div className="modal-bg party" onClick={close}>
       <div className="modal card party-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Your pet grew">
         <div className="confetti" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}</div>
         <PetArt species={party.pet.species} gender={party.pet.gender} color={party.pet.color} stage={party.stage} mood="happy" outfit={party.outfit} pattern={party.pet.pattern} aura={party.pet.aura} legend={party.legend} size={200} />
         <h2>{party.stage === 1 ? `${party.pet.name} hatched!` : `${party.pet.name} grew up a little!`}</h2>
         <p className="muted">{party.stage === 1 ? "That's all the things you finished, coming to life." : `Now age ${party.age}: a ${party.stageName.toLowerCase()}. Look what you did.`}</p>
         <div className="row" style={{ justifyContent: "center" }}>
-          <Link activeProps={{ className: "active" }} to="/pet" className="btn primary" onClick={() => setParty(null)}>Say hi</Link>
-          <button className="ghost" onClick={() => setParty(null)}>Later</button>
+          <Link activeProps={{ className: "active" }} to="/pet" className="btn primary" onClick={close}>Say hi</Link>
+          <button className="ghost" onClick={close}>Later</button>
         </div>
       </div>
     </div>
