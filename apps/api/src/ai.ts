@@ -1,18 +1,22 @@
-import { playbookPrompt } from "./playbook.js";
+import { playbookPrompt } from "./playbook.ts";
+import { httpError, type UncheckedJson } from "./types.ts";
+
+/** One message in a conversation with the AI. */
+export type AiMessage = { role: string; content: string };
+/** A JSON reply from the AI. Unchecked until P2-05 (see UncheckedJson). */
+export type AiJson = UncheckedJson;
 
 const URL = process.env.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions"; // the override is only for tests
 
-export async function chat(messages, { json = false, temperature = 0.7 } = {}) {
+export async function chat(messages: AiMessage[], opts?: { json?: false; temperature?: number }): Promise<string>;
+export async function chat(messages: AiMessage[], opts: { json: true; temperature?: number }): Promise<AiJson>;
+export async function chat(messages: AiMessage[], { json = false, temperature = 0.7 }: { json?: boolean; temperature?: number } = {}): Promise<string | AiJson> {
   if (process.env.DEMO_MODE) {
-    const e = new Error("The AI is switched off in this demo, so nobody can spend someone else's credits.");
-    e.status = 403;
-    throw e;
+    throw httpError(403, "The AI is switched off in this demo, so nobody can spend someone else's credits.");
   }
   const key = process.env.DEMO_MODE ? "" : process.env.DEEPSEEK_API_KEY;
   if (!key) {
-    const e = new Error("DEEPSEEK_API_KEY is missing. Add it to apps/api/.env and restart.");
-    e.status = 400;
-    throw e;
+    throw httpError(400, "DEEPSEEK_API_KEY is missing. Add it to apps/api/.env and restart.");
   }
   const res = await fetch(process.env.DEEPSEEK_URL || URL, {
     method: "POST",
@@ -25,19 +29,15 @@ export async function chat(messages, { json = false, temperature = 0.7 } = {}) {
     }),
   });
   if (!res.ok) {
-    const e = new Error(`DeepSeek error ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    e.status = 502;
-    throw e;
+    throw httpError(502, `DeepSeek error ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
-  const data = await res.json();
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const text = data.choices?.[0]?.message?.content ?? "";
   if (!json) return text;
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as AiJson;
   } catch {
-    const e = new Error("AI returned something I couldn't read. Try again.");
-    e.status = 502;
-    throw e;
+    throw httpError(502, "AI returned something I couldn't read. Try again.");
   }
 }
 
@@ -52,7 +52,7 @@ const RULES = `HARD RULES:
 - Names of people, programs and companies: use ONLY what she wrote, spelled exactly as she wrote them. Never add a surname, title or affiliation she did not give.
 - If her thought or draft contains an @mention (like @Sami), keep it exactly as written, in the same place in the sentence. Do not remove it, expand it or turn it into a hashtag.`;
 
-export async function rewritePost({ thought, draft, instruction }) {
+export async function rewritePost({ thought, draft, instruction }: { thought: string; draft?: string; instruction?: string }) {
   const system = `${VOICE}\n${RULES}\n${playbookPrompt()}\nReply ONLY with JSON: {"draft": string, "hookType": string, "hooks": string[], "suggestions": string[]}.
 "hookType" = the name of the hook pattern you used. "hooks" = 3 alternative opening lines for the same post, each a DIFFERENT pattern from the playbook, each under 140 characters, each true to her thought. "suggestions" = 3 short, specific ideas she could apply next (something to add, something to cut). When she gives an edit instruction, keep the hook unless she asks to change it.`;
   const user = instruction
@@ -67,7 +67,7 @@ export async function rewritePost({ thought, draft, instruction }) {
   };
 }
 
-export async function analyzeGoal({ goal, targetDate, today, studyHours14d, existingActions }) {
+export async function analyzeGoal({ goal, targetDate, today, studyHours14d, existingActions }: { goal: string; targetDate: string | undefined; today: string; studyHours14d: string; existingActions: string[] }) {
   const out = await chat(
     [
       {
@@ -103,7 +103,7 @@ Steps she already has: ${existingActions.length ? existingActions.join("; ") : "
   };
 }
 
-export async function postIdeas({ course, part, notes }) {
+export async function postIdeas({ course, part, notes }: { course: string; part: string; notes: string }) {
   const out = await chat(
     [
       {
@@ -118,10 +118,10 @@ Reply ONLY with JSON: {"ideas": [{"angle": string, "thought": string}]} with exa
     ],
     { json: true, temperature: 0.7 },
   );
-  return (out.ideas || []).slice(0, 3).map((i) => ({ angle: String(i.angle ?? ""), thought: String(i.thought ?? "") })).filter((i) => i.thought);
+  return ((out.ideas || []) as AiJson[]).slice(0, 3).map((i) => ({ angle: String(i.angle ?? ""), thought: String(i.thought ?? "") })).filter((i) => i.thought);
 }
 
-export async function winsSummary(wins) {
+export async function winsSummary(wins: { date: string; kind: string; text: string }[]) {
   const out = await chat(
     [
       {
@@ -137,7 +137,7 @@ Reply ONLY with JSON: {"bullets": string[] (5-8), "paragraph": string (3-4 sente
   return { bullets: (out.bullets || []).map(String), paragraph: String(out.paragraph ?? "") };
 }
 
-export async function stuckHelp({ energy, blocker, todayTasks, openTasks, studying }) {
+export async function stuckHelp({ energy, blocker, todayTasks, openTasks, studying }: { energy: string; blocker: string; todayTasks: string[]; openTasks: string[]; studying: boolean }) {
   const out = await chat(
     [
       {
@@ -156,7 +156,7 @@ Reply ONLY with JSON: {"validation": string (one short, warm sentence that ackno
   return { validation: String(out.validation ?? ""), step: String(out.step ?? ""), ifStillStuck: String(out.ifStillStuck ?? ""), pick: String(out.pick ?? "") };
 }
 
-export async function suggestSkills({ context, existing }) {
+export async function suggestSkills({ context, existing }: { context: string; existing: string[] }) {
   const out = await chat(
     [
       {
@@ -169,10 +169,10 @@ Reply ONLY with JSON: {"skills": [{"name": string (max 6 words), "area": string 
     ],
     { json: true, temperature: 0.5 },
   );
-  return (out.skills || []).map((s) => ({ name: String(s.name), area: String(s.area || "Other"), why: String(s.why || "") })).filter((s) => s.name);
+  return ((out.skills || []) as AiJson[]).map((s) => ({ name: String(s.name), area: String(s.area || "Other"), why: String(s.why || "") })).filter((s) => s.name);
 }
 
-export async function skillPlan({ name, level, target }) {
+export async function skillPlan({ name, level, target }: { name: string; level: number; target: number }) {
   const out = await chat(
     [
       {
@@ -187,12 +187,12 @@ Reply ONLY with JSON: {"steps": string[], "books": [{"title": string, "author": 
   );
   return {
     steps: (out.steps || []).map(String),
-    books: (out.books || []).map((b) => ({ title: String(b.title), author: String(b.author || "") })).filter((b) => b.title).slice(0, 2),
+    books: ((out.books || []) as AiJson[]).map((b) => ({ title: String(b.title), author: String(b.author || "") })).filter((b) => b.title).slice(0, 2),
   };
 }
 
 // Raw thoughts can be full of typos, so the allowed amount of change is a bit more generous than for a finished draft.
-export async function polishDraft(draft, maxDrift = 0.25) {
+export async function polishDraft(draft: string, maxDrift = 0.25) {
   const out = await chat(
     [
       {
@@ -211,14 +211,12 @@ Reply ONLY with JSON: {"draft": string, "changes": string[]} where "changes" lis
   const result = String(out.draft ?? "");
   const drift = Math.abs(result.length - draft.length) / Math.max(draft.length, 1);
   if (!result.trim() || drift > maxDrift) {
-    const e = new Error("The AI changed too much for a tiny polish, so I kept your draft as it is. Try again.");
-    e.status = 502;
-    throw e;
+    throw httpError(502, "The AI changed too much for a tiny polish, so I kept your draft as it is. Try again.");
   }
   return { draft: result, changes: Array.isArray(out.changes) ? out.changes.map(String) : [] };
 }
 
-export async function taskSteps(task) {
+export async function taskSteps(task: string): Promise<string[]> {
   const out = await chat(
     [
       {
@@ -232,7 +230,7 @@ export async function taskSteps(task) {
   return (out.steps || []).map(String);
 }
 
-export async function organize(text) {
+export async function organize(text: string) {
   const out = await chat(
     [
       {

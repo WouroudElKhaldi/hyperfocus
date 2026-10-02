@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { occurrenceDays } from "../../src/calendar.js";
-import { isCrisis } from "../../src/chat.js";
-import { cleanHtml, textOf } from "../../src/mail.js";
-import { levelFor, studyXp, taskXp } from "../../src/pet.js";
-import { nextOccurrence } from "../../src/reminders.js";
+import { occurrenceDays } from "../../src/calendar.ts";
+import { isCrisis } from "../../src/chat.ts";
+import { cleanHtml, textOf } from "../../src/mail.ts";
+import { levelFor, studyXp, taskXp } from "../../src/pet.ts";
+import { nextOccurrence } from "../../src/reminders.ts";
 
 // Fast tests of the pure rules behind reminders, the calendar, XP, the crisis check and email cleaning.
 

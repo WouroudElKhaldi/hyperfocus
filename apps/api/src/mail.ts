@@ -1,8 +1,10 @@
-import express from "express";
+import type { EmailAttachment, Prisma } from "@hyperfocus/db";
+import express, { type Express, type Request } from "express";
 import nodemailer from "nodemailer";
 import sanitizeHtml from "sanitize-html";
-import { chat } from "./ai.js";
-import { jobSent } from "./jobs.js";
+import { chat } from "./ai.ts";
+import { jobSent } from "./jobs.ts";
+import { type Db, errorInfo, httpError as err, type UncheckedJson, type Wrap } from "./types.ts";
 
 // Email: write (rich text), keep drafts and templates, send from her own Gmail, and remember what was sent.
 // Gmail needs the address (GMAIL_USER) and an App Password (GMAIL_APP_KEY), see https://myaccount.google.com/apppasswords
@@ -12,11 +14,10 @@ const MAX_TOTAL = 24 * 1024 * 1024; // Gmail refuses messages over 25 MB
 const ADDR = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
 const ATT_URL = /\/api\/emails\/attachments\/(\d+)/;
 
-const err = (status, message) => Object.assign(new Error(message), { status });
 const cfg = () => ({ user: (process.env.GMAIL_USER || "").trim(), pass: (process.env.GMAIL_APP_KEY || "").replace(/\s+/g, "") });
 
 // Everything the editor produces is run through this, so a pasted page can never smuggle in scripts.
-export const cleanHtml = (html) =>
+export const cleanHtml = (html: unknown): string =>
   sanitizeHtml(String(html || ""), {
     allowedTags: ["p", "br", "div", "span", "b", "strong", "i", "em", "u", "s", "strike", "h1", "h2", "h3", "blockquote", "pre", "code", "ul", "ol", "li", "a", "img", "hr", "font", "table", "thead", "tbody", "tr", "td", "th"],
     allowedAttributes: {
@@ -50,21 +51,21 @@ export const cleanHtml = (html) =>
     exclusiveFilter: (f) => f.tag === "img" && !!f.attribs.src && !/^(https?:|cid:|\/api\/emails\/attachments\/)/i.test(f.attribs.src),
   });
 
-export const textOf = (html) =>
+export const textOf = (html: unknown): string =>
   sanitizeHtml(String(html || "").replace(/<\/(p|div|h[1-3]|li|tr|blockquote)>|<br\s*\/?>/gi, "\n"), { allowedTags: [], allowedAttributes: {} })
     .replace(/&nbsp;/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-const addrList = (s) => String(s || "").split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
-const checkAddrs = (label, list) => {
+const addrList = (s: string) => String(s || "").split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+const checkAddrs = (label: string, list: string[]) => {
   const bad = list.find((a) => !ADDR.test(a));
   if (bad) throw err(400, `"${bad}" is not a valid email address (${label}).`);
 };
 
 // ---- the AI "fix my English" pass. It may only change words inside the text, never the layout. ----
-const tagsOf = (html) => (String(html).match(/<[^>]+>/g) || []).join("");
-export async function polishEmail({ subject, html }) {
+const tagsOf = (html: string) => (String(html).match(/<[^>]+>/g) || []).join("");
+export async function polishEmail({ subject, html }: { subject: string; html: string }) {
   const out = await chat(
     [
       {
@@ -89,14 +90,15 @@ Reply ONLY with JSON: {"subject": string, "html": string, "changes": string[]} w
   return { subject: subject ? newSubject : "", html: cleanHtml(newHtml), changes: Array.isArray(out.changes) ? out.changes.map(String) : [] };
 }
 
-export function registerMail(app, prisma, wrap, { demo = false } = {}) {
-  const id = (req) => Number(req.params.id);
-  const slim = { select: { id: true, filename: true, mime: true, size: true, inline: true } };
-  const full = (e) => ({ ...e, attachments: e.attachments || [] });
-  const total = async (where) => (await prisma.emailAttachment.aggregate({ where, _sum: { size: true } }))._sum.size || 0;
+export function registerMail(app: Express, prisma: Db, wrap: Wrap, { demo = false }: { demo?: boolean } = {}): void {
+  const id = (req: Request) => Number(req.params.id);
+  const slim = { select: SLIM };
+  const full = <T extends object>(e: T & { attachments?: unknown[] }) => ({ ...e, attachments: e.attachments || [] });
+  const total = async (where: Prisma.EmailAttachmentWhereInput) => (await prisma.emailAttachment.aggregate({ where, _sum: { size: true } }))._sum.size || 0;
 
   // `to` may be empty while it is still a draft; everything is checked when she sends.
-  const fields = (b) => {
+  // TODO(types): request bodies get Zod schemas when this module moves to Hono (P2-16).
+  const fields = (b: UncheckedJson) => {
     const html = cleanHtml(b.html);
     return { toAddr: String(b.toAddr ?? "").trim(), ccAddr: String(b.ccAddr ?? "").trim(), bccAddr: String(b.bccAddr ?? "").trim(), subject: String(b.subject ?? "").slice(0, 300), html, body: textOf(html) };
   };
@@ -135,24 +137,24 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
   app.post("/api/emails/:id/duplicate", wrap(async (req, res) => {
     const src = await prisma.email.findUnique({ where: { id: id(req) }, include: { attachments: true } });
     if (!src) return res.status(404).json({ error: "Email not found." });
-    res.json(full(await cloneInto(prisma, { toAddr: src.toAddr, ccAddr: src.ccAddr, bccAddr: src.bccAddr, subject: src.subject, html: src.html, body: src.body }, src.attachments, "email")));
+    res.json(full(await cloneEmail(prisma, { toAddr: src.toAddr, ccAddr: src.ccAddr, bccAddr: src.bccAddr, subject: src.subject, html: src.html, body: src.body }, src.attachments)));
   }));
 
   // ----- files: raw upload (the browser sends the file itself, the name goes in ?name=) -----
   const upload = express.raw({ type: () => true, limit: MAX_FILE });
-  const addFile = (owner) => wrap(async (req, res) => {
+  const addFile = (owner: "email" | "template") => wrap(async (req, res) => {
     const where = owner === "email" ? { emailId: id(req) } : { templateId: id(req) };
-    const parent = await (owner === "email" ? prisma.email : prisma.emailTemplate).findUnique({ where: { id: id(req) } });
+    const parent = owner === "email" ? await prisma.email.findUnique({ where: { id: id(req) } }) : await prisma.emailTemplate.findUnique({ where: { id: id(req) } });
     if (!parent) return res.status(404).json({ error: "Not found." });
-    if (owner === "email" && parent.status === "sent") return res.status(409).json({ error: "This email was already sent." });
-    const data = req.body;
+    if ("status" in parent && parent.status === "sent") return res.status(409).json({ error: "This email was already sent." });
+    const data: unknown = req.body;
     if (!Buffer.isBuffer(data) || !data.length) return res.status(400).json({ error: "That file is empty." });
     if ((await total(where)) + data.length > MAX_TOTAL) return res.status(413).json({ error: "Gmail allows about 25 MB per email in total. Remove a file first." });
     const filename = String(req.query.name || "file").replace(/[\\/:*?"<>|\r\n]+/g, "_").slice(0, 150) || "file";
     const inline = req.query.inline === "1";
     const mime = String(req.headers["x-file-type"] || "application/octet-stream").slice(0, 100);
     if (inline && !/^image\/(png|jpe?g|gif|webp)$/i.test(mime)) return res.status(400).json({ error: "Only PNG, JPG, GIF or WebP images can go inside the email." });
-    const a = await prisma.emailAttachment.create({ data: { ...where, filename, mime, inline, size: data.length, data }, ...slim });
+    const a = await prisma.emailAttachment.create({ data: { ...where, filename, mime, inline, size: data.length, data: new Uint8Array(data) }, ...slim });
     res.json(a);
   });
   app.post("/api/emails/:id/attachments", upload, addFile("email"));
@@ -187,7 +189,8 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
     const claimed = await prisma.email.updateMany({ where: { id: id(req), status: { in: ["draft", "failed"] } }, data: { status: "sending", lastError: "" } });
     if (!claimed.count) throw err(409, "This email is already sent or being sent.");
     const e = await prisma.email.findUnique({ where: { id: id(req) }, include: { attachments: true } });
-    const back = async (message) => { await prisma.email.update({ where: { id: e.id }, data: { status: "failed", lastError: message } }); };
+    if (!e) throw err(404, "Email not found."); // only if it was deleted in the last millisecond
+    const back = async (message: string) => { await prisma.email.update({ where: { id: e.id }, data: { status: "failed", lastError: message } }); };
     try {
       const to = addrList(e.toAddr), cc = addrList(e.ccAddr), bcc = addrList(e.bccAddr);
       if (!to.length) throw err(400, "Add at least one recipient in “To”.");
@@ -195,8 +198,8 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
       if (!e.subject.trim() && !e.body.trim()) throw err(400, "The email is empty.");
       // images placed in the body travel inside the message (cid), the rest are normal attachments
       const byId = new Map(e.attachments.map((a) => [a.id, a]));
-      const used = new Set();
-      const html = e.html.replace(/(<img\b[^>]*?\bsrc=")([^"]*)(")/gi, (m, a, src, c) => {
+      const used = new Set<number>();
+      const html = e.html.replace(/(<img\b[^>]*?\bsrc=")([^"]*)(")/gi, (m, a: string, src: string, c: string) => {
         const hit = ATT_URL.exec(src);
         const att = hit && byId.get(Number(hit[1]));
         if (!att) return m;
@@ -217,7 +220,8 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
       const done = await prisma.email.update({ where: { id: e.id }, data: { status: "sent", sentAt: new Date(), fromAddr: user, messageId: String(info.messageId || ""), lastError: "" } });
       await jobSent(prisma, done).catch(() => {}); // the email is already sent, a job-update hiccup must not look like a failed send
       res.json({ ok: true, email: done });
-    } catch (x) {
+    } catch (thrown) {
+      const x = errorInfo(thrown);
       const bad = x.code === "EAUTH" ? "Gmail refused the login. Check GMAIL_USER and that GMAIL_APP_KEY is an App Password (needs 2-Step Verification)." : x.status ? x.message : `Could not send: ${x.message}`;
       await back(bad);
       throw err(x.status || 502, bad);
@@ -235,7 +239,7 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
     if (!src) return res.status(404).json({ error: "Email not found." });
     const name = String(req.body.name || src.subject || "Untitled template").trim().slice(0, 100);
     const html = cleanHtml(req.body.html ?? src.html);
-    const t = await cloneInto(prisma, { name, subject: String(req.body.subject ?? src.subject), html }, src.attachments, "template", html);
+    const t = await cloneTemplate(prisma, { name, subject: String(req.body.subject ?? src.subject), html }, src.attachments);
     res.json({ id: t.id, name: t.name });
   }));
   app.patch("/api/email-templates/:id", wrap(async (req, res) => {
@@ -248,7 +252,7 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
   app.post("/api/email-templates/:id/use", wrap(async (req, res) => {
     const t = await prisma.emailTemplate.findUnique({ where: { id: id(req) }, include: { attachments: true } });
     if (!t) return res.status(404).json({ error: "Template not found." });
-    res.json(full(await cloneInto(prisma, { subject: t.subject, html: t.html, body: textOf(t.html) }, t.attachments, "email")));
+    res.json(full(await cloneEmail(prisma, { subject: t.subject, html: t.html, body: textOf(t.html) }, t.attachments)));
   }));
 
   app.post("/api/ai/polish-email", wrap(async (req, res) => {
@@ -259,16 +263,31 @@ export function registerMail(app, prisma, wrap, { demo = false } = {}) {
 }
 
 // Copies an email/template and its files into a new email/template. Images inside the body are re-pointed to the copies.
-async function cloneInto(prisma, data, files, kind, htmlOverride) {
-  const model = kind === "email" ? prisma.email : prisma.emailTemplate;
-  const fk = kind === "email" ? "emailId" : "templateId";
-  const created = await model.create({ data });
-  const ids = new Map(); // old attachment id -> id of its copy
+const SLIM = { id: true, filename: true, mime: true, size: true, inline: true } as const;
+type FileCopy = Pick<EmailAttachment, "id" | "filename" | "mime" | "size" | "inline" | "data">;
+
+// copies the files to their new owner and returns old attachment id -> id of its copy
+async function copyFiles(prisma: Db, files: FileCopy[], owner: { emailId: number } | { templateId: number }) {
+  const ids = new Map<number, number>();
   for (const f of files) {
-    const copy = await prisma.emailAttachment.create({ data: { filename: f.filename, mime: f.mime, size: f.size, inline: f.inline, data: f.data, [fk]: created.id }, select: { id: true } });
+    const copy = await prisma.emailAttachment.create({ data: { filename: f.filename, mime: f.mime, size: f.size, inline: f.inline, data: f.data, ...owner }, select: { id: true } });
     ids.set(f.id, copy.id);
   }
-  const html = (htmlOverride ?? data.html ?? "").replace(/\/api\/emails\/attachments\/(\d+)/g, (m, n) => (ids.has(Number(n)) ? `/api/emails/attachments/${ids.get(Number(n))}` : m));
-  if (html !== (data.html ?? "")) return model.update({ where: { id: created.id }, data: { html, ...(kind === "email" ? { body: textOf(html) } : {}) }, include: { attachments: { select: { id: true, filename: true, mime: true, size: true, inline: true } } } });
-  return model.findUnique({ where: { id: created.id }, include: { attachments: { select: { id: true, filename: true, mime: true, size: true, inline: true } } } });
+  return ids;
+}
+const repoint = (html: string, ids: Map<number, number>) =>
+  html.replace(/\/api\/emails\/attachments\/(\d+)/g,(m, n: string) => (ids.has(Number(n)) ? `/api/emails/attachments/${ids.get(Number(n))}` : m));
+
+async function cloneEmail(prisma: Db, data: Prisma.EmailUncheckedCreateInput, files: FileCopy[]) {
+  const created = await prisma.email.create({ data });
+  const html = repoint(data.html ?? "", await copyFiles(prisma, files, { emailId: created.id }));
+  if (html !== (data.html ?? "")) return prisma.email.update({ where: { id: created.id }, data: { html, body: textOf(html) }, include: { attachments: { select: SLIM } } });
+  return prisma.email.findUniqueOrThrow({ where: { id: created.id }, include: { attachments: { select: SLIM } } });
+}
+
+async function cloneTemplate(prisma: Db, data: Prisma.EmailTemplateUncheckedCreateInput, files: FileCopy[]) {
+  const created = await prisma.emailTemplate.create({ data });
+  const html = repoint(data.html ?? "", await copyFiles(prisma, files, { templateId: created.id }));
+  if (html !== (data.html ?? "")) return prisma.emailTemplate.update({ where: { id: created.id }, data: { html }, include: { attachments: { select: SLIM } } });
+  return prisma.emailTemplate.findUniqueOrThrow({ where: { id: created.id }, include: { attachments: { select: SLIM } } });
 }

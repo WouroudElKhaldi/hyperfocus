@@ -4,18 +4,21 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PrismaClient } from "@hyperfocus/db";
-import { findBook, askAboutBook } from "./books.js";
-import { gatherWeek, writeReview } from "./review.js";
-import { notify, getSettings, saveSettings, remind } from "./notify.js";
-import { award, awardAtLeast, awardCapture, XP, taskXp, studyXp, PRIORITIES, petState, catalogState, cleanPet } from "./pet.js";
-import { companionReply, isCrisis } from "./chat.js";
-import { checkReminders, checkMyReminders, REMINDER_REPEATS } from "./reminders.js";
-import { buildCalendar, buildIcs, parseEventText, planStudyBlocks, CATEGORIES, REPEATS, DAY_RE, TIME_RE, toMin } from "./calendar.js";
-import { createBackup, listBackups, backupPath, backupDir, startAutoBackup } from "./backup.js";
-import { registerMail } from "./mail.js";
-import { registerJobs } from "./jobs.js";
-import { rewritePost, taskSteps, organize, analyzeGoal, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.js";
+import { type ChatThread, type Event, type Post, type Prisma, PrismaClient, type Reminder, type Review, type StudySession } from "@hyperfocus/db";
+import type { Request } from "express";
+import { findBook, askAboutBook } from "./books.ts";
+import { gatherWeek, writeReview } from "./review.ts";
+import { notify, getSettings, saveSettings, remind } from "./notify.ts";
+import { award, awardAtLeast, awardCapture, type Cleaned, XP, taskXp, studyXp, PRIORITIES, petState, catalogState, cleanPet } from "./pet.ts";
+import { companionReply, isCrisis } from "./chat.ts";
+import type { AiMessage } from "./ai.ts";
+import { checkReminders, checkMyReminders, REMINDER_REPEATS } from "./reminders.ts";
+import { buildCalendar, buildIcs, parseEventText, planStudyBlocks, CATEGORIES, REPEATS, DAY_RE, TIME_RE, toMin } from "./calendar.ts";
+import { createBackup, listBackups, backupPath, backupDir, startAutoBackup } from "./backup.ts";
+import { registerMail } from "./mail.ts";
+import { registerJobs } from "./jobs.ts";
+import { activeMs, errorInfo, type UncheckedJson, type Wrap } from "./types.ts";
+import { rewritePost, taskSteps, organize, analyzeGoal, polishDraft, suggestSkills, skillPlan, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
 
 // Accept keys in apps/api/.env or in the project-root .env
 dotenv.config({ path: new URL("../.env", import.meta.url) });
@@ -38,12 +41,15 @@ app.use(express.json({ limit: "1mb" }));
 // In the demo nothing can reach your real backups (they live in the project folder) or pop up notifications on this computer.
 if (DEMO) app.use(["/api/backups", "/api/notify", "/api/emails", "/api/email-templates"], (_, res) => res.status(403).json({ error: "This is switched off in the demo." }));
 
-const wrap = (fn) => (req, res) =>
-  fn(req, res).catch((e) => {
+// TODO(types): request bodies (req.body) are unchecked until each module moves to Hono with Zod schemas (P2).
+const wrap: Wrap = (fn) => (req, res) => {
+  fn(req, res).catch((thrown: unknown) => {
+    const e = errorInfo(thrown);
     console.error(e.message);
     res.status(e.status || 500).json({ error: e.message });
   });
-const id = (req) => Number(req.params.id);
+};
+const id = (req: Request) => Number(req.params.id);
 
 app.get("/api/health", (_, res) =>
   res.json({ ok: true, ai: !!process.env.DEEPSEEK_API_KEY, n8n: !!n8nUrl(), demo: DEMO }),
@@ -73,7 +79,7 @@ app.delete("/api/notes/:id", wrap(async (req, res) => {
 }));
 
 // ---------- Tasks ----------
-const taskInclude = { steps: { orderBy: { id: "asc" } } };
+const taskInclude = { steps: { orderBy: { id: "asc" } } } satisfies Prisma.TaskInclude;
 app.get("/api/tasks", wrap(async (_, res) => {
   res.json(await prisma.task.findMany({ include: taskInclude, orderBy: [{ done: "asc" }, { createdAt: "desc" }] }));
 }));
@@ -86,7 +92,7 @@ app.post("/api/tasks", wrap(async (req, res) => {
 }));
 app.patch("/api/tasks/:id", wrap(async (req, res) => {
   const { title, done, today } = req.body;
-  const data = { title, today };
+  const data: Prisma.TaskUncheckedUpdateInput = { title, today };
   if (req.body.priority !== undefined) {
     if (!PRIORITIES.includes(req.body.priority)) return res.status(400).json({ error: "Importance must be low, normal, high or urgent." });
     data.priority = req.body.priority;
@@ -105,7 +111,7 @@ app.delete("/api/tasks/:id", wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 app.post("/api/tasks/:id/steps", wrap(async (req, res) => {
-  const texts = req.body.steps ?? [req.body.text];
+  const texts: string[] = req.body.steps ?? [req.body.text];
   await prisma.step.createMany({ data: texts.filter(Boolean).map((text) => ({ text, taskId: id(req) })) });
   res.json(await prisma.task.findUnique({ where: { id: id(req) }, include: taskInclude }));
 }));
@@ -163,7 +169,8 @@ const CATCH_UP_MS = 2 * 3600 * 1000; // if the app was closed at the scheduled t
 const RETRY_GAP_MS = 2 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
 
-async function sendToN8n(post) {
+type SendResult = { ok: true; retry?: undefined; error?: undefined } | { ok: false; retry: boolean; error: string };
+async function sendToN8n(post: Pick<Post, "id" | "draft">): Promise<SendResult> {
   const hook = n8nUrl();
   if (!hook) return { ok: false, retry: false, error: "n8n_not_configured" };
   try {
@@ -177,7 +184,7 @@ async function sendToN8n(post) {
     return { ok: false, retry: true, error: `n8n answered ${r.status}. Is the workflow published, and is LinkedIn still connected?` };
   } catch (e) {
     // a timeout is ambiguous: LinkedIn may already have the post, so never retry automatically
-    if (e.name === "TimeoutError") return { ok: false, retry: false, error: "n8n did not answer in time. Check your LinkedIn profile before trying again, it may have posted." };
+    if (errorInfo(e).name === "TimeoutError") return { ok: false, retry: false, error: "n8n did not answer in time. Check your LinkedIn profile before trying again, it may have posted." };
     return { ok: false, retry: true, error: "Can't reach n8n. Is it running?" };
   }
 }
@@ -210,12 +217,12 @@ async function runScheduler() {
     const now = new Date();
     const due = await prisma.post.findMany({ where: { status: "scheduled", scheduledAt: { lte: now } } });
     for (const p of due) {
-      if (!p.attempts && now - p.scheduledAt > CATCH_UP_MS) {
+      if (!p.attempts && now.getTime() - (p.scheduledAt?.getTime() ?? 0) > CATCH_UP_MS) {
         await prisma.post.update({ where: { id: p.id }, data: { status: "missed", lastError: "The app wasn't running at the scheduled time, and it's been too long to post it automatically. Reschedule or post it yourself." } });
         remind(`missed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The app was closed at the scheduled time. Open it to reschedule or post it yourself.");
         continue;
       }
-      if (p.lastAttemptAt && now - p.lastAttemptAt < RETRY_GAP_MS) continue;
+      if (p.lastAttemptAt && now.getTime() - p.lastAttemptAt.getTime() < RETRY_GAP_MS) continue;
       // claim it first so the same post can never be sent twice
       const claim = await prisma.post.updateMany({ where: { id: p.id, status: "scheduled" }, data: { status: "posting", lastAttemptAt: now } });
       if (claim.count !== 1) continue;
@@ -239,14 +246,14 @@ async function runScheduler() {
       }
     }
   } catch (e) {
-    console.error("Scheduler error:", e.message);
+    console.error("Scheduler error:", errorInfo(e).message);
   } finally {
     schedulerBusy = false;
   }
 }
 
 // ---------- Study log ----------
-const parseDate = (v) => {
+const parseDate = (v: string | number | Date) => {
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
 };
@@ -266,24 +273,28 @@ app.post("/api/study", wrap(async (req, res) => {
   }
   // a manual session can record how many minutes of the span were breaks (not counted as study time)
   const breakMs = Math.max(0, Math.round(Number(req.body.breakMins) || 0)) * 60000;
-  if (endedAt && breakMs >= endedAt - startedAt) return res.status(400).json({ error: "The break can't be as long as the whole session." });
+  if (endedAt && breakMs >= endedAt.getTime() - startedAt.getTime()) return res.status(400).json({ error: "The break can't be as long as the whole session." });
   res.json(await prisma.studySession.create({ data: { course, part, notes, startedAt, endedAt, breakMs } }));
 }));
 app.patch("/api/study/:id", wrap(async (req, res) => {
   const { course, part, notes } = req.body;
-  const data = { course, part, notes };
-  if (req.body.startedAt) data.startedAt = parseDate(req.body.startedAt);
-  if (req.body.endedAt) data.endedAt = parseDate(req.body.endedAt);
-  if (data.startedAt === null || data.endedAt === null) return res.status(400).json({ error: "Invalid time." });
-  if (req.body.breakMins !== undefined) data.breakMs = Math.max(0, Math.round(Number(req.body.breakMins) || 0)) * 60000;
+  const data: Prisma.StudySessionUpdateInput = { course, part, notes };
+  const startedAt = req.body.startedAt ? parseDate(req.body.startedAt) : undefined;
+  const endedAt = req.body.endedAt ? parseDate(req.body.endedAt) : undefined;
+  if (startedAt === null || endedAt === null) return res.status(400).json({ error: "Invalid time." });
+  if (startedAt) data.startedAt = startedAt;
+  if (endedAt) data.endedAt = endedAt;
+  const breakMs = req.body.breakMins !== undefined ? Math.max(0, Math.round(Number(req.body.breakMins) || 0)) * 60000 : undefined;
+  if (breakMs !== undefined) data.breakMs = breakMs;
   const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
-  const s = data.startedAt ?? cur.startedAt, e = data.endedAt ?? cur.endedAt;
+  if (!cur) throw new Error("Session not found."); // a 500, as before (KNOWN: becomes a 404 in P2)
+  const s = startedAt ?? cur.startedAt, e = endedAt ?? cur.endedAt;
   if (e && e <= s) return res.status(400).json({ error: "End time must be after the start time." });
-  if (e && (data.breakMs ?? cur.breakMs) >= e - s) return res.status(400).json({ error: "The break can't be as long as the whole session." });
+  if (e && (breakMs ?? cur.breakMs) >= e.getTime() - s.getTime()) return res.status(400).json({ error: "The break can't be as long as the whole session." });
   // A saved session can be extended but never shortened (1 minute of slack for minute-precision date fields).
   if (cur.endedAt && e) {
-    const before = cur.endedAt - cur.startedAt - cur.breakMs;
-    const after = e - s - (data.breakMs ?? cur.breakMs);
+    const before = activeMs(cur);
+    const after = e.getTime() - s.getTime() - (breakMs ?? cur.breakMs);
     if (after < before - 60000) return res.status(400).json({ error: "You can add time to a saved session but not remove it. If it was a mistake, delete the session instead." });
   }
   res.json(await prisma.studySession.update({ where: { id: id(req) }, data }));
@@ -295,7 +306,7 @@ app.post("/api/study/:id/continue", wrap(async (req, res) => {
   if (!cur) return res.status(404).json({ error: "Session not found." });
   if (!cur.endedAt) return res.json(cur); // already running
   if (await prisma.studySession.findFirst({ where: { endedAt: null } })) return res.status(409).json({ error: "Another session is running. Stop it first." });
-  const gap = Date.now() - cur.endedAt;
+  const gap = Date.now() - cur.endedAt.getTime();
   if (gap > CONTINUE_WITHIN_MS) return res.status(409).json({ error: "That session ended more than 6 hours ago. Start a new session for the same part instead." });
   res.json(await prisma.studySession.update({ where: { id: cur.id }, data: { endedAt: null, pausedAt: null, breakMs: cur.breakMs + gap } }));
 }));
@@ -310,7 +321,7 @@ app.post("/api/study/:id/resume", wrap(async (req, res) => {
   const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
   if (!cur || cur.endedAt) return res.status(409).json({ error: "This session isn't running." });
   if (!cur.pausedAt) return res.json(cur); // not on a break
-  res.json(await prisma.studySession.update({ where: { id: cur.id }, data: { breakMs: cur.breakMs + (Date.now() - cur.pausedAt), pausedAt: null } }));
+  res.json(await prisma.studySession.update({ where: { id: cur.id }, data: { breakMs: cur.breakMs + (Date.now() - cur.pausedAt.getTime()), pausedAt: null } }));
 }));
 app.post("/api/study/:id/stop", wrap(async (req, res) => {
   const cur = await prisma.studySession.findUnique({ where: { id: id(req) } });
@@ -318,7 +329,7 @@ app.post("/api/study/:id/stop", wrap(async (req, res) => {
   if (cur.endedAt) return res.json(cur);
   // Stopping during a break ends the session when the break began, so the time you were away is never counted.
   const stopped = await prisma.studySession.update({ where: { id: cur.id }, data: { endedAt: cur.pausedAt ?? new Date(), pausedAt: null } });
-  const activeMin = Math.round((stopped.endedAt - stopped.startedAt - stopped.breakMs) / 60000);
+  const activeMin = Math.round(activeMs(stopped) / 60000);
   await awardAtLeast(prisma, `study:${stopped.id}`, "study", studyXp(activeMin), `Studied ${activeMin} min${stopped.course ? ": " + stopped.course : ""}`);
   res.json(stopped);
 }));
@@ -358,12 +369,13 @@ async function allWins() {
     prisma.post.findMany({ where: { postedAt: { gte: since } } }),
     prisma.studySession.findMany({ where: { endedAt: { gte: since } } }),
   ]);
-  const minutes = (s) => Math.round((s.endedAt - s.startedAt - s.breakMs) / 60000);
+  const minutes = (s: StudySession) => Math.round(activeMs(s) / 60000);
+  const iso = (d: Date | null) => (d ? d.toISOString() : ""); // never empty here: each query asks for the date
   const list = [
     ...manual.map((w) => ({ id: `win-${w.id}`, kind: "win", text: w.text, date: w.createdAt.toISOString(), manual: true, winId: w.id })),
-    ...tasks.map((t) => ({ id: `task-${t.id}`, kind: "task", text: `Finished: ${t.title}`, date: t.doneAt.toISOString() })),
-    ...posts.map((p) => ({ id: `post-${p.id}`, kind: "post", text: `Published a LinkedIn post: "${(p.draft || p.thought).split("\n").find((l) => l.trim()).slice(0, 90)}"`, date: p.postedAt.toISOString() })),
-    ...sessions.filter((s) => minutes(s) >= 5).map((s) => ({ id: `study-${s.id}`, kind: "study", text: `Studied ${minutes(s)} min${s.course ? `: ${s.course}` : ""}${s.part ? ` / ${s.part}` : ""}`, date: s.endedAt.toISOString() })),
+    ...tasks.map((t) => ({ id: `task-${t.id}`, kind: "task", text: `Finished: ${t.title}`, date: iso(t.doneAt) })),
+    ...posts.map((p) => ({ id: `post-${p.id}`, kind: "post", text: `Published a LinkedIn post: "${((p.draft || p.thought).split("\n").find((l) => l.trim()) ?? "").slice(0, 90)}"`, date: iso(p.postedAt) })),
+    ...sessions.filter((s) => minutes(s) >= 5).map((s) => ({ id: `study-${s.id}`, kind: "study", text: `Studied ${minutes(s)} min${s.course ? `: ${s.course}` : ""}${s.part ? ` / ${s.part}` : ""}`, date: iso(s.endedAt) })),
   ];
   return list.sort((a, b) => b.date.localeCompare(a.date));
 }
@@ -398,7 +410,7 @@ app.post("/api/stuck", wrap(async (req, res) => {
 }));
 
 // ---------- Weekly review ----------
-const reviewOut = (r) => ({ id: r.id, label: r.label, createdAt: r.createdAt, stats: JSON.parse(r.stats), content: JSON.parse(r.content) });
+const reviewOut = (r: Review) => ({ id: r.id, label: r.label, createdAt: r.createdAt, stats: JSON.parse(r.stats), content: JSON.parse(r.content) });
 app.get("/api/reviews", wrap(async (_, res) => {
   res.json((await prisma.review.findMany({ orderBy: { createdAt: "desc" }, take: 30 })).map(reviewOut));
 }));
@@ -415,7 +427,7 @@ app.delete("/api/reviews/:id", wrap(async (req, res) => {
 }));
 
 // ---------- Skills gap map ----------
-const clampLevel = (n) => Math.min(5, Math.max(0, Math.round(Number(n) || 0)));
+const clampLevel = (n: unknown) => Math.min(5, Math.max(0, Math.round(Number(n) || 0)));
 app.get("/api/skills", wrap(async (_, res) => {
   res.json(await prisma.skill.findMany({ orderBy: [{ area: "asc" }, { createdAt: "asc" }] }));
 }));
@@ -426,13 +438,13 @@ app.post("/api/skills", wrap(async (req, res) => {
 }));
 app.post("/api/skills/bulk", wrap(async (req, res) => {
   const existing = new Set((await prisma.skill.findMany()).map((s) => s.name.toLowerCase()));
-  const items = (req.body.items || []).filter((i) => i.name?.trim() && !existing.has(i.name.trim().toLowerCase()));
+  const items = ((req.body.items || []) as UncheckedJson[]).filter((i) => i.name?.trim() && !existing.has(i.name.trim().toLowerCase()));
   await prisma.skill.createMany({ data: items.map((i) => ({ name: i.name.trim(), area: i.area || "", notes: i.why || "" })) });
   res.json(await prisma.skill.findMany({ orderBy: [{ area: "asc" }, { createdAt: "asc" }] }));
 }));
 app.patch("/api/skills/:id", wrap(async (req, res) => {
   const { name, area, notes } = req.body;
-  const data = { name, area, notes };
+  const data: Prisma.SkillUpdateInput = { name, area, notes };
   if (req.body.level !== undefined) data.level = clampLevel(req.body.level);
   if (req.body.target !== undefined) data.target = clampLevel(req.body.target) || 1;
   const before = await prisma.skill.findUnique({ where: { id: id(req) } });
@@ -460,8 +472,8 @@ const PROFILE_MAX = { name: 60, role: 80, location: 80, email: 120, linkedin: 20
 const EMPTY_PROFILE = { name: "", role: "", location: "", email: "", linkedin: "", about: "", helps: "", avatar: "#7447e6" };
 app.get("/api/profile", wrap(async (_, res) => res.json((await prisma.profile.findFirst()) ?? EMPTY_PROFILE)));
 app.put("/api/profile", wrap(async (req, res) => {
-  const d = {};
-  for (const [k, max] of Object.entries(PROFILE_MAX)) if (req.body[k] !== undefined) d[k] = String(req.body[k]).trim().slice(0, max);
+  const d: Partial<Record<keyof typeof PROFILE_MAX | "avatar", string>> = {};
+  for (const k of Object.keys(PROFILE_MAX) as (keyof typeof PROFILE_MAX)[]) if (req.body[k] !== undefined) d[k] = String(req.body[k]).trim().slice(0, PROFILE_MAX[k]);
   if (d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return res.status(400).json({ error: "That email doesn't look right." });
   if (d.linkedin && !/^https?:\/\/\S+\.\S+/.test(d.linkedin)) return res.status(400).json({ error: "The LinkedIn link should start with https://" });
   if (req.body.avatar !== undefined) {
@@ -478,7 +490,7 @@ app.get("/api/pet/catalog", wrap(async (_, res) => res.json(catalogState())));
 app.post("/api/pet", wrap(async (req, res) => {
   if (await prisma.pet.findFirst()) return res.status(409).json({ error: "You already have a pet." });
   const c = cleanPet(req.body); // a new pet has earned nothing yet, so only the free clothes are available
-  if (c.error) return res.status(400).json({ error: c.error });
+  if (c.error !== undefined) return res.status(400).json({ error: c.error });
   await prisma.pet.create({ data: c.data });
   res.json(await petState(prisma));
 }));
@@ -486,15 +498,19 @@ app.patch("/api/pet", wrap(async (req, res) => {
   const pet = await prisma.pet.findFirst();
   if (!pet) return res.status(404).json({ error: "No pet yet." });
   const state = await petState(prisma);
+  if (!state.pet) return res.status(404).json({ error: "No pet yet." }); // never: it was found just above
   const c = cleanPet(req.body, state, true);
-  if (c.error) return res.status(400).json({ error: c.error });
+  if (c.error !== undefined) return res.status(400).json({ error: c.error });
   await prisma.pet.update({ where: { id: pet.id }, data: c.data });
   res.json(await petState(prisma));
 }));
 
 // ---------- My reminders ----------
-function cleanReminder(b, partial = false) {
-  const d = {};
+type ReminderFields = Partial<Pick<Reminder, "title" | "at" | "repeat" | "note" | "done">>;
+function cleanReminder(b: UncheckedJson, partial?: false): Cleaned<ReminderFields & Pick<Reminder, "title" | "at">>;
+function cleanReminder(b: UncheckedJson, partial: true): Cleaned<ReminderFields>;
+function cleanReminder(b: UncheckedJson, partial = false): Cleaned<ReminderFields> {
+  const d: ReminderFields = {};
   if (!partial || b.title !== undefined) { const t = String(b.title ?? "").trim().slice(0, 120); if (!t) return { error: "Say what to remind you about." }; d.title = t; }
   if (!partial || b.at !== undefined) { const at = new Date(b.at); if (!b.at || Number.isNaN(at.getTime())) return { error: "Pick a day and time." }; d.at = at; }
   if (b.repeat !== undefined) { if (!REMINDER_REPEATS.includes(b.repeat)) return { error: "That repeat isn't available." }; d.repeat = b.repeat; }
@@ -508,28 +524,29 @@ app.get("/api/reminders", wrap(async (_, res) => {
 }));
 app.post("/api/reminders", wrap(async (req, res) => {
   const c = cleanReminder(req.body);
-  if (c.error) return res.status(400).json({ error: c.error });
+  if (c.error !== undefined) return res.status(400).json({ error: c.error });
   res.json(await prisma.reminder.create({ data: c.data }));
 }));
 app.patch("/api/reminders/:id", wrap(async (req, res) => {
   const c = cleanReminder(req.body, true);
-  if (c.error) return res.status(400).json({ error: c.error });
+  if (c.error !== undefined) return res.status(400).json({ error: c.error });
   if (c.data.at && c.data.at > new Date()) c.data.done = false; // moving it to the future re-arms it
-  res.json(await prisma.reminder.update({ where: { id: +req.params.id }, data: c.data }));
+  res.json(await prisma.reminder.update({ where: { id: id(req) }, data: c.data }));
 }));
 app.delete("/api/reminders/:id", wrap(async (req, res) => {
-  await prisma.reminder.deleteMany({ where: { id: +req.params.id } });
+  await prisma.reminder.deleteMany({ where: { id: id(req) } });
   res.json({ ok: true });
 }));
 
 // ---------- Support chat ----------
 // Conversations are saved as threads. A "temporary" chat is sent with its own history and is never written to the database.
-const threadTitle = (text) => { const t = String(text).replace(/\s+/g, " ").trim(); return t.length > 44 ? t.slice(0, 41).trimEnd() + "..." : t || "New chat"; };
+const threadTitle = (text: unknown) => { const t = String(text).replace(/\s+/g, " ").trim(); return t.length > 44 ? t.slice(0, 41).trimEnd() + "..." : t || "New chat"; };
 async function adoptOldMessages() { // messages from before threads existed become one earlier conversation
   const old = await prisma.chatMessage.findMany({ where: { threadId: null }, orderBy: { id: "asc" } });
-  if (!old.length) return;
+  const oldest = old[0], newest = old.at(-1);
+  if (!oldest || !newest) return;
   const first = old.find((m) => m.role === "user");
-  const th = await prisma.chatThread.create({ data: { title: first ? threadTitle(first.content) : "Earlier chat", createdAt: old[0].createdAt, updatedAt: old[old.length - 1].createdAt } });
+  const th = await prisma.chatThread.create({ data: { title: first ? threadTitle(first.content) : "Earlier chat", createdAt: oldest.createdAt, updatedAt: newest.createdAt } });
   await prisma.chatMessage.updateMany({ where: { threadId: null }, data: { threadId: th.id } });
 }
 app.get("/api/chat/threads", wrap(async (_, res) => {
@@ -539,18 +556,18 @@ app.get("/api/chat/threads", wrap(async (_, res) => {
 }));
 app.post("/api/chat/threads", wrap(async (_, res) => res.json(await prisma.chatThread.create({ data: {} }))));
 app.get("/api/chat/threads/:id", wrap(async (req, res) => {
-  const t = await prisma.chatThread.findUnique({ where: { id: +req.params.id } });
+  const t = await prisma.chatThread.findUnique({ where: { id: id(req) } });
   if (!t) return res.status(404).json({ error: "That chat was not found." });
   res.json({ thread: t, messages: await prisma.chatMessage.findMany({ where: { threadId: t.id }, orderBy: { id: "asc" } }) });
 }));
 app.patch("/api/chat/threads/:id", wrap(async (req, res) => {
   const title = String(req.body.title || "").trim().slice(0, 80);
   if (!title) return res.status(400).json({ error: "Give the chat a name." });
-  res.json(await prisma.chatThread.update({ where: { id: +req.params.id }, data: { title } }));
+  res.json(await prisma.chatThread.update({ where: { id: id(req) }, data: { title } }));
 }));
 app.delete("/api/chat/threads/:id", wrap(async (req, res) => {
-  await prisma.chatMessage.deleteMany({ where: { threadId: +req.params.id } });
-  await prisma.chatThread.deleteMany({ where: { id: +req.params.id } });
+  await prisma.chatMessage.deleteMany({ where: { threadId: id(req) } });
+  await prisma.chatThread.deleteMany({ where: { id: id(req) } });
   res.json({ ok: true });
 }));
 app.delete("/api/chat/threads", wrap(async (_, res) => {
@@ -563,10 +580,10 @@ app.post("/api/chat", wrap(async (req, res) => {
   const message = String(req.body.message || "").trim().slice(0, 2000);
   if (!message) return res.status(400).json({ error: "Write something first." });
   const temporary = req.body.temporary === true;
-  let thread = null;
-  let history;
+  let thread: ChatThread | null = null;
+  let history: AiMessage[];
   if (temporary) {
-    history = (Array.isArray(req.body.history) ? req.body.history : []).filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string").slice(-24).map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    history = ((Array.isArray(req.body.history) ? req.body.history : []) as UncheckedJson[]).filter((m) => (m?.role === "user" || m?.role === "assistant") && typeof m.content === "string").slice(-24).map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
   } else {
     thread = req.body.threadId ? await prisma.chatThread.findUnique({ where: { id: +req.body.threadId } }) : null;
     if (req.body.threadId && !thread) return res.status(404).json({ error: "That chat was not found." });
@@ -579,7 +596,7 @@ app.post("/api/chat", wrap(async (req, res) => {
     prisma.studySession.findMany({ where: { startedAt: { gte: start }, endedAt: { not: null } } }),
     prisma.studySession.findFirst({ where: { endedAt: null } }),
   ]);
-  const studied = Math.round(today.reduce((t, x) => t + (x.endedAt - x.startedAt - x.breakMs) / 60000, 0));
+  const studied = Math.round(today.reduce((t, x) => t + activeMs(x) / 60000, 0));
   const prof = await prisma.profile.findFirst();
   const about = prof
     ? `. Her name is ${prof.name || "(not given)"}${prof.role ? `; she works as ${prof.role}` : ""}${prof.about ? `; about her: ${prof.about}` : ""}${prof.helps ? `; what helps her, in her own words: ${prof.helps}` : ""}`
@@ -608,9 +625,10 @@ app.post("/api/backups", wrap(async (_, res) => {
   res.json({ name, backups: listBackups(), folder: backupDir() });
 }));
 app.get("/api/backups/:name/download", wrap(async (req, res) => {
-  const file = backupPath(req.params.name);
+  const name = String(req.params.name);
+  const file = backupPath(name);
   if (!file) return res.status(404).json({ error: "Backup not found." });
-  res.download(file, req.params.name);
+  res.download(file, name);
 }));
 
 // ---------- Books ----------
@@ -668,9 +686,12 @@ app.post("/api/books/:id/find", wrap(async (req, res) => {
 
 // ---------- Calendar ----------
 // Validates and cleans the fields of an event. With partial=true only the fields that were sent are returned.
-function cleanEvent(b, partial = false) {
-  const d = {};
-  const has = (k) => b[k] !== undefined;
+type EventFields = Partial<Pick<Event, "title" | "day" | "allDay" | "startTime" | "endTime" | "category" | "repeat" | "repeatUntil" | "location" | "notes" | "remindMin">>;
+function cleanEvent(b: UncheckedJson, partial?: false): Cleaned<EventFields & Pick<Event, "title" | "day">>;
+function cleanEvent(b: UncheckedJson, partial: true): Cleaned<EventFields>;
+function cleanEvent(b: UncheckedJson, partial = false): Cleaned<EventFields> {
+  const d: EventFields = {};
+  const has = (k: string) => b[k] !== undefined;
   if (!partial || has("title")) {
     if (!String(b.title || "").trim()) return { error: "Give the event a title." };
     d.title = String(b.title).trim().slice(0, 160);
@@ -682,7 +703,7 @@ function cleanEvent(b, partial = false) {
   if (has("allDay")) d.allDay = !!b.allDay;
   if (d.allDay) { d.startTime = ""; d.endTime = ""; }
   else {
-    for (const k of ["startTime", "endTime"]) {
+    for (const k of ["startTime", "endTime"] as const) {
       if (!has(k)) continue;
       if (b[k] !== "" && !TIME_RE.test(b[k])) return { error: "Times look like 14:30." };
       d[k] = b[k];
@@ -710,12 +731,12 @@ app.get("/api/events", wrap(async (_, res) => {
 }));
 app.post("/api/events", wrap(async (req, res) => {
   const c = cleanEvent(req.body);
-  if (c.error) return res.status(400).json({ error: c.error });
+  if (c.error !== undefined) return res.status(400).json({ error: c.error });
   res.json(await prisma.event.create({ data: c.data }));
 }));
 app.patch("/api/events/:id", wrap(async (req, res) => {
   const c = cleanEvent(req.body, true);
-  if (c.error) return res.status(400).json({ error: c.error });
+  if (c.error !== undefined) return res.status(400).json({ error: c.error });
   const cur = await prisma.event.findUnique({ where: { id: id(req) } });
   if (!cur) return res.status(404).json({ error: "Event not found." });
   const st = c.data.startTime ?? cur.startTime, en = c.data.endTime ?? cur.endTime;
@@ -738,9 +759,9 @@ app.delete("/api/events/:id", wrap(async (req, res) => {
 
 // everything the calendar shows for a date range, in one call
 app.get("/api/calendar", wrap(async (req, res) => {
-  const { from, to } = req.query;
-  if (!DAY_RE.test(from || "") || !DAY_RE.test(to || "") || to < from) return res.status(400).json({ error: "Give a valid from and to date." });
-  if ((new Date(to) - new Date(from)) / 86400000 > 100) return res.status(400).json({ error: "That range is too long." });
+  const from = String(req.query.from || ""), to = String(req.query.to || "");
+  if (!DAY_RE.test(from) || !DAY_RE.test(to) || to < from) return res.status(400).json({ error: "Give a valid from and to date." });
+  if ((new Date(to).getTime() - new Date(from).getTime()) / 86400000 > 100) return res.status(400).json({ error: "That range is too long." });
   res.json(await buildCalendar(prisma, from, to));
 }));
 app.get("/api/calendar.ics", wrap(async (_, res) => {
@@ -754,7 +775,7 @@ app.post("/api/calendar/parse", wrap(async (req, res) => {
 app.post("/api/calendar/plan", wrap(async (_, res) => res.json(await planStudyBlocks(prisma))));
 
 // ---------- Goals ----------
-const goalInclude = { actions: { orderBy: { id: "asc" } }, logs: { orderBy: { createdAt: "desc" } } };
+const goalInclude = { actions: { orderBy: { id: "asc" } }, logs: { orderBy: { createdAt: "desc" } } } satisfies Prisma.GoalInclude;
 app.get("/api/goals", wrap(async (_, res) => {
   res.json(await prisma.goal.findMany({ include: goalInclude, orderBy: [{ status: "asc" }, { createdAt: "desc" }] }));
 }));
@@ -767,10 +788,11 @@ app.post("/api/goals", wrap(async (req, res) => {
 }));
 app.patch("/api/goals/:id", wrap(async (req, res) => {
   const { original, refined, status } = req.body;
-  const data = { original, refined, status };
+  const data: Prisma.GoalUpdateInput = { original, refined, status };
   if ("targetDate" in req.body) {
-    data.targetDate = req.body.targetDate ? parseDate(req.body.targetDate) : null;
-    if (req.body.targetDate && !data.targetDate) return res.status(400).json({ error: "Invalid date." });
+    const targetDate = req.body.targetDate ? parseDate(req.body.targetDate) : null;
+    data.targetDate = targetDate;
+    if (req.body.targetDate && !targetDate) return res.status(400).json({ error: "Invalid date." });
   }
   const goal = await prisma.goal.update({ where: { id: id(req) }, data, include: goalInclude });
   if (status === "achieved") await award(prisma, `goal:${goal.id}`, "goal", XP.goal, `Reached a goal: ${(goal.refined || goal.original).slice(0, 80)}`);
@@ -785,7 +807,7 @@ app.post("/api/goals/:id/analyze", wrap(async (req, res) => {
   if (!goal) return res.status(404).json({ error: "Goal not found" });
   const since = new Date(Date.now() - 14 * 86400000);
   const sessions = await prisma.studySession.findMany({ where: { endedAt: { not: null }, startedAt: { gte: since } } });
-  const mins = sessions.reduce((a, s) => a + (s.endedAt - s.startedAt - s.breakMs) / 60000, 0);
+  const mins = sessions.reduce((a, s) => a + activeMs(s) / 60000, 0);
   const out = await analyzeGoal({
     goal: goal.original,
     targetDate: goal.targetDate?.toISOString().slice(0, 10),
@@ -801,7 +823,7 @@ app.post("/api/goals/:id/analyze", wrap(async (req, res) => {
   res.json({ goal: saved, actions: out.actions });
 }));
 app.post("/api/goals/:id/actions", wrap(async (req, res) => {
-  const texts = (req.body.texts ?? [req.body.text]).filter((t) => t?.trim());
+  const texts: string[] = (req.body.texts ?? [req.body.text]).filter((t: string | undefined) => t?.trim());
   await prisma.goalAction.createMany({ data: texts.map((text) => ({ text, goalId: id(req) })) });
   res.json(await prisma.goal.findUnique({ where: { id: id(req) }, include: goalInclude }));
 }));
@@ -849,7 +871,7 @@ if (DEMO) {
   app.get(/^\/(?!api\/).*/, (_, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
-const port = process.env.PORT || 4000;
+const port = Number(process.env.PORT) || 4000;
 app.listen(port, "127.0.0.1", () => {
   console.log(`API on http://localhost:${port}${DEMO ? " (DEMO MODE)" : ""}`);
   if (DEMO) return; // no scheduler, reminders or automatic backups in the demo

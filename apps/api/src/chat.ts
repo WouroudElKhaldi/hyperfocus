@@ -1,8 +1,8 @@
-import { chat } from "./ai.js";
+import { type AiMessage, chat } from "./ai.ts";
 
 // The support chat. It is a warm companion, not a therapist, and it says so when it matters.
 const CRISIS = /(kill myself|killing myself|suicid|end my life|ending my life|want to die|wanna die|don'?t want to (live|be here|be alive)|hurt myself|harm myself|self[- ]?harm|cut myself|no reason to live|better off dead|better off without me)/i;
-export const isCrisis = (text) => CRISIS.test(text);
+export const isCrisis = (text: string): boolean => CRISIS.test(text);
 
 const SYSTEM = `You are a warm, steady companion inside a private personal app, talking with a 21-year-old woman who is a software engineer (3 years of experience) working toward senior level. She has ADHD/autism traits (AuDHD), anxiety and procrastination. She is very capable and often doubts it. She may come to you frustrated, overwhelmed, stuck, sad, or just wanting to think out loud or get study or work help.
 
@@ -19,7 +19,7 @@ How you talk:
 
 If she talks about hurting herself, wanting to die, or not wanting to be alive: stay calm and close. Take it seriously and say so. Ask whether she is safe right now. Encourage her to contact local emergency services or a crisis line now, and to reach a person she trusts so she is not alone. In Lebanon the National Lifeline is 1564 (free and confidential, run by Embrace). Do not be clinical and do not lecture. Keep it short and warm.`;
 
-export async function companionReply({ history, message, context }) {
+export async function companionReply({ history, message, context }: { history: AiMessage[]; message: string; context: string }): Promise<string> {
   const messages = [
     { role: "system", content: `${SYSTEM}\n\nWhat is going on in her day (use lightly, never recite it): ${context}` },
     ...history.slice(-24).map((m) => ({ role: m.role, content: m.content })),

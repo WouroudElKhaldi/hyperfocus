@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js",
+    "dev": "node --watch src/index.ts",
+    "start": "node src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:routes": "node test/support/route-coverage.mjs",
@@ -12,17 +12,21 @@
     "lint": "biome lint ."
   },
   "dependencies": {
+    "@hyperfocus/db": "workspace:*",
+    "@hyperfocus/shared": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "nodemailer": "^10.0.13",
-    "sanitize-html": "^2.18.0",
-    "@hyperfocus/db": "workspace:*",
-    "@hyperfocus/shared": "workspace:*"
+    "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
     "@hyperfocus/config": "workspace:*",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
     "@types/node": "^24.19.0",
+    "@types/nodemailer": "^8.0.2",
+    "@types/sanitize-html": "^2.16.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }

@@ -4,30 +4,31 @@ import { fileURLToPath } from "node:url";
 
 // Windows desktop notifications sent by the server, so they work even when the browser is closed.
 const SETTINGS_FILE = process.env.SETTINGS_FILE || fileURLToPath(new URL("../settings.json", import.meta.url));
-const DEFAULTS = { reminders: true, breakEveryMin: 50, morningAt: "09:00", sent: {} };
+export type Settings = { reminders: boolean; breakEveryMin: number; morningAt: string; sent: Record<string, number> };
+const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", sent: {} };
 
-export function getSettings() {
+export function getSettings(): Settings {
   try {
     return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8")) };
   } catch {
     return { ...DEFAULTS };
   }
 }
-export function saveSettings(patch) {
+export function saveSettings(patch: Partial<Settings>): Settings {
   const cur = getSettings();
   const next = { ...cur };
   if (typeof patch.reminders === "boolean") next.reminders = patch.reminders;
-  if (Number.isFinite(patch.breakEveryMin)) next.breakEveryMin = Math.min(180, Math.max(15, Math.round(patch.breakEveryMin)));
-  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(patch.morningAt || "")) next.morningAt = patch.morningAt;
+  if (patch.breakEveryMin !== undefined && Number.isFinite(patch.breakEveryMin)) next.breakEveryMin = Math.min(180, Math.max(15, Math.round(patch.breakEveryMin)));
+  if (patch.morningAt && /^([01]\d|2[0-3]):[0-5]\d$/.test(patch.morningAt)) next.morningAt = patch.morningAt;
   if (patch.sent) next.sent = patch.sent;
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(next, null, 2));
   return next;
 }
 
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+const esc = (s: string) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
 // Resolves with { ok, error }. The PowerShell script is passed encoded so no quoting can break it.
-export function notify(title, body) {
+export function notify(title: string, body: string): Promise<{ ok: boolean; error?: string }> {
   return new Promise((resolve) => {
     if (process.env.NOTIFY_DRY_RUN) { console.log(`[notify dry-run] ${title} | ${body}`); return resolve({ ok: true }); }
     if (process.platform !== "win32") return resolve({ ok: false, error: "Desktop notifications are only set up for Windows." });
@@ -52,7 +53,7 @@ $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
 }
 
 // Sends a reminder only when reminders are on, and only once per key.
-export async function remind(key, title, body) {
+export async function remind(key: string, title: string, body: string): Promise<void> {
   const s = getSettings();
   if (!s.reminders || s.sent[key]) return;
   const now = Date.now();

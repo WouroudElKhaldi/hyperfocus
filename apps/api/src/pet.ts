@@ -1,4 +1,6 @@
+import type { Pet } from "@hyperfocus/db";
 import { TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+import { activeMs, type Db, errorInfo, type UncheckedJson } from "./types.ts";
 
 // The companion pet. All growth comes from things she really completed or added (see award()), never from clicking for points.
 export const SPECIES = ["cat", "fox", "bunny", "dragon", "blob"];
@@ -7,7 +9,8 @@ export const GENDERS = ["boy", "girl", "neutral"];
 
 // ---------- ages ----------
 // The pet has an age that depends on the XP she has earned. Each age looks different (see PetArt on the website).
-export const AGES = [
+type Age = { age: number; name: string; at: number };
+export const AGES: Age[] = [
   { age: 0, name: "Egg", at: 0 },
   { age: 1, name: "Newborn", at: 30 },
   { age: 2, name: "Baby", at: 120 },
@@ -27,16 +30,19 @@ export const LEGEND_XP = 9000;
 // The list and the points live in @hyperfocus/shared, so the website shows exactly what is awarded here.
 export const PRIORITIES = TASK_PRIORITIES;
 export const PRIORITY_POINTS = TASK_PRIORITY_POINTS;
+const POINTS_BY_NAME: Record<string, number | undefined> = PRIORITY_POINTS;
 // After this many finished tasks in one day, each further task is worth 1 point, so a pile of tiny tasks can't be farmed.
 export const TASK_DAILY_FULL = 8;
-export const taskXp = (priority) => PRIORITY_POINTS[priority] ?? 10;
+export const taskXp = (priority: string): number => POINTS_BY_NAME[priority] ?? 10;
 export const XP = { step: 2, goal: 50, post: 25, win: 4, review: 10, skill: 4, book: 15 };
 // Study: 2 points per 20 active minutes up to 16 per session, plus 6 for a deep-focus session of 45 minutes or more.
-export const studyXp = (activeMinutes) => (activeMinutes >= 5 ? Math.min(16, Math.max(1, Math.floor(activeMinutes / 10)) * 2) + (activeMinutes >= 45 ? 6 : 0) : 0);
+export const studyXp = (activeMinutes: number): number => (activeMinutes >= 5 ? Math.min(16, Math.max(1, Math.floor(activeMinutes / 10)) * 2) + (activeMinutes >= 45 ? 6 : 0) : 0);
 // Small points just for adding things (capped per day so adding lots of tiny items can't farm points).
-export const CAPTURE = { thought: { xp: 1, cap: 3, label: "Captured a thought" }, task: { xp: 1, cap: 3, label: "Planned a task" } };
+type CaptureRule = { xp: number; cap: number; label: string };
+export const CAPTURE: Record<string, CaptureRule> = { thought: { xp: 1, cap: 3, label: "Captured a thought" }, task: { xp: 1, cap: 3, label: "Planned a task" } };
 // Daily quests: a bonus for each one, and more for doing all three.
-export const QUESTS = [
+type QuestId = "tasks" | "study" | "heart";
+export const QUESTS: { id: QuestId; label: string; need: number; bonus: number }[] = [
   { id: "tasks", label: "Finish 3 tasks", need: 3, bonus: 6 },
   { id: "study", label: "Study for 30 minutes", need: 30, bonus: 6 },
   { id: "heart", label: "Move a goal, share a post or log a win", need: 1, bonus: 6 },
@@ -48,7 +54,8 @@ export const ALL_QUESTS_BONUS = 10;
 // A pet can have up to 5. Bonuses from all of them add up, capped at +30% per kind of progress.
 export const MAX_TRAITS = 5;
 const PERK_CAP = 30;
-export const PERSONALITIES = {
+type Personality = { label: string; title: string; desc: string; perk: Record<string, number> };
+export const PERSONALITIES: Record<string, Personality> = {
   curious:  { label: "Curious",   title: "The Explorer",    desc: "Always asking what if, and loves learning new things.", perk: { study: 10 } },
   nerdy:    { label: "Nerdy",     title: "The Scholar",     desc: "Drops fun facts and gets very excited about concepts.", perk: { study: 15 } },
   nightowl: { label: "Night owl", title: "The Night Owl",   desc: "Comes alive late. Gentle reminders to sleep too.",      perk: { study: 10 } },
@@ -65,20 +72,31 @@ export const PERSONALITIES = {
   dreamer:  { label: "Dreamer",   title: "The Dreamer",     desc: "Sees the big picture and cheers for your goals.",        perk: { goal: 20 } },
 };
 export const TRAITS = Object.keys(PERSONALITIES);
-function bonusPct(traitsCsv, source) {
+function bonusPct(traitsCsv: string, source: string): number {
   const sum = (traitsCsv || "").split(",").filter(Boolean).reduce((t, id) => t + (PERSONALITIES[id]?.perk?.[source] || 0), 0);
   return Math.min(PERK_CAP, sum);
 }
-function perkSummary(traits) {
-  const out = {};
+function perkSummary(traits: string[]) {
+  const out: Record<string, number> = {};
   for (const src of ["task", "step", "goal", "post", "study", "win", "review", "skill", "book"]) { const p = bonusPct(traits.join(","), src); if (p) out[src] = p; }
   return out;
 }
 
 // ---------- unlockables: clothes, backdrops, patterns, auras ----------
 // rule.kind: free | xp | tasks | studyMin | posts | streak | goals | books | wins
-export const SLOTS = ["head", "face", "neck", "body", "extra", "look"];
-export const ITEMS = [
+export const SLOTS = ["head", "face", "neck", "body", "extra", "look"] as const;
+type Slot = (typeof SLOTS)[number];
+type Outfit = Partial<Record<Slot, string>>;
+
+/** How something is unlocked: free, or by reaching `n` of something. */
+type Rule = { kind: "free" } | { kind: "xp" | "tasks" | "studyMin" | "posts" | "streak" | "goals" | "books" | "wins"; n: number };
+/** Something that can be unlocked. `for` limits it to one gender. */
+type Unlockable = { id: string; name: string; rule: Rule; for?: "boy" | "girl" };
+type Item = Unlockable & { slot: Slot };
+/** What has been earned, which is what unlocking is checked against. */
+type UnlockState = { xp: number; stats: { tasks: number; studyMinutes: number; posts: number; bestStreak: number; goals: number; books: number; wins: number } };
+
+export const ITEMS: Item[] = [
   // ----- head -----
   { id: "bow", slot: "head", name: "Bow", for: "girl", rule: { kind: "free" } },
   { id: "flower", slot: "head", name: "Flower", for: "girl", rule: { kind: "free" } },
@@ -179,7 +197,7 @@ export const ITEMS = [
   { id: "goatee", slot: "look", name: "Goatee", for: "boy", rule: { kind: "xp", n: 1000 } },
   { id: "beard", slot: "look", name: "Full beard", for: "boy", rule: { kind: "xp", n: 2000 } },
 ];
-export const BACKDROP_LIST = [
+export const BACKDROP_LIST: Unlockable[] = [
   { id: "meadow", name: "Meadow", rule: { kind: "free" } },
   { id: "night", name: "Night sky", rule: { kind: "xp", n: 200 } },
   { id: "sunrise", name: "Sunrise", rule: { kind: "xp", n: 500 } },
@@ -187,7 +205,7 @@ export const BACKDROP_LIST = [
   { id: "beach", name: "Beach", rule: { kind: "studyMin", n: 1200 } },
   { id: "space", name: "Space", rule: { kind: "xp", n: 3000 } },
 ];
-export const PATTERN_LIST = [
+export const PATTERN_LIST: Unlockable[] = [
   { id: "none", name: "Plain", rule: { kind: "free" } },
   { id: "freckles", name: "Freckles", rule: { kind: "xp", n: 80 } },
   { id: "spots", name: "Spots", rule: { kind: "xp", n: 400 } },
@@ -195,17 +213,17 @@ export const PATTERN_LIST = [
   { id: "hearts", name: "Hearts", rule: { kind: "wins", n: 15 } },
   { id: "stars", name: "Stars", rule: { kind: "studyMin", n: 1500 } },
 ];
-export const AURA_LIST = [
+export const AURA_LIST: Unlockable[] = [
   { id: "none", name: "None", rule: { kind: "free" } },
   { id: "glow", name: "Soft glow", rule: { kind: "xp", n: 1400 } },
   { id: "sparkles", name: "Sparkles", rule: { kind: "streak", n: 7 } },
   { id: "rainbow", name: "Rainbow", rule: { kind: "xp", n: 6000 } },
 ];
 const ITEM = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
-const findIn = (list, id) => list.find((x) => x.id === id);
+const findIn = (list: Unlockable[], id: unknown) => list.find((x) => x.id === id);
 
-const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-function ruleLabel(r) {
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+function ruleLabel(r: Rule): string {
   switch (r.kind) {
     case "free": return "Free";
     case "xp": return `Reach ${r.n} points`;
@@ -219,7 +237,7 @@ function ruleLabel(r) {
     default: return "";
   }
 }
-function haveFor(r, st) {
+function haveFor(r: Rule, st: UnlockState): number {
   switch (r.kind) {
     case "xp": return st.xp;
     case "tasks": return st.stats.tasks;
@@ -232,35 +250,38 @@ function haveFor(r, st) {
     default: return 0;
   }
 }
-const unlockedRule = (rule, st) => rule.kind === "free" || haveFor(rule, st) >= rule.n;
-const describe = (e, st) => ({ ...e, for: e.for || "all", rule: undefined, label: ruleLabel(e.rule), unlocked: unlockedRule(e.rule, st), have: e.rule.kind === "free" ? 0 : Math.min(haveFor(e.rule, st), e.rule.n), need: e.rule.n ?? 0, kind: e.rule.kind });
-const fits = (item, gender) => !item.for || gender === "neutral" || item.for === gender;
-const ZERO_STATE = { xp: 0, stats: { tasks: 0, studyMinutes: 0, posts: 0, bestStreak: 0, goals: 0, books: 0, wins: 0 }, outfit: {}, pet: {} };
+const unlockedRule = (rule: Rule, st: UnlockState) => rule.kind === "free" || haveFor(rule, st) >= rule.n;
+const describe = (e: Unlockable, st: UnlockState) => ({ ...e, for: e.for || "all", rule: undefined, label: ruleLabel(e.rule), unlocked: unlockedRule(e.rule, st), have: e.rule.kind === "free" ? 0 : Math.min(haveFor(e.rule, st), e.rule.n), need: e.rule.kind === "free" ? 0 : e.rule.n, kind: e.rule.kind });
+const fits = (item: Item, gender: string) => !item.for || gender === "neutral" || item.for === gender;
+/** What cleanPet checks a change against: what was earned, plus what the pet already has on. */
+type CleanState = UnlockState & { outfit?: Outfit; pet?: Partial<Pick<Pet, "gender" | "backdrop" | "pattern" | "aura">> | null };
+const ZERO_STATE: CleanState = { xp: 0, stats: { tasks: 0, studyMinutes: 0, posts: 0, bestStreak: 0, goals: 0, books: 0, wins: 0 }, outfit: {}, pet: {} };
 
-const LEGACY_STYLE = { bow: ["head", "bow"], flower: ["head", "flower"], crown: ["head", "crown"], headphones: ["head", "headphones"], glasses: ["face", "glasses"], scarf: ["neck", "scarf"] };
-function parseOutfit(pet) {
-  let o = {};
+const LEGACY_STYLE: Record<string, [Slot, string] | undefined> = { bow: ["head", "bow"], flower: ["head", "flower"], crown: ["head", "crown"], headphones: ["head", "headphones"], glasses: ["face", "glasses"], scarf: ["neck", "scarf"] };
+function parseOutfit(pet: Pet): Outfit {
+  let o: UncheckedJson = {};
   try { o = JSON.parse(pet.outfit || "{}"); } catch { o = {}; }
-  const clean = {};
+  const clean: Outfit = {};
   for (const slot of SLOTS) if (o[slot] && ITEM[o[slot]]?.slot === slot) clean[slot] = o[slot];
-  if (!Object.keys(clean).length && LEGACY_STYLE[pet.style]) clean[LEGACY_STYLE[pet.style][0]] = LEGACY_STYLE[pet.style][1]; // pets made before the wardrobe
+  const legacy = LEGACY_STYLE[pet.style];
+  if (!Object.keys(clean).length && legacy) clean[legacy[0]] = legacy[1]; // pets made before the wardrobe
   return clean;
 }
 
 // ---------- time helpers ----------
-const pad = (n) => String(n).padStart(2, "0");
-const localDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const dayBefore = (s) => { const d = new Date(`${s}T00:00:00`); d.setDate(d.getDate() - 1); return localDay(d); };
+const pad = (n: number) => String(n).padStart(2, "0");
+const localDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const dayBefore = (s: string) => { const d = new Date(`${s}T00:00:00`); d.setDate(d.getDate() - 1); return localDay(d); };
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
 
 // ---------- earning XP ----------
 // Never throws: a problem here must not break the thing she was actually doing.
-async function createRow(prisma, pet, key, source, amount, note, bonusSource = source) {
+async function createRow(prisma: Db, pet: Pet, key: string, source: string, amount: number, note: string, bonusSource = source) {
   const final = Math.round(amount * (1 + bonusPct(pet.traits, bonusSource) / 100));
   return prisma.petXp.create({ data: { key, source, amount: final, note: String(note).slice(0, 140) } });
 }
 
-export async function award(prisma, key, source, amount, note = "") {
+export async function award(prisma: Db, key: string, source: string, amount: number, note = "") {
   try {
     const pet = await prisma.pet.findFirst();
     if (!pet || amount <= 0) return null;
@@ -269,11 +290,11 @@ export async function award(prisma, key, source, amount, note = "") {
     const row = await createRow(prisma, pet, key, source, amount, note);
     await checkQuests(prisma);
     return row;
-  } catch (e) { console.error("XP award failed:", e.message); return null; }
+  } catch (e) { console.error("XP award failed:", errorInfo(e).message); return null; }
 }
 
 // For things that can grow after the first award (a study session she continues): only ever raise the amount.
-export async function awardAtLeast(prisma, key, source, amount, note = "") {
+export async function awardAtLeast(prisma: Db, key: string, source: string, amount: number, note = "") {
   try {
     const pet = await prisma.pet.findFirst();
     if (!pet || amount <= 0) return null;
@@ -284,11 +305,11 @@ export async function awardAtLeast(prisma, key, source, amount, note = "") {
     else if (final > existing.amount) row = await prisma.petXp.update({ where: { key }, data: { amount: final, note: String(note).slice(0, 140) } });
     await checkQuests(prisma);
     return row;
-  } catch (e) { console.error("XP award failed:", e.message); return null; }
+  } catch (e) { console.error("XP award failed:", errorInfo(e).message); return null; }
 }
 
 // Small points for adding something, at most `cap` per day per kind.
-export async function awardCapture(prisma, kind, refId) {
+export async function awardCapture(prisma: Db, kind: string, refId: number) {
   try {
     const cfg = CAPTURE[kind];
     const pet = await prisma.pet.findFirst();
@@ -298,15 +319,15 @@ export async function awardCapture(prisma, kind, refId) {
     const key = `cap:${kind}:${refId}`;
     if (await prisma.petXp.findUnique({ where: { key } })) return null;
     return await prisma.petXp.create({ data: { key, source: "add", amount: cfg.xp, note: cfg.label } });
-  } catch (e) { console.error("XP award failed:", e.message); return null; }
+  } catch (e) { console.error("XP award failed:", errorInfo(e).message); return null; }
 }
 
 // Progress on today's quests, from what she really did today.
-async function questProgress(prisma) {
+async function questProgress(prisma: Db): Promise<{ rows: { source: string }[]; have: Record<QuestId, number> }> {
   const since = startOfToday();
   const rows = await prisma.petXp.findMany({ where: { createdAt: { gte: since } } });
   const sessions = await prisma.studySession.findMany({ where: { endedAt: { gte: since } } });
-  const studyMin = Math.round(sessions.reduce((t, s) => t + (s.endedAt - s.startedAt - s.breakMs) / 60000, 0));
+  const studyMin = Math.round(sessions.reduce((t, s) => t + activeMs(s) / 60000, 0));
   return {
     rows,
     have: {
@@ -318,7 +339,7 @@ async function questProgress(prisma) {
 }
 
 // Gives each finished quest its bonus once per day, and the extra bonus when all three are done.
-async function checkQuests(prisma) {
+async function checkQuests(prisma: Db): Promise<void> {
   try {
     const day = localDay(new Date());
     const { have } = await questProgress(prisma);
@@ -333,7 +354,7 @@ async function checkQuests(prisma) {
       const key = `quest:${day}:all`;
       if (!(await prisma.petXp.findUnique({ where: { key } }))) await prisma.petXp.create({ data: { key, source: "quest", amount: ALL_QUESTS_BONUS, note: "All daily quests done" } });
     }
-  } catch (e) { console.error("Quest check failed:", e.message); }
+  } catch (e) { console.error("Quest check failed:", errorInfo(e).message); }
 }
 
 // What exists and what is unlocked when nothing has been earned yet: used by the screen where you choose your pet.
@@ -351,17 +372,17 @@ export function catalogState() {
   };
 }
 
-export function levelFor(xp) {
+export function levelFor(xp: number) {
   let level = 0;
   AGES.forEach((a) => { if (xp >= a.at) level = a.age; });
   const legend = xp >= LEGEND_XP;
-  const nextAt = level < AGES.length - 1 ? AGES[level + 1].at : legend ? null : LEGEND_XP;
-  const from = legend ? LEGEND_XP : AGES[level].at;
+  const nextAt = level < AGES.length - 1 ? (AGES[level + 1]?.at ?? null) : legend ? null : LEGEND_XP;
+  const from = legend ? LEGEND_XP : (AGES[level]?.at ?? 0);
   const progress = nextAt === null ? 1 : (xp - from) / (nextAt - from);
   return { level, legend, nextAt, from, progress: Math.max(0, Math.min(1, progress)) };
 }
 
-export async function petState(prisma) {
+export async function petState(prisma: Db) {
   const pet = await prisma.pet.findFirst();
   if (!pet) return { pet: null };
 
@@ -374,22 +395,22 @@ export async function petState(prisma) {
   const today = localDay(new Date());
   let streak = 0;
   for (let d = days.has(today) ? today : dayBefore(today); days.has(d); d = dayBefore(d)) streak++;
-  let bestStreak = 0, run = 0, prev = null;
+  let bestStreak = 0, run = 0, prev: string | null = null;
   for (const d of [...days].sort()) { run = prev && dayBefore(d) === prev ? run + 1 : 1; bestStreak = Math.max(bestStreak, run); prev = d; }
   const activeToday = days.has(today);
   const activeYesterday = days.has(dayBefore(today));
   // the pet never gets sad or sick, it just rests when things are quiet
   const mood = lv.level === 0 ? "egg" : activeToday ? "happy" : activeYesterday ? "content" : "sleepy";
 
-  const count = (source) => rows.filter((r) => r.source === source).length;
+  const count = (source: string) => rows.filter((r) => r.source === source).length;
   const sessions = await prisma.studySession.findMany({ where: { endedAt: { gte: pet.createdAt } } });
-  const studyMinutes = Math.round(sessions.reduce((t, s) => t + (s.endedAt - s.startedAt - s.breakMs) / 60000, 0));
+  const studyMinutes = Math.round(sessions.reduce((t, s) => t + activeMs(s) / 60000, 0));
   const stats = { tasks: count("task"), steps: count("step"), goals: count("goal"), posts: count("post"), wins: count("win"), reviews: count("review"), books: count("book"), studyMinutes, streak, bestStreak };
 
-  const badge = (id, label, desc, have, need) => ({ id, label, desc, unlocked: have >= need, progress: Math.min(1, have / need), have: Math.min(have, need), need });
+  const badge = (id: string, label: string, desc: string, have: number, need: number) => ({ id, label, desc, unlocked: have >= need, progress: Math.min(1, have / need), have: Math.min(have, need), need });
   const badges = [
     badge("first", "First spark", "Earn your first point", rows.length, 1),
-    badge("hatch", "Hatched", "Help your pet hatch", xp, AGES[1].at),
+    badge("hatch", "Hatched", "Help your pet hatch", xp, AGES[1]?.at ?? 0),
     badge("tasks10", "Task tamer", "Finish 10 tasks", stats.tasks, 10),
     badge("tasks50", "Unstoppable", "Finish 50 tasks", stats.tasks, 50),
     badge("post1", "Out in the world", "Publish a LinkedIn post", stats.posts, 1),
@@ -402,11 +423,11 @@ export async function petState(prisma) {
     badge("book1", "Bookworm", "Finish a book", stats.books, 1),
     badge("wins10", "Proud of me", "Log 10 wins", stats.wins, 10),
     badge("review1", "Looking back", "Do a weekly review", stats.reviews, 1),
-    badge("grown", "All grown up", "Reach the grown-up age", xp, AGES[9].at),
+    badge("grown", "All grown up", "Reach the grown-up age", xp, AGES[9]?.at ?? 0),
     badge("legend", "Legend", `Reach ${LEGEND_XP} points`, xp, LEGEND_XP),
   ];
 
-  const st = { xp, stats };
+  const st: UnlockState = { xp, stats };
   const qp = await questProgress(prisma);
   const quests = QUESTS.map((q) => ({ ...q, have: Math.min(qp.have[q.id], q.need), done: qp.have[q.id] >= q.need }));
   const traits = pet.traits ? pet.traits.split(",").filter((t) => PERSONALITIES[t]) : [];
@@ -414,7 +435,7 @@ export async function petState(prisma) {
   return {
     pet: { ...pet, traits },
     outfit: parseOutfit(pet),
-    xp, ...lv, stage: lv.level, age: lv.level, stageName: AGES[lv.level].name, mood, stats, badges,
+    xp, ...lv, stage: lv.level, age: lv.level, stageName: AGES[lv.level]?.name, mood, stats, badges,
     ages: AGES, legendAt: LEGEND_XP,
     items: ITEMS.map((i) => describe(i, st)),
     backdrops: BACKDROP_LIST.map((b) => describe(b, st)),
@@ -425,15 +446,20 @@ export async function petState(prisma) {
     maxTraits: MAX_TRAITS,
     today: { xp: rows.filter((r) => localDay(r.createdAt) === today).reduce((t, r) => t + r.amount, 0), quests, allDone: quests.every((q) => q.done), allBonus: ALL_QUESTS_BONUS },
     points: { priority: PRIORITY_POINTS, other: { step: XP.step, goal: XP.goal, post: XP.post, win: XP.win, review: XP.review, skill: XP.skill, book: XP.book }, capture: CAPTURE },
-    ageDays: Math.floor((Date.now() - pet.createdAt) / 86400000),
+    ageDays: Math.floor((Date.now() - pet.createdAt.getTime()) / 86400000),
     recent: rows.slice(0, 12).map((r) => ({ source: r.source, amount: r.amount, note: r.note, createdAt: r.createdAt })),
   };
 }
 
 // Checks the fields of a pet. `state` is the pet's current state (or ZERO_STATE when creating). Returns { data } or { error }.
-export function cleanPet(b, state = ZERO_STATE, partial = false) {
-  const d = {};
-  const has = (k) => b[k] !== undefined;
+type PetFields = Partial<Pick<Pet, "name" | "species" | "color" | "traits" | "bio" | "gender" | "backdrop" | "pattern" | "aura" | "outfit" | "style">>;
+export type Cleaned<T> = { data: T; error?: undefined } | { error: string; data?: undefined };
+// TODO(types): the request body gets a Zod schema when the pet module moves to Hono (P2-19).
+export function cleanPet(b: UncheckedJson, state?: CleanState, partial?: false): Cleaned<PetFields & Pick<Pet, "name" | "species">>;
+export function cleanPet(b: UncheckedJson, state: CleanState, partial: true): Cleaned<PetFields>;
+export function cleanPet(b: UncheckedJson, state: CleanState = ZERO_STATE, partial = false): Cleaned<PetFields> {
+  const d: PetFields = {};
+  const has = (k: string) => b[k] !== undefined;
   if (!partial || has("name")) {
     const name = String(b.name || "").trim();
     if (!name) return { error: "Give your pet a name." };
@@ -461,7 +487,7 @@ export function cleanPet(b, state = ZERO_STATE, partial = false) {
 
   // backdrop, pattern and aura: must exist and be unlocked (what she already uses stays allowed)
   const cur = state.pet || {};
-  for (const [field, list, label] of [["backdrop", BACKDROP_LIST, "backdrop"], ["pattern", PATTERN_LIST, "pattern"], ["aura", AURA_LIST, "aura"]]) {
+  for (const [field, list, label] of [["backdrop", BACKDROP_LIST, "backdrop"], ["pattern", PATTERN_LIST, "pattern"], ["aura", AURA_LIST, "aura"]] as const) {
     if (!has(field)) continue;
     const e = findIn(list, b[field]);
     if (!e) return { error: `Unknown ${label}.` };
@@ -470,13 +496,13 @@ export function cleanPet(b, state = ZERO_STATE, partial = false) {
   }
 
   // the outfit (the older single "style" is still understood and becomes an outfit item)
-  let outfitIn = null;
+  let outfitIn: UncheckedJson | null = null;
   if (has("outfit") && b.outfit && typeof b.outfit === "object") outfitIn = b.outfit;
-  else if (has("style") && b.style !== "none") outfitIn = LEGACY_STYLE[b.style] ? { [LEGACY_STYLE[b.style][0]]: LEGACY_STYLE[b.style][1] } : null;
+  else if (has("style") && b.style !== "none") { const legacy = LEGACY_STYLE[b.style]; outfitIn = legacy ? { [legacy[0]]: legacy[1] } : null; }
   else if (has("style")) outfitIn = {};
   if (outfitIn) {
     const worn = state.outfit || {};
-    const out = {};
+    const out: Outfit = {};
     for (const slot of SLOTS) {
       const id = outfitIn[slot];
       if (!id) continue;
@@ -490,8 +516,8 @@ export function cleanPet(b, state = ZERO_STATE, partial = false) {
     d.style = "none";
   } else if (d.gender && d.gender !== curGender) {
     // changing gender takes off anything that no longer fits
-    const kept = {};
-    for (const [slot, id] of Object.entries(state.outfit || {})) if (ITEM[id] && fits(ITEM[id], d.gender)) kept[slot] = id;
+    const kept: Outfit = {};
+    for (const slot of SLOTS) { const id = state.outfit?.[slot]; const item = id ? ITEM[id] : undefined; if (id && item && fits(item, d.gender)) kept[slot] = id; }
     d.outfit = JSON.stringify(kept);
   }
   return { data: d };

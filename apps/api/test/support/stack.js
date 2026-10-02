@@ -59,7 +59,7 @@ export async function startTestStack({ port } = {}) {
 
   const log = path.join(tmp, "api.log");
   const out = fs.openSync(log, "a");
-  const child = spawn(process.execPath, ["src/index.js"], { cwd: SERVER_DIR, env, stdio: ["ignore", out, out] });
+  const child = spawn(process.execPath, ["src/index.ts"], { cwd: SERVER_DIR, env, stdio: ["ignore", out, out] });
   const apiUrl = `http://127.0.0.1:${apiPort}`;
 
   const stop = async () => {

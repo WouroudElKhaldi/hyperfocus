@@ -59,7 +59,10 @@ describe("study sessions", () => {
     expect(await e({ startedAt: "bad" })).toBe("Invalid start time.");
     expect(await e({ startedAt: ago(60), endedAt: "bad" })).toBe("Invalid end time.");
     expect(await e({ startedAt: ago(60), endedAt: ago(120) })).toBe("End time must be after the start time.");
-    expect(await e({ startedAt: ago(60), endedAt: ago(30), breakMins: 30 })).toBe("The break can't be as long as the whole session.");
+    // one fixed base time: two separate ago() calls can land a millisecond apart and make the session 1 ms longer than the break
+    const base = Date.now();
+    const at = (min) => new Date(base - min * 60000).toISOString();
+    expect(await e({ startedAt: at(60), endedAt: at(30), breakMins: 30 })).toBe("The break can't be as long as the whole session.");
   });
 
   it("edits a saved session but never shortens it", async () => {

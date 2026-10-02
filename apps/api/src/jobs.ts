@@ -1,14 +1,21 @@
 // Job applications: keep the jobs she is eyeing or has applied for, and link the emails she sent for each one.
+import type { Express, Request } from "express";
+import { type Db, httpError as err, type UncheckedJson, type Wrap } from "./types.ts";
 
 export const JOB_STATUSES = ["wishlist", "applied", "interview", "offer", "rejected", "withdrawn"];
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const err = (status, message) => Object.assign(new Error(message), { status });
-const emailPick = { id: true, subject: true, toAddr: true, status: true, sentAt: true, updatedAt: true };
+const emailPick = { id: true, subject: true, toAddr: true, status: true, sentAt: true, updatedAt: true } as const;
+
+const TEXT_FIELDS = ["company", "title", "url", "location", "salary", "source", "contactName", "contactEmail", "notes"] as const;
+type JobFields = { [K in (typeof TEXT_FIELDS)[number]]?: string } & { status?: string; followUpDay?: string | null; appliedAt?: Date | null };
 
 // Only the fields she may edit by hand. Anything not sent stays as it was.
-function fields(b, partial) {
-  const out = {};
-  for (const k of ["company", "title", "url", "location", "salary", "source", "contactName", "contactEmail", "notes"]) {
+// TODO(types): the request body gets a Zod schema when this module moves to Hono (P2-17).
+function fields(b: UncheckedJson, partial: false): JobFields & { company: string };
+function fields(b: UncheckedJson, partial: true): JobFields;
+function fields(b: UncheckedJson, partial: boolean): JobFields {
+  const out: JobFields = {};
+  for (const k of TEXT_FIELDS) {
     if (b[k] !== undefined) out[k] = String(b[k]).trim().slice(0, k === "notes" ? 5000 : 300);
   }
   if (b.status !== undefined) {
@@ -29,8 +36,8 @@ function fields(b, partial) {
   return out;
 }
 
-export function registerJobs(app, prisma, wrap) {
-  const id = (req) => Number(req.params.id);
+export function registerJobs(app: Express, prisma: Db, wrap: Wrap): void {
+  const id = (req: Request) => Number(req.params.id);
   app.get("/api/jobs", wrap(async (_, res) => {
     const rows = await prisma.jobApplication.findMany({ orderBy: { updatedAt: "desc" }, include: { emails: { select: { id: true, status: true, sentAt: true } } } });
     res.json(rows.map(({ emails, ...j }) => ({ ...j, emailCount: emails.length, lastSentAt: emails.filter((e) => e.sentAt).map((e) => e.sentAt).sort().pop() || null })));
@@ -71,7 +78,7 @@ export function registerJobs(app, prisma, wrap) {
 }
 
 // called when an email is sent or linked, so a job with a sent email flips to "applied" by itself
-export async function jobSent(prisma, email) {
+export async function jobSent(prisma: Db, email: { jobId: number | null; sentAt: Date | null }): Promise<void> {
   if (!email.jobId) return;
   const job = await prisma.jobApplication.findUnique({ where: { id: email.jobId } });
   if (job && job.status === "wishlist") await prisma.jobApplication.update({ where: { id: job.id }, data: { status: "applied", appliedAt: email.sentAt || new Date() } });

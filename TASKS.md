@@ -10,7 +10,7 @@
 
 ## Progress
 
-Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591).
+Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591, P1-04 = 5f3aff5).
 
 | Date | Task | What was done | Proof |
 |---|---|---|---|
@@ -33,9 +33,13 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P1-04 | New `packages/shared` (`@hyperfocus/shared`), the repo's first **TypeScript** package. It's run by plain `node` (Node 24 strips the types), with no build step. **Zod 4** schemas for Note, Task, Step and their create/update inputs. They describe today's API exactly, same error messages and quirks included (an unknown priority quietly becomes "normal"). `./constants` entry without Zod: note kinds and task priorities + **pet points**. Both apps now use these instead of their own copies: the website's points table was a hand-copied duplicate of the API's. | 11 schema tests · contract tests validate real API responses against the schemas (a planted schema bug fails them) · 172/172 API · 59/59 browser · Zod confirmed absent from the website bundle (+0.26 kB) |
 
-**TypeScript baseline for P1-05/P1-06** (strict `checkJs`): API **950** errors (633 implicit `any` params), web **1,847**. Measure with `npx tsc --noEmit --checkJs` in each app.
+| 2026-10-02 | ✅ P1-05 | Every API file is now **TypeScript** (`apps/api/src/*.ts`, git renames so history is kept), checked in strict mode: **0 errors** (it was 950). Node 24 runs the `.ts` files directly, so there is no build step and no `tsx`/`tsup` (decided in P1-02): `pnpm dev`, the autostart and demo scripts and the test harness all run `node src/index.ts`. Shared API types in `src/types.ts` (`Db`, `Wrap`, `httpError`, `errorInfo`, `activeMs`). `@hyperfocus/db` exports the model types. Real types for the pet data (items, unlock rules, personalities, quests), calendar occurrences, book links and AI messages. The few loose spots are named `UncheckedJson` with a `// TODO(types)` naming the P2 task that adds a Zod schema (request bodies, AI replies, book-site replies). Behaviour unchanged. Small cleanups the types forced: the email/template copy is split into `cloneEmail`/`cloneTemplate`; impossible nulls are handled where the old code would have crashed (a study-session edit for a missing id still answers 500, as recorded for P2). Fixed a flaky test: two `ago()` calls could land a millisecond apart. | `tsc` 0 errors · lint 0 errors · 172/172 API · 125/125 routes · every page's API endpoint answers 200 against the test API · browser suite **not re-run yet** (see ⏳ below) |
+
+**TypeScript baseline for P1-06** (strict `checkJs`): web **1,847** errors. Measure with `npx tsc --noEmit --checkJs` in `apps/web`. (The API was 950 before P1-05, now 0.)
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
+
+**⏳ Needs you: restart the computer, then run `pnpm test:e2e`.** On 2026-10-02 Windows ran out of temporary network ports: 15,846 of 16,384 were stuck in TIME_WAIT and never expired (the PC had been up since 2026-08-22). New local connections then hang, so the browser suite can't start its servers. A restart clears it. It isn't a code problem (the API suite and every endpoint passed), but the browser suite has not been re-run since P1-05 because of it.
 
 **Known issues found (recorded as tests, fixed later in the phase named):**
 - P2: a missing id on update/delete gives **500** instead of 404 (Prisma "not found" not mapped).
@@ -196,7 +200,7 @@ hyperfocus/
 | ✅ P1-02 | `packages/config`: strict `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Biome config | S | P1-01 | `pnpm lint` and `pnpm typecheck` wired through Turbo |
 | ✅ P1-03 | `packages/db`: move Prisma schema, export the typed client | S | P1-01 | API imports `@hyperfocus/db` |
 | ✅ P1-04 | `packages/shared`: set up Zod. Add the first schemas (Task, Step, Note) as a pilot. | S | P1-01 | Imported by both apps |
-| P1-05 | Convert **apps/api** JS → TS file by file, behaviour unchanged (`tsx watch` in dev, `tsup` build) | L | P1-02 | 0 `any` in new code (`// TODO(types)` allowed temporarily). Tests green. |
+| ✅ P1-05 | Convert **apps/api** JS → TS file by file, behaviour unchanged (`tsx watch` in dev, `tsup` build) | L | P1-02 | 0 `any` in new code (`// TODO(types)` allowed temporarily). Tests green. |
 | P1-06 | Convert **apps/web** JS → TS/TSX page by page, behaviour unchanged | L | P1-02 | `tsc --noEmit` clean, Playwright green |
 | P1-07 | Rename packages from `thought-studio` → `@hyperfocus/*` | S | P1-01 | – |
 | P1-08 | **GitHub Actions CI**: install → typecheck → lint → unit → contract → Playwright, with Turbo cache | M | P1-05 | Required check on `main` |

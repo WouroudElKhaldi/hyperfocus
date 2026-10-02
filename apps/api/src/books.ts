@@ -1,12 +1,20 @@
-import { chat } from "./ai.js";
+import type { Book } from "@hyperfocus/db";
+import { type AiMessage, chat } from "./ai.ts";
+import { errorInfo, type UncheckedJson } from "./types.ts";
 
 // Looks up real, legal sources. The AI never invents URLs: every link below comes from an API response.
 const UA = { "User-Agent": "Hyperfocus/1.0 (personal local app)" };
 const q = encodeURIComponent;
 
-const NAMES = { "openlibrary.org": "Open Library", "www.googleapis.com": "Google Books", "gutendex.com": "Project Gutenberg" };
+const NAMES: Record<string, string> = { "openlibrary.org": "Open Library", "www.googleapis.com": "Google Books", "gutendex.com": "Project Gutenberg" };
 
-async function get(url, ms = 9000, retries = 1) {
+/** One place to find a book: a link plus what kind of access it gives. */
+type LinkKind = "free" | "borrow" | "preview" | "buy" | "info";
+type Link = { kind: LinkKind; label: string; url: string };
+type Candidate = { source: string; title: string; authors: string[]; year: string | number | undefined; links: Link[] };
+
+// TODO(types): the book sites' replies get Zod schemas (and a fake for tests) in P2-11. Until then they are read loosely.
+async function get(url: string, ms = 9000, retries = 1): Promise<UncheckedJson> {
   const host = new URL(url).host;
   try {
     const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(ms) });
@@ -15,18 +23,19 @@ async function get(url, ms = 9000, retries = 1) {
       return get(url, ms, retries - 1);
     }
     if (!r.ok) throw new Error(r.status === 429 ? "is busy right now" : `answered ${r.status}`);
-    return r.json();
+    return (await r.json()) as UncheckedJson;
   } catch (e) {
-    const why = e.name === "TimeoutError" ? "was too slow" : e.message;
+    const err = errorInfo(e);
+    const why = err.name === "TimeoutError" ? "was too slow" : err.message;
     throw new Error(`${NAMES[host] || host} ${why}`);
   }
 }
 
-async function openLibrary(title, author) {
+async function openLibrary(title: string, author: string): Promise<Candidate[]> {
   const d = await get(`https://openlibrary.org/search.json?title=${q(title)}${author ? `&author=${q(author)}` : ""}&limit=5&fields=key,title,author_name,first_publish_year,ia,ebook_access`);
-  return (d.docs || []).map((x) => {
+  return ((d.docs || []) as UncheckedJson[]).map((x) => {
     const ia = (x.ia || [])[0];
-    const links = [];
+    const links: Link[] = [];
     if (ia && x.ebook_access === "public") links.push({ kind: "free", label: "Read or download free (Internet Archive)", url: `https://archive.org/details/${ia}` });
     else if (ia && x.ebook_access === "borrowable") links.push({ kind: "borrow", label: "Borrow for free (Internet Archive, free account)", url: `https://archive.org/details/${ia}` });
     links.push({ kind: "info", label: "Open Library page", url: `https://openlibrary.org${x.key}` });
@@ -34,14 +43,14 @@ async function openLibrary(title, author) {
   });
 }
 
-async function googleBooks(title, author) {
+async function googleBooks(title: string, author: string): Promise<Candidate[]> {
   const query = q(`intitle:${title}`) + (author ? "+" + q(`inauthor:${author}`) : "");
   // an optional free API key (GOOGLE_BOOKS_API_KEY in .env) avoids Google's strict limits for keyless requests
   const key = !process.env.DEMO_MODE && process.env.GOOGLE_BOOKS_API_KEY ? `&key=${q(process.env.GOOGLE_BOOKS_API_KEY)}` : "";
   const d = await get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5&printType=books${key}`, 9000, 2);
-  return (d.items || []).map((it) => {
+  return ((d.items || []) as UncheckedJson[]).map((it) => {
     const v = it.volumeInfo || {}, a = it.accessInfo || {}, s = it.saleInfo || {};
-    const links = [];
+    const links: Link[] = [];
     if (a.pdf?.isAvailable && a.pdf.downloadLink) links.push({ kind: "free", label: "Free PDF (Google Books)", url: a.pdf.downloadLink });
     if (a.viewability === "ALL_PAGES" && a.webReaderLink) links.push({ kind: "free", label: "Read free online (Google Books)", url: a.webReaderLink });
     else if (a.viewability === "PARTIAL" && v.previewLink) links.push({ kind: "preview", label: "Free preview (Google Books)", url: v.previewLink });
@@ -51,17 +60,17 @@ async function googleBooks(title, author) {
   });
 }
 
-async function gutenberg(title, author) {
+async function gutenberg(title: string, author: string): Promise<Candidate[]> {
   const d = await get(`https://gutendex.com/books/?search=${q(author ? `${title} ${author}` : title)}`, 20000);
-  return (d.results || []).slice(0, 3).map((b) => {
-    const links = [{ kind: "free", label: "Free (Project Gutenberg, public domain)", url: `https://www.gutenberg.org/ebooks/${b.id}` }];
+  return ((d.results || []) as UncheckedJson[]).slice(0, 3).map((b) => {
+    const links: Link[] = [{ kind: "free", label: "Free (Project Gutenberg, public domain)", url: `https://www.gutenberg.org/ebooks/${b.id}` }];
     if (b.formats?.["application/pdf"]) links.push({ kind: "free", label: "Free PDF (Project Gutenberg)", url: b.formats["application/pdf"] });
-    return { source: "Project Gutenberg", title: b.title, authors: (b.authors || []).map((x) => x.name), year: "", links };
+    return { source: "Project Gutenberg", title: b.title, authors: ((b.authors || []) as UncheckedJson[]).map((x) => x.name), year: "", links };
   });
 }
 
 // Always-available, legitimate places to look next
-function moreLinks(title, author) {
+function moreLinks(title: string, author: string): Link[] {
   const term = q(`${title} ${author}`.trim());
   return [
     { kind: "borrow", label: "Find it in a library near you (WorldCat)", url: `https://search.worldcat.org/search?q=${term}` },
@@ -71,9 +80,9 @@ function moreLinks(title, author) {
   ];
 }
 
-export async function findBook({ title, author }) {
+export async function findBook({ title, author }: { title: string; author: string }) {
   const settled = await Promise.allSettled([openLibrary(title, author), googleBooks(title, author), gutenberg(title, author)]);
-  const errors = settled.filter((s) => s.status === "rejected").map((s) => s.reason.message);
+  const errors = settled.filter((s) => s.status === "rejected").map((s) => errorInfo(s.reason).message);
   const candidates = settled.flatMap((s) => (s.status === "fulfilled" ? s.value : [])).map((c, i) => ({ ...c, id: i }));
 
   // The AI only judges which results are really this book and writes a summary. It never supplies links.
@@ -98,17 +107,18 @@ Never invent facts, quotes or links.`,
       ],
       { json: true, temperature: 0.2 },
     );
-    if (Array.isArray(out.matchIds)) keep = candidates.filter((c) => out.matchIds.includes(c.id));
+    const matchIds: unknown = out.matchIds;
+    if (Array.isArray(matchIds)) keep = candidates.filter((c) => matchIds.includes(c.id));
     summary = String(out.summary ?? "");
     whyForYou = String(out.whyForYou ?? "");
     foundAuthor = String(out.author ?? "");
   } catch (e) {
-    aiNote = `AI step skipped: ${e.message}`;
+    aiNote = `AI step skipped: ${errorInfo(e).message}`;
   }
 
   // flatten, dedupe by url, best kinds first
-  const order = { free: 0, borrow: 1, preview: 2, buy: 3, info: 4 };
-  const seen = new Set();
+  const order: Record<LinkKind, number> = { free: 0, borrow: 1, preview: 2, buy: 3, info: 4 };
+  const seen = new Set<string>();
   const links = keep
     .flatMap((c) => c.links.map((l) => ({ ...l, source: c.source, matched: `${c.title}${c.authors.length ? " - " + c.authors[0] : ""}` })))
     .filter((l) => !seen.has(l.url) && seen.add(l.url))
@@ -125,7 +135,13 @@ const ASK = `You answer questions about ONE book for a software engineer (about 
 Be honest about what you know. Say plainly when you are not sure. NEVER invent quotes, page numbers, chapter titles, statistics or details about the book. You may use what you reliably know about the book and its ideas, and what she wrote in her own notes.
 If the question is not about this book, reading or learning, gently bring it back. Do not repeat a long summary unless she asks. Answer in the language of her question.`;
 
-export async function askAboutBook({ book, result, history, question, helps }) {
+export async function askAboutBook({ book, result, history, question, helps }: {
+  book: Pick<Book, "title" | "author" | "status" | "notes">;
+  result: string;
+  history: AiMessage[];
+  question: string;
+  helps: string;
+}): Promise<string> {
   let known = "";
   try { const r = result ? JSON.parse(result) : null; if (r?.summary) known = `A summary written earlier by an AI (it may be wrong): ${r.summary}`; } catch { /* no saved search */ }
   const context = `The book: "${book.title}"${book.author ? ` by ${book.author}` : ""}. Her status: ${book.status === "done" ? "finished it" : book.status === "reading" ? "reading it now" : "wants to read it"}.${book.notes ? ` Her own notes: ${book.notes}` : ""} ${known}${helps ? `\nWhat helps her, in her own words: ${helps}` : ""}`;

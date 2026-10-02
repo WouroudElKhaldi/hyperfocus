@@ -1,22 +1,24 @@
-import { chat } from "./ai.js";
+import type { StudySession } from "@hyperfocus/db";
+import { chat } from "./ai.ts";
+import type { Db } from "./types.ts";
 
 // The numbers come from her own data, computed here. The AI only narrates them and never produces figures.
 const DAY = 86400000;
-const studyMs = (s) => Math.max(0, (s.endedAt ? s.endedAt - s.startedAt : 0) - s.breakMs);
-const mins = (ms) => Math.round(ms / 60000);
-const day = (d) => new Date(d).toISOString().slice(0, 10);
+const studyMs = (s: StudySession) => Math.max(0, (s.endedAt ? s.endedAt.getTime() - s.startedAt.getTime() : 0) - s.breakMs);
+const mins = (ms: number) => Math.round(ms / 60000);
+const day = (d: Date | string) => new Date(d).toISOString().slice(0, 10);
 
-export async function gatherWeek(prisma) {
+export async function gatherWeek(prisma: Db) {
   const now = new Date();
-  const from = new Date(now - 7 * DAY);
-  const prevFrom = new Date(now - 14 * DAY);
+  const from = new Date(now.getTime() - 7 * DAY);
+  const prevFrom = new Date(now.getTime() - 14 * DAY);
   const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const nextWeek = new Date(now.getTime() + 7 * DAY - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
   const sessions = await prisma.studySession.findMany({ where: { startedAt: { gte: prevFrom }, endedAt: { not: null } } });
   const thisWeek = sessions.filter((s) => s.startedAt >= from);
   const lastWeek = sessions.filter((s) => s.startedAt < from);
-  const byCourse = {};
+  const byCourse: Record<string, number> = {};
   for (const s of thisWeek) {
     const k = [s.course || "No course", s.part].filter(Boolean).join(" / ");
     byCourse[k] = (byCourse[k] || 0) + mins(studyMs(s));
@@ -65,7 +67,7 @@ export async function gatherWeek(prisma) {
       stepsTotal: g.actions.length,
       updatesThisWeek: g.logs.map((l) => l.text).slice(0, 5),
     })),
-    postsPublishedThisWeek: posted.map((p) => (p.draft || p.thought).split("\n")[0].slice(0, 100)),
+    postsPublishedThisWeek: posted.map((p) => ((p.draft || p.thought).split("\n")[0] ?? "").slice(0, 100)),
     currentlyReading: books.map((b) => b.title),
     biggestSkillGaps: gaps.map((s) => `${s.name} (level ${s.level}, goal ${s.target})`),
     upcomingEvents: events.map((e) => `${e.day} ${e.startTime} ${e.title}`.trim()),
@@ -73,7 +75,7 @@ export async function gatherWeek(prisma) {
   return { stats, facts, label: `${day(from)} to ${day(now)}` };
 }
 
-export async function writeReview(facts) {
+export async function writeReview(facts: unknown) {
   const out = await chat(
     [
       {
@@ -93,7 +95,7 @@ Reply ONLY with JSON:
     ],
     { json: true, temperature: 0.5 },
   );
-  const arr = (x) => (Array.isArray(x) ? x.map(String) : []);
+  const arr = (x: unknown) => (Array.isArray(x) ? x.map(String) : []);
   return {
     headline: String(out.headline ?? ""),
     wins: arr(out.wins),

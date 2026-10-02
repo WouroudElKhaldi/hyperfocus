@@ -61,7 +61,7 @@ powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # close
 ## How the code is organised
 - `apps/web/src/pages/` one file per page, loaded only when opened. `components/` shared pieces. `audio/` the music. `data/` words and lists.
 - `apps/web/src/shell.css` the layout, spacing variables (`--s-*`) and phone layer; `styles.css` the base design and colors.
-- `apps/api/src/index.js` the API; one small file per topic next to it (`pet.js`, `books.js`, `reminders.js`, ...). Data model: `packages/db/prisma/schema.prisma`.
+- `apps/api/src/index.ts` the API (TypeScript, run directly by Node 24, no build step); one small file per topic next to it (`pet.ts`, `books.ts`, `reminders.ts`, ...). Shared API types are in `types.ts`. Data model: `packages/db/prisma/schema.prisma`.
 - `apps/api/test/` API contract, unit and shape tests; `e2e/` browser tests. `docs/` plans and research; `TASKS.md` the refactor plan and progress.
 - `scripts/` start, stop, backups, demo, sharing, the database opener and `db-fingerprint.mjs` (proves two databases hold the same data).
 - The repo is a pnpm workspace run by Turborepo (`pnpm-workspace.yaml`, `turbo.json`).

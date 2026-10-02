@@ -11,4 +11,4 @@ foreach ($port in $ports) {
 }
 
 # Also clear leftover "waiting for changes" watcher processes, which can get in the way of the next start.
-Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'node\s+--watch\s+src/index\.js' -and $_.CommandLine -notmatch 'n8n' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'node\s+--watch\s+src/index\.(js|ts)' -and $_.CommandLine -notmatch 'n8n' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }

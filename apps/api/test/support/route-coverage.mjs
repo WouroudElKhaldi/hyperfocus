@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const read = (dir, ext) => fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith(ext)).map((f) => fs.readFileSync(path.join(root, dir, f), "utf8")).join("\n");
 
-const routes = [...read("src", ".js").matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p }));
+const routes = [...read("src", ".ts").matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p }));
 
 // every call in the tests, with ${...} expressions turned into a placeholder
 const tests = read("test/contract", ".test.js");

@@ -47,7 +47,7 @@ else {
 
 # the API (saves your data, runs scheduled posts and backups)
 if (Test-Port $ApiPort) { Write-Log "API already running" }
-else { Start-Hidden "api" "cd /d `"$root\apps\api`" && node --watch src/index.js" } # node directly: more reliable than going through npm
+else { Start-Hidden "api" "cd /d `"$root\apps\api`" && node --watch src/index.ts" } # node directly: more reliable than going through npm
 
 # the website
 if (Test-Port $WebPort) { Write-Log "website already running" }

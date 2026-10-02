@@ -1,12 +1,13 @@
-import { getSettings, remind, notify } from "./notify.js";
-import { eventOccurrences, addDays } from "./calendar.js";
+import { getSettings, remind, notify } from "./notify.ts";
+import type { Db } from "./types.ts";
+import { eventOccurrences, addDays } from "./calendar.ts";
 
 // Checks once a minute for things worth a gentle nudge. Every reminder is sent once (see remind()).
-const pad = (n) => String(n).padStart(2, "0");
+const pad = (n: number) => String(n).padStart(2, "0");
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const clock = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const clock = (d: Date) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-export async function checkReminders(prisma) {
+export async function checkReminders(prisma: Db): Promise<void> {
   const settings = getSettings();
   if (!settings.reminders) return;
   const now = new Date();
@@ -14,7 +15,7 @@ export async function checkReminders(prisma) {
   // 1. Studying for a long stretch: suggest a break (hyperfocus is easy to miss)
   const running = await prisma.studySession.findFirst({ where: { endedAt: null } });
   if (running && !running.pausedAt) {
-    const activeMin = (now - running.startedAt - running.breakMs) / 60000;
+    const activeMin = (now.getTime() - running.startedAt.getTime() - running.breakMs) / 60000;
     const k = Math.floor(activeMin / settings.breakEveryMin);
     if (k >= 1) await remind(`break:${running.id}:${k}`, "☕ Time for a little break?", `You've been studying ${Math.round(activeMin)} minutes. Stretch, drink water, rest your eyes. Press "Take a break" so it isn't counted.`);
   }
@@ -22,7 +23,8 @@ export async function checkReminders(prisma) {
   // 2. A scheduled post goes live soon
   const soon = await prisma.post.findMany({ where: { status: "scheduled", scheduledAt: { gt: now, lte: new Date(now.getTime() + 10 * 60000) } } });
   for (const p of soon) {
-    await remind(`post10:${p.id}:${p.scheduledAt.getTime()}`, `⏰ Your post goes live at ${clock(p.scheduledAt)}`, `"${(p.draft || p.thought).split("\n")[0].slice(0, 80)}" Last chance to edit it.`);
+    if (!p.scheduledAt) continue; // never null here (the query asks for a time), but the type can't know that
+    await remind(`post10:${p.id}:${p.scheduledAt.getTime()}`, `⏰ Your post goes live at ${clock(p.scheduledAt)}`, `"${((p.draft || p.thought).split("\n")[0] ?? "").slice(0, 80)}" Last chance to edit it.`);
   }
 
   // 3. Calendar events with a reminder, sent the chosen number of minutes before they start
@@ -38,12 +40,12 @@ export async function checkReminders(prisma) {
   }
 
   // 4. Morning: what is on for today (once a day, after the chosen time)
-  const [hh, mm] = settings.morningAt.split(":").map(Number);
+  const [hh = Number.NaN, mm = Number.NaN] = settings.morningAt.split(":").map(Number);
   if (now.getHours() > hh || (now.getHours() === hh && now.getMinutes() >= mm)) {
     const today = localDay(now);
     const tasks = await prisma.task.findMany({ where: { done: false, OR: [{ today: true }, { dueDay: today }] } });
     if (tasks.length) {
-      await remind(`morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0].title}. Just that one.`);
+      await remind(`morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0]?.title}. Just that one.`);
     }
   }
 }
@@ -52,7 +54,7 @@ export async function checkReminders(prisma) {
 export const REMINDER_REPEATS = ["none", "daily", "weekdays", "weekly"];
 
 // the next time a repeating reminder should fire, strictly after `from`
-export function nextOccurrence(at, repeat, from = new Date()) {
+export function nextOccurrence(at: Date, repeat: string, from = new Date()): Date {
   let d = new Date(at);
   for (let i = 0; i < 4000; i++) {
     d = new Date(d);
@@ -66,13 +68,13 @@ export function nextOccurrence(at, repeat, from = new Date()) {
 let busy = false;
 // Fires every reminder that is due. A one-off is finished afterwards; a repeating one moves to its next time.
 // If the app was off when it was due, it still fires once when the app starts (and says when it was set for).
-export async function checkMyReminders(prisma, now = new Date()) {
+export async function checkMyReminders(prisma: Db, now = new Date()): Promise<void> {
   if (busy) return;
   busy = true;
   try {
     const due = await prisma.reminder.findMany({ where: { done: false, at: { lte: now } }, orderBy: { at: "asc" } });
     for (const r of due) {
-      const late = now - r.at > 5 * 60000;
+      const late = now.getTime() - r.at.getTime() > 5 * 60000;
       const body = r.note || (late ? `This was set for ${new Date(r.at).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "Your reminder");
       const out = await notify(`⏰ ${r.title}`, body);
       if (!out.ok) console.error("Reminder notification failed:", out.error);

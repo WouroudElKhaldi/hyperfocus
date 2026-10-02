@@ -31,7 +31,7 @@ Push-Location (Join-Path $root "packages\db")
 & npx prisma db push --skip-generate 2>&1 | Select-Object -Last 1
 Pop-Location
 
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c node src/index.js >> `"$demo\demo.log`" 2>&1" -WorkingDirectory (Join-Path $root "apps\api") -WindowStyle Hidden
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c node src/index.ts >> `"$demo\demo.log`" 2>&1" -WorkingDirectory (Join-Path $root "apps\api") -WindowStyle Hidden
 $up = $false
 for ($i = 0; $i -lt 30; $i++) { Start-Sleep -Seconds 1; try { if ((Invoke-WebRequest -Uri "http://127.0.0.1:$Port/api/health" -UseBasicParsing -TimeoutSec 5).Content -match '"demo":true') { $up = $true; break } } catch {} }
 if (-not $up) { Write-Error "The demo did not start. See demo\demo.log"; exit 1 }

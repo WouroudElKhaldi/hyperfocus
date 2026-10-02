@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { type Db, errorInfo, httpError } from "./types.ts";
 
 // Backups are consistent snapshots of the SQLite database, stored in <project>/backups.
 // BACKUP_DIR lets tests (and other setups) keep backups somewhere else
@@ -9,7 +10,7 @@ const NAME = /^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.db$/;
 const KEEP = 30; // newest backups kept, older ones are deleted
 const AUTO_EVERY_MS = 24 * 3600 * 1000;
 
-const pad = (n) => String(n).padStart(2, "0");
+const pad = (n: number) => String(n).padStart(2, "0");
 const stamp = () => {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
@@ -30,22 +31,20 @@ export function listBackups() {
 }
 
 // Only ever returns a path for a file this module created (the name is validated), so no path tricks are possible.
-export function backupPath(name) {
-  return NAME.test(name || "") && fs.existsSync(path.join(DIR, name)) ? path.join(DIR, name) : null;
+export function backupPath(name: string | undefined): string | null {
+  return name && NAME.test(name) && fs.existsSync(path.join(DIR, name)) ? path.join(DIR, name) : null;
 }
 
 function prune() {
   for (const old of listBackups().slice(KEEP)) fs.rmSync(path.join(DIR, old.name), { force: true });
 }
 
-export async function createBackup(prisma) {
+export async function createBackup(prisma: Db): Promise<string> {
   fs.mkdirSync(DIR, { recursive: true });
   const name = `thought-studio-${stamp()}.db`;
   const file = path.join(DIR, name);
   if (fs.existsSync(file)) {
-    const e = new Error("A backup was just made a second ago. Try again in a moment.");
-    e.status = 429;
-    throw e;
+    throw httpError(429, "A backup was just made a second ago. Try again in a moment.");
   }
   // VACUUM INTO writes a complete, consistent copy even while the app is using the database
   await prisma.$executeRawUnsafe(`VACUUM INTO '${file.replace(/\\/g, "/").replace(/'/g, "''")}'`);
@@ -54,15 +53,15 @@ export async function createBackup(prisma) {
 }
 
 // Makes a backup on start-up and then every 6 hours, but only when the newest one is more than a day old.
-export function startAutoBackup(prisma) {
+export function startAutoBackup(prisma: Db): void {
   const check = async () => {
     try {
       const newest = listBackups()[0];
-      if (!newest || Date.now() - new Date(newest.createdAt) > AUTO_EVERY_MS) {
+      if (!newest || Date.now() - new Date(newest.createdAt).getTime() > AUTO_EVERY_MS) {
         console.log("Automatic backup:", await createBackup(prisma));
       }
     } catch (e) {
-      console.error("Automatic backup failed:", e.message);
+      console.error("Automatic backup failed:", errorInfo(e).message);
     }
   };
   check();

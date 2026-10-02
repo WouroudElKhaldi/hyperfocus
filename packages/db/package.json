@@ -5,7 +5,7 @@
   "description": "The database: Prisma schema, migrations later (P4), and the typed client every app uses.",
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "postinstall": "prisma generate",
