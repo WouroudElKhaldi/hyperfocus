@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Engine, SPIN_SHAPES } from "../audio/engine.ts";
 import { SONGS, YT_ID } from "../audio/songs.ts";
 import { GENRES, LAYERS, type SongTrack, type SoundTrack, TRACKS, type Track, genreById, trackById } from "../audio/tracks.ts";
-import Icon from "./Icon.tsx";
+import Icon from "../../../components/Icon.tsx";
 
 // One engine for the whole app, so the music keeps playing while you move between pages.
 const engine = new Engine<SoundTrack>();

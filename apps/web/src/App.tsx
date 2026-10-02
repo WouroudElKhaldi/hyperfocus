@@ -11,7 +11,7 @@ import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
 
 // The music player loads the first time it is needed, so the app opens fast and stays light (pages: see router.tsx).
-const MusicPlayer = lazy(() => import("./components/MusicPlayer.tsx"));
+const MusicPlayer = lazy(() => import("./features/music/index.ts"));
 
 /** Shows a short message at the bottom of the screen. "err" makes it an error. */
 export type Toast = (msg: string, kind?: "ok" | "err") => void;

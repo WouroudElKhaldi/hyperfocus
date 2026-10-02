@@ -10,7 +10,10 @@ const test = base.extend({
   page: async ({ page, allowedConsoleErrors }, use) => {
     // the pet grows from points earned by every test, so its "grew up" celebration could pop up in the middle of any
     // test; here every growth counts as already seen (the celebration has its own test, which turns this off)
-    await page.addInitScript(() => { if (!sessionStorage.getItem("e2e-celebrate")) localStorage.setItem("pet-stage-seen", "99"); });
+    await page.addInitScript(() => {
+      if (window !== window.top) return; // only the app itself (not a frame like the YouTube player)
+      if (!sessionStorage.getItem("e2e-celebrate")) localStorage.setItem("pet-stage-seen", "99");
+    });
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     page.on("pageerror", (e) => errors.push(e.message));
@@ -786,5 +789,48 @@ test.describe("the pet keeps its data", () => {
     await page.reload();
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("dialog", { name: "Your pet grew" })).toHaveCount(0); // only once
+  });
+});
+
+// P3-16: the music player. Every generated track really makes sound, and songs stay locked to the allowlist,
+// the privacy-friendly YouTube address and a sandboxed frame that loads nothing until a song is played.
+test.describe("music", () => {
+  test("every generated track plays (sound comes out of each)", async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open music player" }).click(); // a real click: browsers only allow sound after one
+    const silent = await page.evaluate(async () => {
+      const { Engine } = await import("/src/features/music/audio/engine.ts");
+      const { TRACKS } = await import("/src/features/music/audio/tracks.ts");
+      const engine = new Engine();
+      const quiet = [];
+      for (const t of TRACKS) {
+        if (t.kind === "song") continue;
+        await engine.play(t);
+        let heard = 0;
+        for (let i = 0; i < 20 && !heard; i++) {
+          await new Promise((r) => setTimeout(r, 100));
+          const bins = new Uint8Array(engine.analyser.frequencyBinCount);
+          engine.analyser.getByteFrequencyData(bins);
+          heard = bins.reduce((a, b) => a + b, 0);
+        }
+        if (!heard || engine.snapshot().ctxState !== "running") quiet.push(t.id);
+      }
+      engine.stop();
+      return quiet;
+    });
+    expect(silent, "tracks that made no sound").toEqual([]);
+  });
+
+  test("a song plays only from the allowlist, in a sandboxed privacy-friendly frame", async ({ page }) => {
+    await page.route(/youtube/, (route) => route.abort()); // the test never reaches YouTube
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open music player" }).click();
+    await expect(page.locator("iframe")).toHaveCount(0); // nothing from YouTube loads before a song is chosen
+    await page.getByRole("tab", { name: /Songs/ }).click();
+    await page.getByRole("button", { name: /^Play .+ by / }).first().click();
+    const frame = page.locator("iframe");
+    await expect(frame).toHaveAttribute("src", /^https:\/\/www\.youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}\?/);
+    await expect(frame).toHaveAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");
   });
 });
