@@ -21,8 +21,9 @@ export const freePort = () =>
     });
   });
 
-async function waitForHealth(url, child, log) {
-  for (let i = 0; i < 100; i++) {
+// Up to a minute: right after a restart the first start is slow (Node, Prisma and the virus scanner all start cold).
+async function waitForHealth(url, child, log, ms = 60000) {
+  for (const end = Date.now() + ms; Date.now() < end; ) {
     if (child.exitCode !== null) break;
     try {
       if ((await fetch(`${url}/api/health`)).ok) return;
