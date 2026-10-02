@@ -29,9 +29,32 @@ describe("books", () => {
     expect(await ok(get(`/api/books/${b.id}/chat`))).toEqual([]);
   });
 
-  // The "find free copies" search calls Open Library, Google Books and Gutenberg on the internet,
-  // so only the not-found path is covered here (a fake for those is part of P2-11).
+  // "Find free copies" searches Open Library, Google Books and Gutenberg; in tests they are one local fake
+  // (BOOK_SOURCES_URL, test/support/fakes.js), so nothing reaches the internet.
   it("answers 404 when searching for a missing book", async () => {
     expect((await post("/api/books/999999/find")).status).toBe(404);
+  });
+
+  it("finds copies: links from the sites only, best kinds first, saved on the book with the author filled in", async () => {
+    const b = await ok(post("/api/books", { title: "Clean Code" }));
+    const found = await ok(post(`/api/books/${b.id}/find`));
+    expect(found.foundAt).toEqual(expect.any(String));
+    const result = JSON.parse(found.result);
+    expect(result.sourcesFailed).toEqual([]);
+    expect(result.links.map((l) => [l.kind, l.source])).toEqual([
+      ["borrow", "Open Library"], ["buy", "Google Books"], ["info", "Open Library"],
+    ]);
+    expect(result.links[0]).toMatchObject({ url: "https://archive.org/details/cleancode00mart", matched: "Clean Code - Robert C. Martin" });
+    expect(result.links[1].label).toBe("Buy (30 USD) on Google Play Books");
+    expect(result).toMatchObject({ summary: "Fake summary.", more: expect.any(Array), aiNote: "" });
+  });
+
+  // P2-11: a book that doesn't exist is a 404 (changing or deleting one used to be a 500)
+  it("answers 404 for changing or deleting a book that doesn't exist, and 400 for a wrongly typed field", async () => {
+    for (const r of [await patch("/api/books/999999", { notes: "x" }), await del("/api/books/999999"), await get("/api/books/abc")]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("That book was not found.");
+    }
+    expect((await post("/api/books", { title: "x", author: 5 })).status).toBe(400);
   });
 });

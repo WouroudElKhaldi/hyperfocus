@@ -72,6 +72,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-09 | **The skills gap map runs on Hono** (`src/modules/skills`): the CRUD factory for list/create/change/delete, plus bulk add, AI suggestions and an AI plan per skill, both through the gateway (`deps.ai`). New shared schemas `Skill`, `CreateSkillInput`, `UpdateSkillInput`, `BulkSkillsInput`, `SuggestSkillsInput` and `clampLevel` keep the old rules and messages ("Give the skill a name.", levels rounded to 0–5, target 4 by default and never below 1 on change, names already tracked skipped case-insensitively). `SkillLevelledUp` is still published only when the level rises. P2 fix: changing or deleting a missing skill is a 404 "Skill not found." (was a 500); a wrongly typed field is a 400. **Strangler fix:** Hono's `RegExpRouter` refused `/api/skills/:id` next to `/api/skills/:id/plan`, so the "does Hono own this route" check now uses `TrieRouter`, which accepts every path shape. | 2 new contract tests (404 for all four cases; rounding and a 400 for a wrong type) + 1 strangler unit test for that path shape · full API suite **215/215** · 34/34 shared · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-11 | **Books run on Hono** (`src/modules/books`): the reading list (CRUD factory), the conversation about one book (AI answers through the gateway) and "find free copies". The search (`sources.ts`) now **reads each book site's reply with a Zod schema** (Anti-Corruption Layer): a site changing its format, or one bad entry, means fewer results, never a crash or a made-up link. The old `books.ts` is gone. New shared schemas `Book`, `BookMessage`, `CreateBookInput`, `UpdateBookInput`, `AskBookInput` with the old messages ("Write the book's title.", "Write your question first."). `BookFinished` kept. P2 fix: changing or deleting a missing book is a 404 "That book was not found." (was a 500). **Known issue closed:** "find free copies" is now tested end to end. A test-only setting, `BOOK_SOURCES_URL`, points the three sites at a local stand-in during the tests (the same way the tests already replace DeepSeek and n8n); it is empty in your `.env`, so the app always searches the real Open Library, Google Books and Gutenberg. | 2 new contract tests (the search: links only from the sites, best first, a malformed entry skipped, author filled in, saved on the book; 404s and a 400) · full API suite **217/217** · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -81,7 +83,7 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 **Known issues found (recorded as tests, fixed later in the phase named):**
 - P2: a missing id on update/delete gives **500** instead of 404 (Prisma "not found" not mapped). **Fixed for notes (P2-06)**; each module gets the fix as it moves to Hono.
 - P2-16: `textOf` leaves invisible non-breaking spaces in plain-text email bodies (its `&nbsp;` replace never matches).
-- P2-11: "find free copies" of a book calls the internet, so only its 404 path is tested. Needs a fake.
+- ~~P2-11: "find free copies" of a book calls the internet, so only its 404 path is tested.~~ **Fixed in P2-11** (tested against a local stand-in for the book sites).
 - Vite's first-ever run re-optimises dependencies and restarts once. One E2E run hit it; cached since.
 - ⚠️ `scripts/stop-all.ps1` force-kills **whatever** listens on ports 4000/5173, including other projects' dev servers (your `var_platform` uses 5173). It should check the process belongs to Hyperfocus. Fix with P5-13 (local mode); until then, be careful running it.
 - Windows: `pnpm bootstrap`/`pnpm install` fail with `EPERM` while the app is running (the API locks Prisma's engine file). Stop the app first. Killing `pnpm dev` without Ctrl+C can leave the API and Vite running in the background.
@@ -258,7 +260,7 @@ hyperfocus/
 | ✅ P2-08 | Port module: **goals + actions + logs** | M | P2-03 | " |
 | ✅ P2-09 | Port module: **skills** (+ suggest, plan, bulk) | M | P2-05 | " |
 | ✅ P2-10 | Port module: **study sessions** (state machine: running → paused → stopped) | M | P2-04 | State transitions unit-tested |
-| P2-11 | Port module: **books** (+ find, ask, chat) | M | P2-05 | " |
+| ✅ P2-11 | Port module: **books** (+ find, ask, chat) | M | P2-05 | " |
 | P2-12 | Port module: **calendar/events** (+ parse, plan, ics, repeats, skip) | L | P2-05 | Repeat logic unit-tested |
 | ✅ P2-13 | Port module: **reminders** | S | P2-03 | " |
 | P2-14 | Port module: **wins + reviews** | M | P2-05 | " |

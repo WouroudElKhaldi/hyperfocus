@@ -34,6 +34,7 @@ const schema = z.object({
   DEEPSEEK_MODEL: text,
   N8N_WEBHOOK_URL: url("N8N_WEBHOOK_URL"),
   GOOGLE_BOOKS_API_KEY: text,
+  BOOK_SOURCES_URL: url("BOOK_SOURCES_URL"),
   GMAIL_USER: text.refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: "GMAIL_USER must be your full Gmail address, like you@gmail.com" }),
   GMAIL_APP_KEY: text,
   SETTINGS_FILE: text,
@@ -52,6 +53,8 @@ export type ApiConfig = {
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
+  /** Tests only: one address that stands in for Open Library, Google Books and Gutenberg. Empty = the real sites. */
+  bookSourcesUrl: string;
   /** `appKey` is an App Password; the spaces Google shows in it are removed. */
   gmail: { user: string; appKey: string };
   /** Overrides for tests and other setups. Empty = the default place. */
@@ -79,6 +82,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       deepseek: { apiKey: demo ? "" : e.DEEPSEEK_API_KEY, url: e.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions", model: e.DEEPSEEK_MODEL || "deepseek-chat" },
       n8nWebhookUrl: demo ? "" : e.N8N_WEBHOOK_URL,
       googleBooksApiKey: demo ? "" : e.GOOGLE_BOOKS_API_KEY,
+      bookSourcesUrl: e.BOOK_SOURCES_URL,
       gmail: { user: e.GMAIL_USER, appKey: demo ? "" : e.GMAIL_APP_KEY.replace(/\s+/g, "") },
       settingsFile: e.SETTINGS_FILE,
       backupDir: e.BACKUP_DIR,

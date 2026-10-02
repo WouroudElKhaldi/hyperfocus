@@ -4,7 +4,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { startFakeAi, startFakeN8n } from "./fakes.js";
+import { startFakeAi, startFakeBooks, startFakeN8n } from "./fakes.js";
 
 // Starts the real API as a separate process against a throwaway database, settings file and backup folder,
 // with every outside service replaced by a local fake. Your real data, backups and accounts are never touched.
@@ -35,7 +35,7 @@ async function waitForHealth(url, child, log) {
 export async function startTestStack({ port } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "hyperfocus-test-"));
   const dbFile = path.join(tmp, "test.db");
-  const [ai, n8n, apiPort] = await Promise.all([startFakeAi(), startFakeN8n(), port ?? freePort()]);
+  const [ai, n8n, books, apiPort] = await Promise.all([startFakeAi(), startFakeN8n(), startFakeBooks(), port ?? freePort()]);
 
   const env = {
     ...process.env,
@@ -44,6 +44,7 @@ export async function startTestStack({ port } = {}) {
     DEEPSEEK_URL: `${ai.url}/chat/completions`,
     DEEPSEEK_API_KEY: "test-key",
     N8N_WEBHOOK_URL: `${n8n.url}/webhook`,
+    BOOK_SOURCES_URL: books.url,
     NOTIFY_DRY_RUN: "1",
     SETTINGS_FILE: path.join(tmp, "settings.json"),
     BACKUP_DIR: path.join(tmp, "backups"),
@@ -70,6 +71,7 @@ export async function startTestStack({ port } = {}) {
     fs.closeSync(out);
     ai.server.close();
     n8n.server.close();
+    books.server.close();
     fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   };
   try {

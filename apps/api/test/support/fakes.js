@@ -27,7 +27,7 @@ function startFake(handle) {
     try { body = raw ? JSON.parse(raw) : null; } catch { body = raw; }
     state.requests.push({ method: req.method, url: req.url, headers: req.headers, body });
     if (state.status !== 200) return send(res, state.status, { error: "fake failure" });
-    handle(body, res);
+    handle(body, res, req);
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({ server, url: `http://127.0.0.1:${server.address().port}` })));
 }
@@ -71,10 +71,32 @@ function aiReply(body) {
     return JSON.stringify({ subject: m?.[1] ?? "", html: m?.[2] ?? "", changes: [] });
   }
   if (system.includes("You are a proofreader")) return JSON.stringify({ draft: user, changes: [] });
+  // the book matcher: every search result it was shown is "really this book"
+  if (system.includes("find books")) return JSON.stringify({ ...UNIVERSAL, matchIds: [...user.matchAll(/^(\d+): /gm)].map((m) => Number(m[1])) });
   return JSON.stringify(UNIVERSAL);
 }
 
 export const startFakeAi = () =>
   startFake((body, res) => send(res, 200, { choices: [{ message: { content: aiReply(body) } }] }));
+
+// The three book sites "find free copies" searches, behind one address (BOOK_SOURCES_URL): /openlibrary, /google, /gutendex.
+// Each answers one result for "Clean Code"; Google Books also sends a malformed entry, which must be skipped.
+function bookReply(url) {
+  if (url.startsWith("/openlibrary/search.json")) {
+    return { docs: [{ key: "/works/OL1W", title: "Clean Code", author_name: ["Robert C. Martin"], first_publish_year: 2008, ia: ["cleancode00mart"], ebook_access: "borrowable" }] };
+  }
+  if (url.startsWith("/google/books/v1/volumes")) {
+    return { items: [
+      { volumeInfo: { title: "Clean Code", authors: ["Robert C. Martin"], publishedDate: "2008-08-01", infoLink: "https://books.example/clean" }, saleInfo: { buyLink: "https://play.example/clean", listPrice: { amount: 30, currencyCode: "USD" } } },
+      { volumeInfo: { authors: 42 } },
+    ] };
+  }
+  if (url.startsWith("/gutendex/books/")) return { results: [] };
+  return null;
+}
+export const startFakeBooks = () => startFake((_, res, req) => {
+  const reply = bookReply(req.url);
+  reply ? send(res, 200, reply) : send(res, 404, { error: "unknown fake book path" });
+});
 
 export const startFakeN8n = () => startFake((_, res) => send(res, 200, { ok: true }));

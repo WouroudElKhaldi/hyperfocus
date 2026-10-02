@@ -6,7 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { type ChatThread, type Event, type Post, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
 import type { Request } from "express";
-import { findBook, askAboutBook } from "./books.ts";
 import { gatherWeek, writeReview } from "./review.ts";
 import { remind } from "./notify.ts";
 import type { Cleaned } from "./pet.ts";
@@ -353,58 +352,7 @@ app.post("/api/chat", wrap(async (req, res) => {
 
 // Backups moved to Hono: src/modules/backups (P2-20)
 
-// ---------- Books ----------
-app.get("/api/books", wrap(async (_, res) => {
-  res.json(await prisma.book.findMany({ orderBy: { createdAt: "desc" } }));
-}));
-app.post("/api/books", wrap(async (req, res) => {
-  const { title, author = "", notes = "" } = req.body;
-  if (!title?.trim()) return res.status(400).json({ error: "Write the book's title." });
-  res.json(await prisma.book.create({ data: { title: title.trim(), author: author.trim(), notes } }));
-}));
-app.patch("/api/books/:id", wrap(async (req, res) => {
-  const { title, author, status, notes } = req.body;
-  const book = await prisma.book.update({ where: { id: id(req) }, data: { title, author, status, notes } });
-  if (status === "done") await events.publish("BookFinished", { bookId: book.id, title: book.title });
-  res.json(book);
-}));
-app.delete("/api/books/:id", wrap(async (req, res) => {
-  await prisma.book.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-app.get("/api/books/:id", wrap(async (req, res) => {
-  const book = await prisma.book.findUnique({ where: { id: id(req) } });
-  if (!book) return res.status(404).json({ error: "That book was not found." });
-  res.json(book);
-}));
-app.get("/api/books/:id/chat", wrap(async (req, res) => {
-  res.json(await prisma.bookMessage.findMany({ where: { bookId: id(req) }, orderBy: { id: "asc" } }));
-}));
-app.post("/api/books/:id/ask", wrap(async (req, res) => {
-  const book = await prisma.book.findUnique({ where: { id: id(req) } });
-  if (!book) return res.status(404).json({ error: "That book was not found." });
-  const question = String(req.body.question || "").trim().slice(0, 1500);
-  if (!question) return res.status(400).json({ error: "Write your question first." });
-  const history = (await prisma.bookMessage.findMany({ where: { bookId: book.id }, orderBy: { id: "desc" }, take: 16 })).reverse();
-  const prof = await prisma.profile.findFirst();
-  const reply = await askAboutBook({ book, result: book.result, history, question, helps: prof?.helps || "" });
-  const user = await prisma.bookMessage.create({ data: { bookId: book.id, role: "user", content: question } });
-  const assistant = await prisma.bookMessage.create({ data: { bookId: book.id, role: "assistant", content: reply } });
-  res.json({ user, assistant });
-}));
-app.delete("/api/books/:id/chat", wrap(async (req, res) => {
-  await prisma.bookMessage.deleteMany({ where: { bookId: id(req) } });
-  res.json({ ok: true });
-}));
-app.post("/api/books/:id/find", wrap(async (req, res) => {
-  const book = await prisma.book.findUnique({ where: { id: id(req) } });
-  if (!book) return res.status(404).json({ error: "Book not found." });
-  const result = await findBook({ title: book.title, author: book.author });
-  res.json(await prisma.book.update({
-    where: { id: book.id },
-    data: { result: JSON.stringify(result), foundAt: new Date(), author: book.author || result.foundAuthor },
-  }));
-}));
+// Books moved to Hono: src/modules/books (P2-11)
 
 // ---------- Calendar ----------
 // Validates and cleans the fields of an event. With partial=true only the fields that were sent are returned.

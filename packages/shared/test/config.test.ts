@@ -25,6 +25,7 @@ describe("API settings", () => {
       deepseek: { apiKey: "", url: "https://api.deepseek.com/chat/completions", model: "deepseek-chat" },
       n8nWebhookUrl: "",
       googleBooksApiKey: "",
+      bookSourcesUrl: "",
       gmail: { user: "", appKey: "" },
       settingsFile: "",
       backupDir: "",
