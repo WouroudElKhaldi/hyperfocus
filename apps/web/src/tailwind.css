@@ -1,0 +1,76 @@
+/* ============================================================
+   Tailwind v4 + shadcn/ui (P3-01), added next to the existing design system without changing how anything looks.
+
+   - No preflight (Tailwind's reset): the existing base styles in styles.css stay in charge until each page moves
+     over (P3-07 …). Only Tailwind's theme variables and utility classes are added, in cascade layers, so the existing
+     (unlayered) styles always win where both apply.
+   - shadcn's colors are mapped onto the existing tokens (--bg, --ink, --accent …). Those are what palettes.ts and the
+     light/dark/auto setting change, so every palette and both modes reach shadcn components with no extra work.
+     The raw shadcn variable names (--muted, --accent …) are NOT defined: the app already uses --muted (a text color)
+     and --accent (the brand color) with other meanings. Components only use the Tailwind colors below.
+   ============================================================ */
+
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+/* `dark:` follows the app's own setting: the "dark" choice, or "auto" while the system is dark */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+@theme inline {
+  /* shadcn/ui colors → the Hyperfocus tokens */
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--ink-2);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--accent-soft);
+  --color-accent-foreground: var(--accent-strong);
+  --color-destructive: var(--bad);
+  --color-border: var(--line);
+  --color-input: var(--line-2);
+  --color-ring: var(--accent);
+
+  /* the app's own named colors, usable as bg-ok, text-warn, border-line … */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  /* shapes and type */
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r);
+  --radius-lg: var(--r);
+  --radius-xl: var(--r-lg);
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-1);
+  --shadow-lg: var(--shadow-2);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
+}

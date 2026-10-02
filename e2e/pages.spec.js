@@ -76,6 +76,24 @@ test.describe("app-wide", () => {
     await expect(page.getByLabel("Next track")).toBeVisible();
   });
 
+  // P3-01: shadcn/ui colors are mapped onto the app's tokens, so they follow every palette and light/dark
+  test("Tailwind/shadcn colors follow the chosen palette and mode", async ({ page }) => {
+    for (const mode of ["light", "dark"]) {
+      await page.addInitScript((m) => { localStorage.setItem("theme", m); localStorage.setItem("palette", "mint"); }, mode);
+      await page.goto("/");
+      await expect(page.locator("main h1").first()).toBeVisible();
+      const { primary, accent, background, bg } = await page.evaluate(() => {
+        const probe = (cls) => { const el = document.createElement("div"); el.className = cls; document.body.append(el); const c = getComputedStyle(el); const v = { bg: c.backgroundColor, color: c.color }; el.remove(); return v; };
+        const css = getComputedStyle(document.documentElement);
+        const toRgb = (hex) => { const n = parseInt(hex.trim().slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
+        return { primary: probe("bg-primary").bg, accent: toRgb(css.getPropertyValue("--accent")), background: probe("bg-background").bg, bg: toRgb(css.getPropertyValue("--bg")) };
+      });
+      expect(primary, `bg-primary in ${mode}`).toBe(accent);
+      expect(background, `bg-background in ${mode}`).toBe(bg);
+      expect(accent, "mint is applied").not.toBe("rgb(116, 71, 230)"); // not the default lavender
+    }
+  });
+
   test("the theme can be switched to dark and back to light", async ({ page }) => {
     await page.goto("/backup");
     await page.getByRole("radiogroup", { name: "Theme" }).getByRole("radio", { name: "Dark" }).click();

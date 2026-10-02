@@ -1,10 +1,14 @@
-import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 import { SECURITY_HEADERS } from "./security-headers.mjs";
 
 // WEB_PORT and API_PORT let a second copy of the app run next to the real one (used for testing with sample data).
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  // "@/…" is src/ (the shadcn/ui convention, see components.json)
+  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {
     port: Number(process.env.WEB_PORT) || 5173,
     strictPort: true,

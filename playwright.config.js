@@ -13,10 +13,13 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never", outputFolder: "e2e/report" }]],
   outputDir: "e2e/results",
+  snapshotPathTemplate: "e2e/__screenshots__/{arg}{ext}",
   use: { baseURL: `http://localhost:${WEB_PORT}`, trace: "retain-on-failure", screenshot: "only-on-failure" },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], ...browser } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"], ...browser }, grepInvert: /@visual/ },
     { name: "phone", use: { ...devices["Pixel 7"], ...browser }, grep: /@phone/ },
+    // only with `pnpm test:visual` (see e2e/visual.spec.js): needs a fresh database, so it never runs after the other tests
+    { name: "visual", use: { ...devices["Desktop Chrome"], ...browser }, grep: /@visual/ },
   ],
   webServer: [
     {

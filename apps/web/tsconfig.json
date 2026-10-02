@@ -1,4 +1,7 @@
 {
   "extends": "@hyperfocus/config/tsconfig.react.json",
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] }
+  },
   "include": ["src"]
 }

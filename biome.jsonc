@@ -6,6 +6,8 @@
   // Formatting is applied file by file as code is converted to TypeScript (P1-05/P1-06), so the history stays readable.
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "double" } },
+  // Tailwind v4 directives (@theme, @custom-variant) in apps/web/src/tailwind.css (P3-01)
+  "css": { "parser": { "tailwindDirectives": true } },
   "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
