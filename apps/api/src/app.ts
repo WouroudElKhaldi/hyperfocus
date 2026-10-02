@@ -13,6 +13,7 @@ import { calendarRouter } from "./modules/calendar/routes.ts";
 import { chatRouter } from "./modules/chat/routes.ts";
 import { coachRouter } from "./modules/coach/routes.ts";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
+import type { FileStorage } from "./storage/files.ts";
 import { emailsRouter } from "./modules/emails/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { jobsRouter } from "./modules/jobs/routes.ts";
@@ -38,7 +39,11 @@ import { type Db, httpError } from "./types.ts";
 // Routes are declared with createRoute() and Zod schemas (P2-02): the same schema checks the request, types the
 // handler and documents the route. The documentation is served at /api/docs (and the raw spec at /api/openapi.json).
 
-export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway; publisher: SocialPublisher; mail: MailProvider };
+export type AppDeps = {
+  config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway; publisher: SocialPublisher; mail: MailProvider;
+  /** Where uploaded files go (P4-07); left out or null = inside the database. */
+  files?: FileStorage | null;
+};
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
 export type AppEnv = { Variables: { requestId: string; log: Logger } };
 

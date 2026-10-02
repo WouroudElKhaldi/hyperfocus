@@ -47,7 +47,16 @@ const schema = z.object({
   CORS_ORIGINS: origins,
   RATE_LIMIT_PER_MINUTE: perMinute("RATE_LIMIT_PER_MINUTE"),
   AI_RATE_LIMIT_PER_MINUTE: perMinute("AI_RATE_LIMIT_PER_MINUTE"),
+  FILE_STORAGE: text.refine((v) => ["", "database", "disk", "s3"].includes(v), { message: "FILE_STORAGE must be database, disk or s3" }),
+  FILE_STORAGE_DIR: text,
+  S3_ENDPOINT: url("S3_ENDPOINT"),
+  S3_BUCKET: text,
+  S3_ACCESS_KEY_ID: text,
+  S3_SECRET_ACCESS_KEY: text,
+  S3_REGION: text,
   LOG_LEVEL: text.refine((v) => v === "" || LOG_LEVELS.includes(v as LogLevel), { message: `LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}` }),
+}).refine((e) => e.FILE_STORAGE !== "s3" || (e.S3_ENDPOINT && e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY), {
+  message: "FILE_STORAGE=s3 needs S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY",
 });
 
 /** The API's settings, already checked. Secrets are empty strings when not set (and always empty in the demo). */
@@ -73,6 +82,8 @@ export type ApiConfig = {
   corsOrigins: string[];
   /** Requests per minute per visitor, for all routes and for the routes that call the AI (each costs credits). */
   rateLimit: { perMinute: number; aiPerMinute: number };
+  /** Where uploaded files' bytes go (P4-07): inside the database (default), a folder, or S3-compatible storage. */
+  fileStorage: { kind: "database" | "disk" | "s3"; dir: string; s3: { endpoint: string; bucket: string; accessKeyId: string; secretAccessKey: string; region: string } };
 };
 
 export type ConfigResult = { ok: true; config: ApiConfig } | { ok: false; problems: string[] };
@@ -101,6 +112,11 @@ export function parseApiConfig(env: Env): ConfigResult {
       logLevel: (e.LOG_LEVEL || "info") as LogLevel, // checked above
       corsOrigins: e.CORS_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean),
       rateLimit: { perMinute: Number(e.RATE_LIMIT_PER_MINUTE || 600), aiPerMinute: Number(e.AI_RATE_LIMIT_PER_MINUTE || 30) },
+      fileStorage: {
+        kind: (e.FILE_STORAGE || "database") as "database" | "disk" | "s3", // checked above
+        dir: e.FILE_STORAGE_DIR,
+        s3: { endpoint: e.S3_ENDPOINT, bucket: e.S3_BUCKET, accessKeyId: e.S3_ACCESS_KEY_ID, secretAccessKey: e.S3_SECRET_ACCESS_KEY, region: e.S3_REGION || "auto" },
+      },
     },
   };
 }

@@ -6,6 +6,7 @@ import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { gmailAppPassword } from "./modules/emails/mail-provider.ts";
 import { createApp } from "./app.ts";
+import { fileStorageFrom } from "./storage/files.ts";
 import { n8nPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
@@ -26,7 +27,10 @@ const mail = gmailAppPassword(config.gmail, { demo: DEMO });
 const events = new EventBus((event, err) => log.error({ err, event }, "an event subscriber failed"));
 petEarnsXp(events, prisma);
 // The whole HTTP server is Hono (P2-22): the API, plus the built website in the demo.
-const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail }), {
+// Uploaded files: inside the database unless FILE_STORAGE says a folder or S3-compatible storage (P4-07).
+// (the default folder is <project>/storage, next to backups)
+const files = fileStorageFrom({ ...config.fileStorage, dir: config.fileStorage.dir || fileURLToPath(new URL("../../../storage/", import.meta.url)) });
+const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail, files }), {
   demo: DEMO,
   corsOrigins: config.corsOrigins,
   webDist: fileURLToPath(new URL("../../web/dist/", import.meta.url)),

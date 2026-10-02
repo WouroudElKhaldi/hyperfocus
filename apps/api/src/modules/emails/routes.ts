@@ -7,6 +7,7 @@ import { IdParam, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
 import { jobSent } from "../jobs/rules.ts";
 import { errorInfo, httpError } from "../../types.ts";
+import { attachmentFiles } from "../../storage/attachments.ts";
 import { SLIM, cloneEmail, cloneTemplate } from "./copies.ts";
 import { MAX_FILE, MAX_TOTAL, SAFE_IMAGE, addrList, checkAddrs, cleanHtml, emailFields, inlineImages, safeFilename, tagsOf, textOf } from "./html.ts";
 
@@ -21,7 +22,8 @@ const jobPick = { select: { id: true, company: true, title: true } } as const;
 /** A JSON body that may be left out (the website sends some of these requests without one). */
 const optionalBody = <S extends z.ZodType>(schema: S) => ({ content: { "application/json": { schema } }, required: false as const });
 
-export function emailsRouter({ prisma, ai, mail }: AppDeps) {
+export function emailsRouter({ prisma, ai, mail, files }: AppDeps) {
+  const store = attachmentFiles(files ?? null); // where the files' bytes are (P4-07)
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   const tags = ["Email"];
   const emailId = (raw: string | undefined) => pathId(raw, EMAIL_404);
@@ -74,7 +76,10 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   app.openapi(
     createRoute({ method: "delete", path: "/api/emails/{id}", tags, summary: "Delete an email (not while it is being sent); ok is false when nothing was deleted", request: { params: IdParam }, responses: { 200: json(z.object({ ok: z.boolean() }), "Whether it was deleted") } }),
     async (c) => {
-      const r = await prisma.email.deleteMany({ where: { id: emailId(c.req.param("id")), status: { not: "sending" } } });
+      const id = emailId(c.req.param("id"));
+      const stored = await prisma.emailAttachment.findMany({ where: { emailId: id }, select: { storageKey: true } });
+      const r = await prisma.email.deleteMany({ where: { id, status: { not: "sending" } } });
+      if (r.count) await store.remove(stored); // its files' bytes go with it
       return c.json({ ok: r.count > 0 }, 200);
     },
   );
@@ -83,7 +88,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     async (c) => {
       const src = await prisma.email.findUnique({ where: { id: emailId(c.req.param("id")) }, include: { attachments: true } });
       if (!src) throw httpError(404, EMAIL_404);
-      return c.json(full(await cloneEmail(prisma, { toAddr: src.toAddr, ccAddr: src.ccAddr, bccAddr: src.bccAddr, subject: src.subject, html: src.html, body: src.body }, src.attachments)), 200);
+      return c.json(full(await cloneEmail(prisma, store, { toAddr: src.toAddr, ccAddr: src.ccAddr, bccAddr: src.bccAddr, subject: src.subject, html: src.html, body: src.body }, src.attachments)), 200);
     },
   );
 
@@ -112,7 +117,8 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
       const inline = q.inline === "1";
       const mime = String(c.req.header("x-file-type") || "application/octet-stream").slice(0, 100);
       if (inline && !SAFE_IMAGE.test(mime)) throw httpError(400, "Only PNG, JPG, GIF or WebP images can go inside the email.");
-      return c.json(await prisma.emailAttachment.create({ data: { ...where, filename: safeFilename(q.name), mime, inline, size: data.length, data }, select: SLIM }), 200);
+      const saved = await store.save(data, mime);
+      return c.json(await prisma.emailAttachment.create({ data: { ...where, filename: safeFilename(q.name), mime, inline, size: data.length, ...saved }, select: SLIM }), 200);
     });
   }
   app.openapi(
@@ -123,9 +129,10 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     async (c) => {
       const raw = c.req.param("id");
       const a = /^\d+$/.test(raw) ? await prisma.emailAttachment.findUnique({ where: { id: Number(raw) } }) : null;
-      if (!a) return c.body(null, 404);
+      const bytes = a ? await store.read(a) : null;
+      if (!a || !bytes) return c.body(null, 404);
       const safeImage = SAFE_IMAGE.test(a.mime);
-      return c.body(Buffer.from(a.data), 200, {
+      return c.body(Buffer.from(bytes), 200, {
         "Content-Type": safeImage ? a.mime : "application/octet-stream", // never let the browser run an uploaded file
         "X-Content-Type-Options": "nosniff",
         "Content-Disposition": `${a.inline && safeImage ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(a.filename)}`,
@@ -138,7 +145,8 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
       const id = pathId(c.req.param("id"), "File not found.");
       const a = await prisma.emailAttachment.findUnique({ where: { id }, include: { email: true } });
       if (a?.email?.status === "sent") throw httpError(409, "This email was already sent.");
-      await prisma.emailAttachment.deleteMany({ where: { id } });
+      const r = await prisma.emailAttachment.deleteMany({ where: { id } });
+      if (r.count && a) await store.remove([a]);
       return c.json({ ok: true as const }, 200);
     },
   );
@@ -174,14 +182,17 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
         if (!e.subject.trim() && !e.body.trim()) throw httpError(400, "The email is empty.");
         // images placed in the body travel inside the message (cid), the rest are normal attachments
         const { html, used } = inlineImages(e.html, new Set(e.attachments.map((a) => a.id)));
+        const contents = await Promise.all(e.attachments.map((a) => store.read(a)));
+        if (contents.some((b) => !b)) throw httpError(500, "A file of this email is missing from the file storage. Remove it and attach it again.");
         const sent = await mail.send({
           to, cc, bcc,
           subject: e.subject || "(no subject)",
           text: e.body,
           html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5">${html}</div>`,
           attachments: e.attachments
-            .filter((a) => !a.inline || used.has(a.id))
-            .map((a) => ({ filename: a.filename, content: Buffer.from(a.data), contentType: a.mime, ...(used.has(a.id) ? { cid: `img${a.id}@mail`, contentDisposition: "inline" as const } : {}) })),
+            .map((a, i) => ({ a, bytes: contents[i] as Uint8Array }))
+            .filter(({ a }) => !a.inline || used.has(a.id))
+            .map(({ a, bytes }) => ({ filename: a.filename, content: Buffer.from(bytes), contentType: a.mime, ...(used.has(a.id) ? { cid: `img${a.id}@mail`, contentDisposition: "inline" as const } : {}) })),
         });
         const done = await prisma.email.update({ where: { id: e.id }, data: { status: "sent", sentAt: new Date(), fromAddr: sent.from, messageId: sent.messageId, lastError: "" } });
         await jobSent(prisma, done).catch(() => {}); // the email is already sent, a job-update hiccup must not look like a failed send
@@ -213,7 +224,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
       if (!src) throw httpError(404, EMAIL_404);
       const b = c.req.valid("json") ?? {};
       const name = String(b.name || src.subject || "Untitled template").trim().slice(0, 100);
-      const t = await cloneTemplate(prisma, { name, subject: b.subject ?? src.subject, html: cleanHtml(b.html ?? src.html) }, src.attachments);
+      const t = await cloneTemplate(prisma, store, { name, subject: b.subject ?? src.subject, html: cleanHtml(b.html ?? src.html) }, src.attachments);
       return c.json({ id: t.id, name: t.name }, 200);
     },
   );
@@ -232,7 +243,10 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
   app.openapi(
     createRoute({ method: "delete", path: "/api/email-templates/{id}", tags, summary: "Delete a template (already gone is fine)", request: { params: IdParam }, responses: { 200: json(z.object({ ok: z.literal(true) }), "Deleted") } }),
     async (c) => {
-      await prisma.emailTemplate.deleteMany({ where: { id: pathId(c.req.param("id"), TEMPLATE_404) } });
+      const id = pathId(c.req.param("id"), TEMPLATE_404);
+      const stored = await prisma.emailAttachment.findMany({ where: { templateId: id }, select: { storageKey: true } });
+      const r = await prisma.emailTemplate.deleteMany({ where: { id } });
+      if (r.count) await store.remove(stored);
       return c.json({ ok: true as const }, 200);
     },
   );
@@ -241,7 +255,7 @@ export function emailsRouter({ prisma, ai, mail }: AppDeps) {
     async (c) => {
       const t = await prisma.emailTemplate.findUnique({ where: { id: pathId(c.req.param("id"), TEMPLATE_404) }, include: { attachments: true } });
       if (!t) throw httpError(404, TEMPLATE_404);
-      return c.json(full(await cloneEmail(prisma, { subject: t.subject, html: t.html, body: textOf(t.html) }, t.attachments)), 200);
+      return c.json(full(await cloneEmail(prisma, store, { subject: t.subject, html: t.html, body: textOf(t.html) }, t.attachments)), 200);
     },
   );
 

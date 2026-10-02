@@ -336,7 +336,9 @@ model EmailAttachment {
   mime       String         @default("application/octet-stream")
   size       Int            @default(0)
   inline     Boolean        @default(false)
-  data       Bytes
+  // P4-07: the bytes are here (database mode, and every file from before), or in the file storage under storageKey
+  data       Bytes?
+  storageKey String         @default("")
   emailId    Int?
   email      Email?         @relation(fields: [emailId], references: [id], onDelete: Cascade)
   templateId Int?
