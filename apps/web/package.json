@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "lint": "biome lint .",
+    "lint": "biome lint . && node scripts/check-features.mjs",
     "test": "vitest run"
   },
   "dependencies": {

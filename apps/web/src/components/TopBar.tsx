@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { usePet } from "../hooks/usePet.ts";
-import { initialsOf, useProfile } from "../hooks/useProfile.ts";
+import { PetArt, usePet } from "../features/pet/index.ts";
+import { initialsOf, useProfile } from "../features/profile/index.ts";
 import { effectiveTheme, setTheme } from "../theme.ts";
-import PetArt from "./PetArt.tsx";
 import Icon from "./Icon.tsx";
 
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? "Hello" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; };

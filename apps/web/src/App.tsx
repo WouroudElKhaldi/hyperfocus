@@ -5,7 +5,7 @@ import { api } from "./api.ts";
 import Icon from "./components/Icon.tsx";
 import Stuck from "./components/Stuck.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
-import PetWidget, { PetCelebration } from "./components/PetWidget.tsx";
+import { PetCelebration, PetWidget } from "./features/pet/index.ts";
 import Quotes from "./components/Quotes.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";

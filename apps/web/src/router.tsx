@@ -1,33 +1,33 @@
 import { Link, type RouteComponent, createRootRoute, createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import App from "./App.tsx";
-import Tasks from "./pages/Tasks.tsx";
-import Today from "./pages/Today.tsx";
+import Tasks from "./features/tasks/pages/Tasks.tsx";
+import Today from "./features/today/pages/Today.tsx";
 
 // Every page of the website as a typed route (P3-04, TanStack Router). The addresses are the same as before, so old
 // links and bookmarks keep working. Links and navigation are checked against this list: a link to a page that doesn't
 // exist, or without the parameter a page needs, is a type error. Pages load the first time they are opened.
 
-const Notes = lazyRouteComponent(() => import("./pages/Notes.tsx"));
-const Goals = lazyRouteComponent(() => import("./pages/Goals.tsx"));
-const Skills = lazyRouteComponent(() => import("./pages/Skills.tsx"));
-const Review = lazyRouteComponent(() => import("./pages/Review.tsx"));
-const Wins = lazyRouteComponent(() => import("./pages/Wins.tsx"));
-const Backup = lazyRouteComponent(() => import("./pages/Backup.tsx"));
-const Books = lazyRouteComponent(() => import("./pages/Books.tsx"));
-const BookDetail = lazyRouteComponent(() => import("./pages/BookDetail.tsx"));
-const Study = lazyRouteComponent(() => import("./pages/Study.tsx"));
-const Calendar = lazyRouteComponent(() => import("./pages/Calendar.tsx"));
-const Posts = lazyRouteComponent(() => import("./pages/Posts.tsx"));
-const PostEditor = lazyRouteComponent(() => import("./pages/PostEditor.tsx"));
-const Emails = lazyRouteComponent(() => import("./pages/Emails.tsx"));
-const EmailEditor = lazyRouteComponent(() => import("./pages/EmailEditor.tsx"));
-const Jobs = lazyRouteComponent(() => import("./pages/Jobs.tsx"));
-const JobDetail = lazyRouteComponent(() => import("./pages/JobDetail.tsx"));
-const Chat = lazyRouteComponent(() => import("./pages/Chat.tsx"));
-const Pet = lazyRouteComponent(() => import("./pages/Pet.tsx"));
-const Profile = lazyRouteComponent(() => import("./pages/Profile.tsx"));
+const Notes = lazyRouteComponent(() => import("./features/notes/pages/Notes.tsx"));
+const Goals = lazyRouteComponent(() => import("./features/goals/pages/Goals.tsx"));
+const Skills = lazyRouteComponent(() => import("./features/skills/pages/Skills.tsx"));
+const Review = lazyRouteComponent(() => import("./features/review/pages/Review.tsx"));
+const Wins = lazyRouteComponent(() => import("./features/wins/pages/Wins.tsx"));
+const Backup = lazyRouteComponent(() => import("./features/settings/pages/Backup.tsx"));
+const Books = lazyRouteComponent(() => import("./features/books/pages/Books.tsx"));
+const BookDetail = lazyRouteComponent(() => import("./features/books/pages/BookDetail.tsx"));
+const Study = lazyRouteComponent(() => import("./features/study/pages/Study.tsx"));
+const Calendar = lazyRouteComponent(() => import("./features/calendar/pages/Calendar.tsx"));
+const Posts = lazyRouteComponent(() => import("./features/posts/pages/Posts.tsx"));
+const PostEditor = lazyRouteComponent(() => import("./features/posts/pages/PostEditor.tsx"));
+const Emails = lazyRouteComponent(() => import("./features/emails/pages/Emails.tsx"));
+const EmailEditor = lazyRouteComponent(() => import("./features/emails/pages/EmailEditor.tsx"));
+const Jobs = lazyRouteComponent(() => import("./features/jobs/pages/Jobs.tsx"));
+const JobDetail = lazyRouteComponent(() => import("./features/jobs/pages/JobDetail.tsx"));
+const Chat = lazyRouteComponent(() => import("./features/chat/pages/Chat.tsx"));
+const Pet = lazyRouteComponent(() => import("./features/pet/pages/Pet.tsx"));
+const Profile = lazyRouteComponent(() => import("./features/profile/pages/Profile.tsx"));
 // the design system page (P3-02): development only, so it never ships in the built app
-const DevUi = import.meta.env.DEV ? lazyRouteComponent(() => import("./pages/DevUi.tsx")) : null;
+const DevUi = import.meta.env.DEV ? lazyRouteComponent(() => import("./features/dev/pages/DevUi.tsx")) : null;
 
 /** An address that isn't a page: say so kindly, with one way back. */
 function NotFound() {
