@@ -1,0 +1,27 @@
+{
+  "name": "@hyperfocus/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The database: Prisma schema, migrations later (P4), and the typed client every app uses.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "postinstall": "prisma generate",
+    "generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint ."
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0",
+    "@hyperfocus/config": "workspace:*",
+    "@types/node": "^24",
+    "typescript": "^7.0.2"
+  }
+}

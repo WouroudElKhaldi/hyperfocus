@@ -11,6 +11,7 @@ import { startFakeAi, startFakeN8n } from "./fakes.js";
 // Used by the API tests (vitest global setup) and the browser tests (Playwright).
 
 const SERVER_DIR = fileURLToPath(new URL("../../", import.meta.url));
+const DB_DIR = fileURLToPath(new URL("../../../../packages/db/", import.meta.url));
 
 export const freePort = () =>
   new Promise((resolve) => {
@@ -53,7 +54,7 @@ export async function startTestStack({ port } = {}) {
   };
   delete env.DEMO_MODE;
 
-  execFileSync(process.execPath, [path.join(SERVER_DIR, "node_modules/prisma/build/index.js"), "db", "push", "--skip-generate"], { cwd: SERVER_DIR, env, stdio: "pipe" });
+  execFileSync(process.execPath, [path.join(DB_DIR, "node_modules/prisma/build/index.js"), "db", "push", "--skip-generate"], { cwd: DB_DIR, env, stdio: "pipe" });
   if (!fs.existsSync(dbFile)) throw new Error("The test database was not created where expected; refusing to run against another database.");
 
   const log = path.join(tmp, "api.log");

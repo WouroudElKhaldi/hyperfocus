@@ -27,7 +27,7 @@ $env:NOTIFY_DRY_RUN = "1"
 $env:DEEPSEEK_API_KEY = ""
 $env:N8N_WEBHOOK_URL = ""
 
-Push-Location (Join-Path $root "apps\api")
+Push-Location (Join-Path $root "packages\db")
 & npx prisma db push --skip-generate 2>&1 | Select-Object -Last 1
 Pop-Location
 

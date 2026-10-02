@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "packageManager": "pnpm@12.8.1",
   "scripts": {
-    "bootstrap": "pnpm install && pnpm --filter ./apps/api db:push",
+    "bootstrap": "pnpm install && pnpm --filter @hyperfocus/db db:push",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "test": "turbo run test && playwright test",

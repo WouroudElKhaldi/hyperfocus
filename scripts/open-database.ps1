@@ -2,12 +2,12 @@
 # You can look at every table (tasks, notes, posts, study sessions, pet points...), search, and edit rows.
 #   -NoOpen   start it but don't open the browser
 #   -Stop     close it
-# Tips: your real data file is apps\api\prisma\dev.db. The app can stay open while you look, but be careful editing:
+# Tips: your real data file is packages\db\prisma\dev.db. The app can stay open while you look, but be careful editing:
 # a change here is a real change. Copies of the file are in the "backups" folder.
 param([switch]$NoOpen, [switch]$Stop, [int]$Port = 5555)
 
 $root = Split-Path -Parent $PSScriptRoot
-$server = Join-Path $root "apps\api"
+$server = Join-Path $root "packages\db"
 
 function Stop-Studio {
   foreach ($p in (Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique)) {

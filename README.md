@@ -2,7 +2,7 @@
 
 Personal, local-only app: capture thoughts, manage tasks, turn ideas into LinkedIn posts with DeepSeek.
 
-**Stack:** React (Vite) · Express · Prisma + SQLite (a single file: `apps/api/prisma/dev.db`) · DeepSeek API · n8n for LinkedIn posting.
+**Stack:** React (Vite) · Express · Prisma + SQLite (a single file: `packages/db/prisma/dev.db`) · DeepSeek API · n8n for LinkedIn posting.
 
 ## Run
 Needs Node 24+ and pnpm (`npm install -g pnpm`; the repo pins the exact version).
@@ -29,7 +29,7 @@ Tests run against a throwaway database with fake AI and n8n, so they never touch
 
 - `GMAIL_USER` – your Gmail address, and `GMAIL_APP_KEY` – an App Password from https://myaccount.google.com/apppasswords (needs 2-Step Verification). Used by the Email page.
 
-Back up your data by copying `apps/api/prisma/dev.db`.
+Back up your data by copying `packages/db/prisma/dev.db`.
 
 ## Start automatically
 ```
@@ -42,10 +42,10 @@ Then n8n and Hyperfocus start hidden when you log in, and a "Hyperfocus" shortcu
 
 ## Backups
 Sidebar → Backup. A copy of the database is also made automatically once a day into `backups\` (newest 30 kept).
-To restore: stop the app, copy a backup over `apps\api\prisma\dev.db`, start the app.
+To restore: stop the app, copy a backup over `packages\db\prisma\dev.db`, start the app.
 
 ## Look at your data (the database)
-Your data is one SQLite file: `apps/api/prisma/dev.db`. To browse and edit it as tables:
+Your data is one SQLite file: `packages/db/prisma/dev.db`. To browse and edit it as tables:
 ```
 powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1       # opens http://localhost:5555
 powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # closes it
@@ -61,7 +61,7 @@ powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # close
 ## How the code is organised
 - `apps/web/src/pages/` one file per page, loaded only when opened. `components/` shared pieces. `audio/` the music. `data/` words and lists.
 - `apps/web/src/shell.css` the layout, spacing variables (`--s-*`) and phone layer; `styles.css` the base design and colors.
-- `apps/api/src/index.js` the API; one small file per topic next to it (`pet.js`, `books.js`, `reminders.js`, ...). Data model: `apps/api/prisma/schema.prisma`.
+- `apps/api/src/index.js` the API; one small file per topic next to it (`pet.js`, `books.js`, `reminders.js`, ...). Data model: `packages/db/prisma/schema.prisma`.
 - `apps/api/test/` API contract, unit and shape tests; `e2e/` browser tests. `docs/` plans and research; `TASKS.md` the refactor plan and progress.
 - `scripts/` start, stop, backups, demo, sharing, the database opener and `db-fingerprint.mjs` (proves two databases hold the same data).
 - The repo is a pnpm workspace run by Turborepo (`pnpm-workspace.yaml`, `turbo.json`).

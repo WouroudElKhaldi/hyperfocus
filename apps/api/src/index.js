@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@hyperfocus/db";
 import { findBook, askAboutBook } from "./books.js";
 import { gatherWeek, writeReview } from "./review.js";
 import { notify, getSettings, saveSettings, remind } from "./notify.js";

@@ -1,6 +1,6 @@
 # Data safety & migration rehearsal (P0-10)
 
-Your data is one SQLite file today: `server/prisma/dev.db`. This page says how it's protected during the refactor
+Your data is one SQLite file today: `packages/db/prisma/dev.db` (it was `server/prisma/dev.db` before the refactor). This page says how it's protected during the refactor
 and how the move to PostgreSQL (P4-03) will be rehearsed and **proven** lossless before it touches your real data.
 
 ## 1. The frozen pre-refactor backup
@@ -12,7 +12,7 @@ and how the move to PostgreSQL (P4-03) will be rehearsed and **proven** lossless
 | Checked | `PRAGMA integrity_check` = ok · fingerprint identical to `dev.db` (see below) |
 | Contents at the time | 1 chat thread with 2 messages; every other table empty (fresh clone) |
 
-> **If your real data lives on another machine** (this repo was just cloned), copy that machine's `server/prisma/dev.db`
+> **If your real data lives on another machine** (this repo was just cloned), copy that machine's `server/prisma/dev.db` (old layout) to `packages/db/prisma/dev.db`
 > (or a file from its `backups/` folder) here **before P4**, then make a new frozen backup the same way.
 
 ## 2. Fingerprints: proving nothing was lost
@@ -26,8 +26,8 @@ Same fingerprint = same data. Use it:
 
 ## 3. Restore (if anything goes wrong)
 
-1. Stop the app (`scripts\stop-all.ps1`, or close `npm run dev`).
-2. Copy the backup over `server\prisma\dev.db`.
+1. Stop the app (`scripts\stop-all.ps1`, or stop `pnpm dev` with Ctrl+C).
+2. Copy the backup over `packages\db\prisma\dev.db`.
 3. Start the app and check the fingerprint matches the backup's.
 
 ## 4. SQLite → PostgreSQL rehearsal plan (for P4-03)
