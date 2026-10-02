@@ -8,7 +8,15 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 // every file under dir, sub-folders included (routes move into module folders as they are ported to Hono)
 const read = (dir, ext) => fs.readdirSync(path.join(root, dir), { recursive: true }).filter((f) => f.endsWith(ext)).map((f) => fs.readFileSync(path.join(root, dir, f), "utf8")).join("\n");
 
-const routes = [...read("src", ".ts").matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p }));
+const src = read("src", ".ts");
+const routes = [
+  // Express and plain Hono routes: app.get("/api/...", ...)
+  ...[...src.matchAll(/app\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p })),
+  // Hono OpenAPI routes: createRoute({ method: "get", path: "/api/..." }); OpenAPI writes path params as {id}
+  ...[...src.matchAll(/createRoute\(\{\s*method:\s*"(\w+)",\s*path:\s*"([^"]+)"/g)].map(([, m, p]) => ({ method: m.toUpperCase(), path: p.replace(/\{(\w+)\}/g, ":$1") })),
+  // the OpenAPI document itself: app.doc31("/api/openapi.json", ...)
+  ...[...src.matchAll(/app\.doc(?:31)?\(\s*"([^"]+)"/g)].map(([, p]) => ({ method: "GET", path: p })),
+];
 
 // every call in the tests, with ${...} expressions turned into a placeholder
 const tests = read("test/contract", ".test.js");

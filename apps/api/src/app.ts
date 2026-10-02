@@ -1,21 +1,47 @@
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
 import type { ApiConfig } from "@hyperfocus/shared/config";
-import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
-import type { Db } from "./types.ts";
+import { type Db, httpError } from "./types.ts";
 
 // The composition root (P2-01). Everything a route needs comes in through `deps`, so tests can pass fakes and nothing
 // reaches for globals. Routes move here from Express one module at a time (P2-06 … P2-21); until then Express answers
 // everything this app doesn't have a route for (see http/strangler.ts).
+//
+// Routes are declared with createRoute() and Zod schemas (P2-02): the same schema checks the request, types the
+// handler and documents the route. The documentation is served at /api/docs (and the raw spec at /api/openapi.json).
 
 export type AppDeps = { config: ApiConfig; prisma: Db; log: Logger };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
 export type AppEnv = { Variables: { requestId: string; log: Logger } };
 
+const Health = z
+  .object({
+    ok: z.boolean().openapi({ description: "Always true when the API answers" }),
+    ai: z.boolean().openapi({ description: "A DeepSeek key is set" }),
+    n8n: z.boolean().openapi({ description: "LinkedIn posting through n8n is set up" }),
+    demo: z.boolean().openapi({ description: "Running as the demo (no AI, posting, email or backups)" }),
+  })
+  .openapi("Health");
+
+const healthRoute = createRoute({
+  method: "get",
+  path: "/api/health",
+  tags: ["System"],
+  summary: "Is the API up, and which outside services are connected",
+  responses: { 200: { description: "The API is up", content: { "application/json": { schema: Health } } } },
+});
+
 export function createApp(deps: AppDeps) {
   const { config, log } = deps;
-  const app = new Hono<AppEnv>();
+  // a request that doesn't match a route's schema gets a 400 with the schema's own message (the same text the API used before)
+  const app = new OpenAPIHono<AppEnv>({
+    defaultHook: (result, c) => {
+      if (!result.success) return problemResponse(c, httpError(400, result.error.issues[0]?.message ?? "That request isn't valid."));
+    },
+  });
 
   // an id per request: taken from the caller's X-Request-Id when it sends one, otherwise made here
   app.use(requestId());
@@ -29,7 +55,18 @@ export function createApp(deps: AppDeps) {
   });
   app.onError((err, c) => problemResponse(c, err));
 
-  app.get("/api/health", (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }));
+  app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
+
+  // ---------- documentation ----------
+  app.doc31("/api/openapi.json", {
+    openapi: "3.1.0",
+    info: {
+      title: "Hyperfocus API",
+      version: "0.1.0",
+      description: "The routes served by the new Hono app. Routes not listed here are still answered by the older Express code (they move over during Phase 2).",
+    },
+  });
+  app.get("/api/docs", Scalar({ url: "/api/openapi.json", pageTitle: "Hyperfocus API" }));
 
   return app;
 }

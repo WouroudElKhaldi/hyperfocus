@@ -73,6 +73,7 @@ powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # close
 - `apps/api/src/index.ts` the API (TypeScript, run directly by Node 24, no build step); one small file per topic next to it (`pet.ts`, `books.ts`, `reminders.ts`, ...). Shared API types are in `types.ts`. Data model: `packages/db/prisma/schema.prisma`.
   The API is moving from Express to **Hono** route by route: `app.ts` is the new app (`createApp(deps)`), and
   `http/strangler.ts` sends each request to Hono when Hono has that route, otherwise to Express. Settings: `config.ts`.
+  API documentation for the Hono routes: http://localhost:4000/api/docs (spec: `/api/openapi.json`).
 - `apps/api/test/` API contract, unit and shape tests; `e2e/` browser tests. `docs/` plans and research; `TASKS.md` the refactor plan and progress.
 - `scripts/` start, stop, backups, demo, sharing, the database opener and `db-fingerprint.mjs` (proves two databases hold the same data).
 - The repo is a pnpm workspace run by Turborepo (`pnpm-workspace.yaml`, `turbo.json`).

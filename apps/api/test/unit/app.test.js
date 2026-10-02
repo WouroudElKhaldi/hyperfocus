@@ -1,4 +1,5 @@
 import { PassThrough, Readable } from "node:stream";
+import { createRoute, z } from "@hono/zod-openapi";
 import { Hono } from "hono";
 import { pino } from "pino";
 import { describe, expect, it } from "vitest";
@@ -60,6 +61,35 @@ describe("errors as problem+json", () => {
   });
   it("turns anything else into a 500", async () => {
     expect(await (await app.request("/crash")).json()).toMatchObject({ status: 500, title: "Internal Server Error", error: "boom" });
+  });
+});
+
+describe("OpenAPI and docs (P2-02)", () => {
+  it("serves an OpenAPI 3.1 document built from the route schemas", async () => {
+    const doc = await (await make().request("/api/openapi.json")).json();
+    expect(doc.openapi).toBe("3.1.0");
+    expect(doc.paths["/api/health"].get.responses["200"].content["application/json"].schema).toEqual({ $ref: "#/components/schemas/Health" });
+    expect(Object.keys(doc.components.schemas.Health.properties)).toEqual(["ok", "ai", "n8n", "demo"]);
+  });
+  it("serves the documentation page", async () => {
+    const r = await make().request("/api/docs");
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-type")).toMatch(/text\/html/);
+    const html = await r.text();
+    expect(html).toContain("Hyperfocus API");
+    expect(html).toContain("/api/openapi.json");
+  });
+  it("answers a request that breaks a route's schema with a 400 problem carrying the schema's message", async () => {
+    const app = make();
+    const body = z.object({ title: z.string({ error: "Task needs a title." }).trim().min(1, "Task needs a title.") });
+    const route = createRoute({ method: "post", path: "/api/example", request: { body: { content: { "application/json": { schema: body } } } }, responses: { 200: { description: "ok" } } });
+    app.openapi(route, (c) => c.json({ title: c.req.valid("json").title }, 200));
+    const send = (b) => app.request("/api/example", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+    expect(await (await send({ title: " hi " })).json()).toEqual({ title: "hi" });
+    const bad = await send({});
+    expect(bad.status).toBe(400);
+    expect(bad.headers.get("content-type")).toBe("application/problem+json");
+    expect(await bad.json()).toMatchObject({ status: 400, error: "Task needs a title." });
   });
 });
 
