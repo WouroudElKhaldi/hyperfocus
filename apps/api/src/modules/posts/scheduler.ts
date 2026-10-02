@@ -27,8 +27,10 @@ export function postScheduler({ prisma, publisher, events }: Deps) {
       for (const p of due) {
         const action = dueAction(p, now);
         if (action === "missed") {
-          await prisma.post.update({ where: { id: p.id }, data: { status: "missed", lastError: "The app wasn't running at the scheduled time, and it's been too long to post it automatically. Reschedule or post it yourself." } });
-          remind(`missed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The app was closed at the scheduled time. Open it to reschedule or post it yourself.");
+          await prisma.$transaction(async (tx) => {
+            await tx.post.update({ where: { id: p.id }, data: { status: "missed", lastError: "The app wasn't running at the scheduled time, and it's been too long to post it automatically. Reschedule or post it yourself." } });
+            await remind(tx, `missed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The app was closed at the scheduled time. Open it to reschedule or post it yourself.");
+          });
           continue;
         }
         if (action === "wait") continue;
@@ -36,22 +38,28 @@ export function postScheduler({ prisma, publisher, events }: Deps) {
         const claim = await prisma.post.updateMany({ where: { id: p.id, status: "scheduled" }, data: { status: "posting", lastAttemptAt: now } });
         if (claim.count !== 1) continue;
         if (autoPostProblem(p.draft)) {
-          await prisma.post.update({ where: { id: p.id }, data: { status: "failed", lastError: "The draft changed after scheduling (empty, too long, or it now tags someone), so it wasn't auto-posted." } });
-          remind(`changed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The draft changed after scheduling. Open the post to check it.");
+          await prisma.$transaction(async (tx) => {
+            await tx.post.update({ where: { id: p.id }, data: { status: "failed", lastError: "The draft changed after scheduling (empty, too long, or it now tags someone), so it wasn't auto-posted." } });
+            await remind(tx, `changed:${p.id}`, "⚠️ A scheduled post wasn't sent", "The draft changed after scheduling. Open the post to check it.");
+          });
           continue;
         }
         const r = await publisher.publish(p);
         if (r.ok) {
-          await prisma.post.update({ where: { id: p.id }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
+          await prisma.$transaction(async (tx) => {
+            await tx.post.update({ where: { id: p.id }, data: { status: "posted", postedAt: new Date(), lastError: "" } });
+            await remind(tx, `posted:${p.id}`, "🎉 Your post is live on LinkedIn", (p.draft.split("\n")[0] || "").slice(0, 100));
+          });
           console.log(`Auto-posted post ${p.id}`);
           await events.publish("PostPublished", { postId: p.id });
-          remind(`posted:${p.id}`, "🎉 Your post is live on LinkedIn", (p.draft.split("\n")[0] || "").slice(0, 100));
         } else {
           const attempts = p.attempts + 1;
           const status = afterFailure(attempts, r.retry);
-          await prisma.post.update({ where: { id: p.id }, data: { status, attempts, lastError: r.error } });
+          await prisma.$transaction(async (tx) => {
+            await tx.post.update({ where: { id: p.id }, data: { status, attempts, lastError: r.error } });
+            if (status === "failed") await remind(tx, `failed:${p.id}:${attempts}`, "⚠️ Your scheduled post didn't go out", r.error.slice(0, 160));
+          });
           console.error(`Auto-post ${p.id} failed (${attempts}/${MAX_ATTEMPTS}): ${r.error}`);
-          if (status === "failed") remind(`failed:${p.id}:${attempts}`, "⚠️ Your scheduled post didn't go out", r.error.slice(0, 160));
         }
       }
     } catch (e) {

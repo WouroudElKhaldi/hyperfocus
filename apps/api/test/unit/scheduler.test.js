@@ -106,6 +106,7 @@ describe("the background jobs", () => {
       ["post-scheduler", 30000, 0],
       ["my-reminders", 20000, 5000],
       ["nudges", 60000, 15000],
+      ["outbox", 5000, 2000], // P4-06: sends queued notifications
       ["auto-backup", 6 * 3600000, 0],
     ]);
     expect(typeof jobs[0].init).toBe("function"); // posts left "posting" by a crash are failed first, never re-sent

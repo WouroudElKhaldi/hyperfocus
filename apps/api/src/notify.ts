@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Settings as SharedSettings } from "@hyperfocus/shared";
 import { config } from "./config.ts";
+import { enqueue } from "./outbox.ts";
 import { compact } from "./types.ts";
 
 // Windows desktop notifications sent by the server, so they work even when the browser is closed.
@@ -53,13 +54,9 @@ $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
 }
 
 // Sends a reminder only when reminders are on, and only once per key.
-export async function remind(key: string, title: string, body: string): Promise<void> {
-  const s = getSettings();
-  if (!s.reminders || s.sent[key]) return;
-  const now = Date.now();
-  const sent = Object.fromEntries(Object.entries(s.sent).filter(([, t]) => now - t < 3 * 86400000)); // forget old keys
-  sent[key] = now;
-  saveSettings({ sent });
-  const r = await notify(title, body);
-  if (!r.ok) console.error("Notification failed:", r.error);
+// A nudge, sent once per key (P4-06: through the outbox, so it is saved with the change that caused it and never sent twice,
+// even with several copies of the API). Nothing is queued while reminders are switched off in Settings.
+export async function remind(db: Parameters<typeof enqueue>[0], key: string, title: string, body: string): Promise<void> {
+  if (!getSettings().reminders) return;
+  await enqueue(db, key, title, body);
 }

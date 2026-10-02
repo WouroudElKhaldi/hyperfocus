@@ -1,4 +1,5 @@
-import { getSettings, remind, notify } from "./notify.ts";
+import { getSettings, remind } from "./notify.ts";
+import { enqueue } from "./outbox.ts";
 import type { Db } from "./types.ts";
 import { eventOccurrences, addDays } from "./modules/calendar/calendar.ts";
 
@@ -17,14 +18,14 @@ export async function checkReminders(prisma: Db): Promise<void> {
   if (running && !running.pausedAt) {
     const activeMin = (now.getTime() - running.startedAt.getTime() - running.breakMs) / 60000;
     const k = Math.floor(activeMin / settings.breakEveryMin);
-    if (k >= 1) await remind(`break:${running.id}:${k}`, "☕ Time for a little break?", `You've been studying ${Math.round(activeMin)} minutes. Stretch, drink water, rest your eyes. Press "Take a break" so it isn't counted.`);
+    if (k >= 1) await remind(prisma, `break:${running.id}:${k}`, "☕ Time for a little break?", `You've been studying ${Math.round(activeMin)} minutes. Stretch, drink water, rest your eyes. Press "Take a break" so it isn't counted.`);
   }
 
   // 2. A scheduled post goes live soon
   const soon = await prisma.post.findMany({ where: { status: "scheduled", scheduledAt: { gt: now, lte: new Date(now.getTime() + 10 * 60000) } } });
   for (const p of soon) {
     if (!p.scheduledAt) continue; // never null here (the query asks for a time), but the type can't know that
-    await remind(`post10:${p.id}:${p.scheduledAt.getTime()}`, `⏰ Your post goes live at ${clock(p.scheduledAt)}`, `"${((p.draft || p.thought).split("\n")[0] ?? "").slice(0, 80)}" Last chance to edit it.`);
+    await remind(prisma, `post10:${p.id}:${p.scheduledAt.getTime()}`, `⏰ Your post goes live at ${clock(p.scheduledAt)}`, `"${((p.draft || p.thought).split("\n")[0] ?? "").slice(0, 80)}" Last chance to edit it.`);
   }
 
   // 3. Calendar events with a reminder, sent the chosen number of minutes before they start
@@ -35,7 +36,7 @@ export async function checkReminders(prisma: Db): Promise<void> {
     const remindAt = start.getTime() - o.remindMin * 60000;
     if (now.getTime() >= remindAt && now.getTime() < start.getTime() + 5 * 60000) {
       const when = o.remindMin === 0 ? "now" : o.remindMin >= 60 ? `in ${Math.round(o.remindMin / 60)} h` : `in ${o.remindMin} min`;
-      await remind(`ev:${o.id}:${o.day}:${o.remindMin}`, `📅 ${o.title}`, `${o.startTime}${o.location ? " · " + o.location : ""} (${when})`);
+      await remind(prisma, `ev:${o.id}:${o.day}:${o.remindMin}`, `📅 ${o.title}`, `${o.startTime}${o.location ? " · " + o.location : ""} (${when})`);
     }
   }
 
@@ -45,7 +46,7 @@ export async function checkReminders(prisma: Db): Promise<void> {
     const today = localDay(now);
     const tasks = await prisma.task.findMany({ where: { done: false, OR: [{ today: true }, { dueDay: today }] } });
     if (tasks.length) {
-      await remind(`morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0]?.title}. Just that one.`);
+      await remind(prisma, `morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0]?.title}. Just that one.`);
     }
   }
 }
@@ -67,14 +68,19 @@ export function nextOccurrence(at: Date, repeat: string, from = new Date()): Dat
 
 // Fires every reminder that is due. A one-off is finished afterwards; a repeating one moves to its next time.
 // If the app was off when it was due, it still fires once when the app starts (and says when it was set for).
-// (A background job runs it every 20 seconds; the scheduler never runs it twice at once.)
+// (P4-06) Each reminder is claimed and its notification queued in one transaction: both happen or neither, and a reminder
+// another copy of the API already took is skipped. The outbox job sends the notification a few seconds later.
 export async function checkMyReminders(prisma: Db, now = new Date()): Promise<void> {
   const due = await prisma.reminder.findMany({ where: { done: false, at: { lte: now } }, orderBy: { at: "asc" } });
   for (const r of due) {
     const late = now.getTime() - r.at.getTime() > 5 * 60000;
     const body = r.note || (late ? `This was set for ${new Date(r.at).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "Your reminder");
-    const out = await notify(`⏰ ${r.title}`, body);
-    if (!out.ok) console.error("Reminder notification failed:", out.error);
-    await prisma.reminder.update({ where: { id: r.id }, data: r.repeat === "none" ? { done: true, lastFiredAt: now } : { at: nextOccurrence(r.at, r.repeat, now), lastFiredAt: now } });
+    await prisma.$transaction(async (tx) => {
+      const claim = await tx.reminder.updateMany({
+        where: { id: r.id, done: false, at: r.at },
+        data: r.repeat === "none" ? { done: true, lastFiredAt: now } : { at: nextOccurrence(r.at, r.repeat, now), lastFiredAt: now },
+      });
+      if (claim.count === 1) await enqueue(tx, `reminder:${r.id}:${r.at.getTime()}`, `⏰ ${r.title}`, body);
+    });
   }
 }
