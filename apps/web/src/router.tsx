@@ -1,12 +1,20 @@
-import { Link, type RouteComponent, createRootRoute, createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
+import {
+  Link,
+  type RouteComponent,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+} from "@tanstack/react-router";
 import App from "./App.tsx";
-import Tasks from "./features/tasks/pages/Tasks.tsx";
+
 import Today from "./features/today/pages/Today.tsx";
 
 // Every page of the website as a typed route (P3-04, TanStack Router). The addresses are the same as before, so old
 // links and bookmarks keep working. Links and navigation are checked against this list: a link to a page that doesn't
 // exist, or without the parameter a page needs, is a type error. Pages load the first time they are opened.
 
+const Tasks = lazyRouteComponent(() => import("./features/tasks/pages/Tasks.tsx"));
 const Notes = lazyRouteComponent(() => import("./features/notes/pages/Notes.tsx"));
 const Goals = lazyRouteComponent(() => import("./features/goals/pages/Goals.tsx"));
 const Skills = lazyRouteComponent(() => import("./features/skills/pages/Skills.tsx"));
@@ -43,7 +51,8 @@ function NotFound() {
 }
 
 const root = createRootRoute({ component: App, notFoundComponent: NotFound });
-const page = <P extends string>(path: P, component: RouteComponent) => createRoute({ getParentRoute: () => root, path, component });
+const page = <P extends string>(path: P, component: RouteComponent) =>
+  createRoute({ getParentRoute: () => root, path, component });
 
 const routes = [
   page("/", Today),
@@ -70,7 +79,10 @@ const routes = [
 ] as const;
 const devRoutes = DevUi ? [page("/dev/ui", DevUi)] : [];
 
-export const router = createRouter({ routeTree: root.addChildren([...routes, ...devRoutes]), scrollRestoration: false });
+export const router = createRouter({
+  routeTree: root.addChildren([...routes, ...devRoutes]),
+  scrollRestoration: false,
+});
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -12,11 +12,32 @@ const test = base.extend({
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     page.on("pageerror", (e) => errors.push(e.message));
     await use(page);
-    expect(errors.filter((e) => !allowedConsoleErrors.some((re) => re.test(e))), "console errors on the page").toEqual([]);
+    expect(
+      errors.filter((e) => !allowedConsoleErrors.some((re) => re.test(e))),
+      "console errors on the page",
+    ).toEqual([]);
   },
 });
 
-const ROUTES = ["/", "/notes", "/tasks", "/goals", "/skills", "/review", "/wins", "/backup", "/books", "/study", "/calendar", "/posts", "/emails", "/jobs", "/chat", "/pet", "/profile"];
+const ROUTES = [
+  "/",
+  "/notes",
+  "/tasks",
+  "/goals",
+  "/skills",
+  "/review",
+  "/wins",
+  "/backup",
+  "/books",
+  "/study",
+  "/calendar",
+  "/posts",
+  "/emails",
+  "/jobs",
+  "/chat",
+  "/pet",
+  "/profile",
+];
 
 test.describe("every page loads @phone", () => {
   for (const path of ROUTES) {
@@ -48,7 +69,9 @@ test.describe("detail pages for missing items", () => {
 
   test("a server error shows a retry instead of 'not found'", async ({ page }) => {
     let fail = true;
-    await page.route("**/api/jobs/1234", (route) => (fail ? route.fulfill({ status: 500, json: { error: "Database is busy" } }) : route.continue()));
+    await page.route("**/api/jobs/1234", (route) =>
+      fail ? route.fulfill({ status: 500, json: { error: "Database is busy" } }) : route.continue(),
+    );
     await page.goto("/jobs/1234");
     await expect(page.getByRole("heading", { name: "Couldn't load this job" })).toBeVisible();
     await expect(page.getByText("Database is busy")).toBeVisible();
@@ -87,7 +110,9 @@ test.describe("app-wide", () => {
   test("the menu moves between pages without reloading, and marks where you are", async ({ page, isMobile }) => {
     test.skip(!!isMobile, "the phone menu is a tab bar");
     await page.goto("/");
-    await page.evaluate(() => { window.__sameDocument = true; });
+    await page.evaluate(() => {
+      window.__sameDocument = true;
+    });
     await page.locator(".sidebar").getByRole("link", { name: "Tasks", exact: true }).click();
     await expect(page).toHaveURL(/\/tasks$/);
     await expect(page.locator("main h1").first()).toBeVisible();
@@ -108,14 +133,33 @@ test.describe("app-wide", () => {
   // P3-01: shadcn/ui colors are mapped onto the app's tokens, so they follow every palette and light/dark
   test("Tailwind/shadcn colors follow the chosen palette and mode", async ({ page }) => {
     for (const mode of ["light", "dark"]) {
-      await page.addInitScript((m) => { localStorage.setItem("theme", m); localStorage.setItem("palette", "mint"); }, mode);
+      await page.addInitScript((m) => {
+        localStorage.setItem("theme", m);
+        localStorage.setItem("palette", "mint");
+      }, mode);
       await page.goto("/");
       await expect(page.locator("main h1").first()).toBeVisible();
       const { primary, accent, background, bg } = await page.evaluate(() => {
-        const probe = (cls) => { const el = document.createElement("div"); el.className = cls; document.body.append(el); const c = getComputedStyle(el); const v = { bg: c.backgroundColor, color: c.color }; el.remove(); return v; };
+        const probe = (cls) => {
+          const el = document.createElement("div");
+          el.className = cls;
+          document.body.append(el);
+          const c = getComputedStyle(el);
+          const v = { bg: c.backgroundColor, color: c.color };
+          el.remove();
+          return v;
+        };
         const css = getComputedStyle(document.documentElement);
-        const toRgb = (hex) => { const n = parseInt(hex.trim().slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
-        return { primary: probe("bg-primary").bg, accent: toRgb(css.getPropertyValue("--accent")), background: probe("bg-background").bg, bg: toRgb(css.getPropertyValue("--bg")) };
+        const toRgb = (hex) => {
+          const n = parseInt(hex.trim().slice(1), 16);
+          return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
+        };
+        return {
+          primary: probe("bg-primary").bg,
+          accent: toRgb(css.getPropertyValue("--accent")),
+          background: probe("bg-background").bg,
+          bg: toRgb(css.getPropertyValue("--bg")),
+        };
       });
       expect(primary, `bg-primary in ${mode}`).toBe(accent);
       expect(background, `bg-background in ${mode}`).toBe(bg);
@@ -185,7 +229,10 @@ test.describe("main action on each page", () => {
 
   test("Settings: make a backup", async ({ page }) => {
     await page.goto("/backup");
-    await page.getByRole("button", { name: /Back up/ }).first().click();
+    await page
+      .getByRole("button", { name: /Back up/ })
+      .first()
+      .click();
     await expect(page.getByText(/^Last backup:/)).toBeVisible();
     await expect(page.getByText(/All my backups \([1-9]\d*\)/)).toBeVisible();
   });
@@ -260,5 +307,89 @@ test.describe("main action on each page", () => {
     await page.getByPlaceholder("What should I call you?").fill("E2E Person");
     await page.getByRole("button", { name: /Save/ }).first().click();
     await expect(page.getByText(/Saved\./)).toBeVisible();
+  });
+});
+
+// P3-07: Today, Tasks and Notes read and change one shared cache, ticks show at once, and a refused change goes back.
+test.describe("Today, Tasks and Notes share their data", () => {
+  test("an empty task shows the server's own message, without sending anything", async ({ page }) => {
+    let sent = false;
+    page.on("request", (r) => r.method() === "POST" && r.url().endsWith("/api/tasks") && (sent = true));
+    await page.goto("/tasks");
+    await page.getByPlaceholder("New task…").press("Enter");
+    await expect(page.getByRole("alert")).toHaveText("Task needs a title.");
+    await expect(page.getByPlaceholder("New task…")).toHaveAttribute("aria-invalid", "true");
+    expect(sent).toBe(false);
+    await page.getByPlaceholder("New task…").fill("E2E after the message");
+    await page.getByPlaceholder("New task…").press("Enter");
+    await expect(page.getByRole("checkbox", { name: "Done: E2E after the message" })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
+  test.describe(() => {
+    test.use({ allowedConsoleErrors: [/status of 500/] });
+    test("a tick the server refuses goes back, with the reason", async ({ page }) => {
+      await page.request.post("/api/tasks", { data: { title: "E2E refused tick" } });
+      await page.goto("/tasks");
+      const box = page.getByRole("checkbox", { name: "Done: E2E refused tick" });
+      await page.route("**/api/tasks/*", (route) =>
+        route.request().method() === "PATCH"
+          ? route.fulfill({ status: 500, json: { error: "Database is busy" } })
+          : route.continue(),
+      );
+      await box.click();
+      await expect(page.getByText("Database is busy")).toBeVisible();
+      await expect(box).not.toBeChecked();
+    });
+  });
+
+  test("a task finished on Tasks leaves Today without a reload", async ({ page }) => {
+    await page.request.post("/api/tasks", { data: { title: "E2E today task", today: true } });
+    await page.goto("/");
+    await expect(page.getByText("E2E today task")).toBeVisible();
+    await page.locator(".sidebar").getByRole("link", { name: "Tasks", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Done: E2E today task" }).click();
+    await expect(page.getByRole("checkbox", { name: "Done: E2E today task" })).toBeChecked();
+    await page.locator(".sidebar").getByRole("link", { name: "Today", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Brain dump" })).toBeVisible();
+    await expect(page.getByText("E2E today task")).toHaveCount(0);
+  });
+
+  test("Today: tiny steps, a brain dump and the AI sort all save", async ({ page }) => {
+    await page.goto("/");
+    await page.getByPlaceholder(/Whatever is in your head/).fill("E2E dump thought");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText("Saved. It's out of your head now")).toBeVisible();
+    await page.getByText("Recently saved").click();
+    await expect(page.getByText("E2E dump thought")).toBeVisible();
+    await page.getByPlaceholder(/Whatever is in your head/).fill("buy milk");
+    await page.getByText("More ways to save").click();
+    await page.getByRole("button", { name: "Sort it for me (AI)" }).click();
+    await expect(page.getByText("AI split it into 1 items.")).toBeVisible();
+    await page.getByRole("button", { name: "Save all" }).click();
+    await expect(page.getByText("Saved 1 items")).toBeVisible();
+    await page.goto("/tasks");
+    const row = page.locator(".item").filter({ hasText: "Buy milk" }).first();
+    await row.getByRole("button", { name: "Tiny steps (AI)" }).click();
+    await expect(row.getByText("Read one page")).toBeVisible();
+  });
+
+  test("Notes: pin, archive and bring back a thought", async ({ page }) => {
+    await page.request.post("/api/notes", { data: { body: "E2E archive me" } });
+    await page.goto("/notes");
+    const card = page.locator(".card").filter({ hasText: "E2E archive me" });
+    await card.getByText("More", { exact: true }).click();
+    await card.getByRole("button", { name: "Pin" }).click();
+    await expect(card.getByText("Pinned", { exact: true })).toBeVisible();
+    await card.getByRole("button", { name: "Archive" }).click();
+    await expect(page.getByText("Archived. It's kept under the Archived tab.")).toBeVisible();
+    await expect(page.getByText("E2E archive me")).toHaveCount(0);
+    await page.getByRole("button", { name: /^Archived \(/ }).click();
+    const archived = page.locator(".card").filter({ hasText: "E2E archive me" });
+    await archived.getByText("More", { exact: true }).click();
+    await archived.getByRole("button", { name: "Unarchive" }).click();
+    await expect(page.getByText("E2E archive me")).toHaveCount(0);
+    await page.getByRole("button", { name: "All", exact: true }).click();
+    await expect(page.getByText("E2E archive me")).toBeVisible();
   });
 });
