@@ -1,5 +1,5 @@
 {
-  "name": "thought-studio-server",
+  "name": "@hyperfocus/api",
   "private": true,
   "type": "module",
   "scripts": {

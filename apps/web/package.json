@@ -1,5 +1,5 @@
 {
-  "name": "thought-studio-client",
+  "name": "@hyperfocus/web",
   "private": true,
   "type": "module",
   "scripts": {
