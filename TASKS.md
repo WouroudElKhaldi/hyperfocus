@@ -10,7 +10,7 @@
 
 ## Progress
 
-Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7).
+Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591).
 
 | Date | Task | What was done | Proof |
 |---|---|---|---|
@@ -30,6 +30,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 | 2026-10-02 | ✅ P1-02 | `packages/config`: strict shared tsconfigs for **TypeScript 7** (base, `node` for the API, `react` for the web). Includes `erasableSyntaxOnly`, so Node 24 can later run `.ts` directly with no build step (P1-05). Apps have `tsconfig.json` + `@types/*`. **Biome 2.5** in `biome.jsonc` (2-space, 120 cols). Every relaxed rule has a comment naming the task that tightens it. Commands: `pnpm lint` (apps + root files via Turbo), `pnpm typecheck`, `pnpm format`, `pnpm check` (lint + typecheck + tests). Fixed what lint found: `isNaN` on Dates done properly (Biome's own suggested fix would have silently broken date validation), 2 handlers misnamed as hooks (`useTemplate`, `useIdea`) renamed, unused imports/vars/params and a dead `vNeck` drawing removed, safe `innerHTML` documented. | Lint 0 errors (540 deferred warnings) · typecheck passes · 170/170 API · 59/59 browser (×4 runs) |
 
 | 2026-10-02 | ✅ P1-03 | New `packages/db` (`@hyperfocus/db`): Prisma schema moved there (git rename), client generated on install, re-exported as the one place apps get the DB from. The API depends on it instead of Prisma directly. Your database moved with the schema to `packages/db/prisma/dev.db` (SQLite paths resolve next to the schema; Postgres in P4 makes this moot). Updated: test harness, demo and database-viewer scripts, fingerprint script, `pnpm bootstrap`, README, docs. `packages/db/.env(.example)` for the Prisma CLI. | Data fingerprint identical before/after the move · running API reads your real data from the new path · 170/170 API · 59/59 browser · 125/125 routes · `pnpm bootstrap` and `open-database.ps1` checked |
+
+| 2026-10-02 | ✅ P1-04 | New `packages/shared` (`@hyperfocus/shared`), the repo's first **TypeScript** package. It's run by plain `node` (Node 24 strips the types), with no build step. **Zod 4** schemas for Note, Task, Step and their create/update inputs. They describe today's API exactly, same error messages and quirks included (an unknown priority quietly becomes "normal"). `./constants` entry without Zod: note kinds and task priorities + **pet points**. Both apps now use these instead of their own copies: the website's points table was a hand-copied duplicate of the API's. | 11 schema tests · contract tests validate real API responses against the schemas (a planted schema bug fails them) · 172/172 API · 59/59 browser · Zod confirmed absent from the website bundle (+0.26 kB) |
 
 **TypeScript baseline for P1-05/P1-06** (strict `checkJs`): API **950** errors (633 implicit `any` params), web **1,847**. Measure with `npx tsc --noEmit --checkJs` in each app.
 
@@ -193,7 +195,7 @@ hyperfocus/
 | ✅ P1-01 | Create a branch, switch to **pnpm workspaces + Turborepo**, move `client→apps/web`, `server→apps/api`. No code changes yet. | M | P0-01 | `pnpm dev` runs both. All P0 tests green. |
 | ✅ P1-02 | `packages/config`: strict `tsconfig.base.json` (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Biome config | S | P1-01 | `pnpm lint` and `pnpm typecheck` wired through Turbo |
 | ✅ P1-03 | `packages/db`: move Prisma schema, export the typed client | S | P1-01 | API imports `@hyperfocus/db` |
-| P1-04 | `packages/shared`: set up Zod. Add the first schemas (Task, Step, Note) as a pilot. | S | P1-01 | Imported by both apps |
+| ✅ P1-04 | `packages/shared`: set up Zod. Add the first schemas (Task, Step, Note) as a pilot. | S | P1-01 | Imported by both apps |
 | P1-05 | Convert **apps/api** JS → TS file by file, behaviour unchanged (`tsx watch` in dev, `tsup` build) | L | P1-02 | 0 `any` in new code (`// TODO(types)` allowed temporarily). Tests green. |
 | P1-06 | Convert **apps/web** JS → TS/TSX page by page, behaviour unchanged | L | P1-02 | `tsc --noEmit` clean, Playwright green |
 | P1-07 | Rename packages from `thought-studio` → `@hyperfocus/*` | S | P1-01 | – |

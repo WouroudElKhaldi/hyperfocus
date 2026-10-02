@@ -1,3 +1,5 @@
+import { TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+
 // The companion pet. All growth comes from things she really completed or added (see award()), never from clicking for points.
 export const SPECIES = ["cat", "fox", "bunny", "dragon", "blob"];
 // The pet can be a boy, a girl, or either. It changes how it looks and which clothes it can wear (items marked for one gender).
@@ -22,8 +24,9 @@ export const LEGEND_XP = 9000;
 
 // ---------- points ----------
 // More important things earn more. Tasks depend on the importance she picks.
-export const PRIORITIES = ["low", "normal", "high", "urgent"];
-export const PRIORITY_POINTS = { low: 2, normal: 4, high: 8, urgent: 14 };
+// The list and the points live in @hyperfocus/shared, so the website shows exactly what is awarded here.
+export const PRIORITIES = TASK_PRIORITIES;
+export const PRIORITY_POINTS = TASK_PRIORITY_POINTS;
 // After this many finished tasks in one day, each further task is worth 1 point, so a pile of tiny tasks can't be farmed.
 export const TASK_DAILY_FULL = 8;
 export const taskXp = (priority) => PRIORITY_POINTS[priority] ?? 10;

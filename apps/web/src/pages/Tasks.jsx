@@ -1,15 +1,13 @@
+import { TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useToast } from "../App.jsx";
 import More from "../components/More.jsx";
 
-// More important tasks earn more points for your companion.
-const PRIORITIES = [
-  { id: "low", label: "Low", pts: 2 },
-  { id: "normal", label: "Normal", pts: 4 },
-  { id: "high", label: "Important", pts: 8 },
-  { id: "urgent", label: "Critical", pts: 14 },
-];
+// More important tasks earn more points for your companion. The list and the points come from @hyperfocus/shared,
+// the same values the API awards, so what you see is what you get. Only the labels live here.
+const PRIORITY_LABELS = { low: "Low", normal: "Normal", high: "Important", urgent: "Critical" };
+const PRIORITIES = TASK_PRIORITIES.map((id) => ({ id, label: PRIORITY_LABELS[id], pts: TASK_PRIORITY_POINTS[id] }));
 const RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
 
 export default function Tasks() {

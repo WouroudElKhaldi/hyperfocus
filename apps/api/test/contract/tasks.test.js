@@ -1,3 +1,4 @@
+import { Step, Task } from "@hyperfocus/shared";
 import { describe, expect, it } from "vitest";
 import { day, del, get, ok, patch, post } from "../support/api.js";
 
@@ -49,6 +50,16 @@ describe("tasks", () => {
     expect(s.done).toBe(true);
     await ok(del(`/api/steps/${r.steps[1].id}`));
     expect((await ok(get("/api/tasks"))).find((x) => x.id === t.id).steps).toHaveLength(2);
+  });
+
+  it("every response matches the shared Task schema (@hyperfocus/shared)", async () => {
+    const t = await ok(post("/api/tasks", { title: "schema task", dueDay: day(1), priority: "high" }));
+    await ok(post(`/api/tasks/${t.id}/steps`, { steps: ["s"] }));
+    await ok(patch(`/api/tasks/${t.id}`, { done: true }));
+    expect(Task.safeParse(t).error?.issues ?? []).toEqual([]);
+    const list = await ok(get("/api/tasks"));
+    expect(Task.array().safeParse(list).error?.issues ?? []).toEqual([]);
+    expect(Step.safeParse(list.find((x) => x.id === t.id).steps[0]).success).toBe(true);
   });
 
   it("deletes a task together with its steps", async () => {

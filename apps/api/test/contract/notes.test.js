@@ -1,3 +1,4 @@
+import { Note, NoteListItem } from "@hyperfocus/shared";
 import { describe, expect, it } from "vitest";
 import { del, get, ok, patch, post } from "../support/api.js";
 
@@ -34,6 +35,13 @@ describe("notes", () => {
     const n = await ok(post("/api/notes", { body: "x" }));
     const u = await ok(patch(`/api/notes/${n.id}`, { title: "T", body: "y", kind: "note", archived: true }));
     expect(u).toMatchObject({ title: "T", body: "y", kind: "note", archived: true });
+  });
+
+  it("every response matches the shared Note schemas (@hyperfocus/shared)", async () => {
+    const n = await ok(post("/api/notes", { body: "schema note", kind: "project_idea" }));
+    expect(Note.safeParse(n).error?.issues ?? []).toEqual([]);
+    expect(Note.safeParse(await ok(patch(`/api/notes/${n.id}`, { pinned: true }))).error?.issues ?? []).toEqual([]);
+    expect(NoteListItem.array().safeParse(await ok(get("/api/notes"))).error?.issues ?? []).toEqual([]);
   });
 
   it("deletes a note", async () => {

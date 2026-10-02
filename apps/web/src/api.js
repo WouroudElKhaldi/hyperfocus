@@ -1,3 +1,5 @@
+import { NOTE_KINDS } from "@hyperfocus/shared/constants";
+
 async function req(method, url, body) {
   let res;
   try {
@@ -29,12 +31,14 @@ export const api = {
   del: (u) => req("DELETE", u),
 };
 
-export const KINDS = {
+// The kinds come from @hyperfocus/shared (the same list the API uses); only the labels live here.
+const KIND_LABELS = {
   thought: "💭 Thought",
   note: "📝 Note",
   post_idea: "✨ Post idea",
   project_idea: "🚀 Project idea",
 };
+export const KINDS = Object.fromEntries(NOTE_KINDS.map((k) => [k, KIND_LABELS[k]]));
 
 // Study time excludes breaks. A running session counts up to now, or to the moment it was paused.
 const studyEnd = (s, now) => (s.endedAt ? new Date(s.endedAt).getTime() : s.pausedAt ? new Date(s.pausedAt).getTime() : now);
