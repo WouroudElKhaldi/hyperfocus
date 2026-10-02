@@ -27,6 +27,13 @@ describe("wins", () => {
     expect(await ok(post("/api/wins/summary"))).toEqual({ bullets: expect.any(Array), paragraph: expect.any(String) });
   });
 
+  // P2-14: deleting a win or review that doesn't exist is a 404 (it was a 500)
+  it("answers 404 for a win or review that doesn't exist", async () => {
+    expect((await del("/api/wins/999999")).body.error).toBe("Win not found.");
+    expect((await del("/api/reviews/999999")).body.error).toBe("Review not found.");
+    expect((await del("/api/reviews/abc")).status).toBe(404);
+  });
+
   it("deletes a manual win", async () => {
     const w = await ok(post("/api/wins", { text: "oops" }));
     await ok(del(`/api/wins/${w.id}`));

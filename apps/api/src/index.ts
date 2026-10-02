@@ -4,9 +4,8 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { type ChatThread, type Post, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
+import { type ChatThread, type Post, PrismaClient } from "@hyperfocus/db";
 import type { Request } from "express";
-import { gatherWeek, writeReview } from "./review.ts";
 import { remind } from "./notify.ts";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
@@ -20,7 +19,7 @@ import { createApp } from "./app.ts";
 import { honoFirst } from "./http/strangler.ts";
 import { log } from "./log.ts";
 import { activeMs, errorInfo, parseDate, type UncheckedJson, type Wrap } from "./types.ts";
-import { ai, rewritePost, taskSteps, organize, polishDraft, stuckHelp, winsSummary, postIdeas } from "./ai.ts";
+import { ai, rewritePost, taskSteps, organize, polishDraft, stuckHelp, postIdeas } from "./ai.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
@@ -195,42 +194,7 @@ app.post("/api/ai/post-ideas", wrap(async (req, res) => {
   res.json({ ideas: await postIdeas({ course, part, notes: notes.slice(0, 4000) }) });
 }));
 
-// ---------- Wins ----------
-// Her own wins plus everything she finished, merged into one timeline (newest first).
-async function allWins() {
-  const since = new Date(Date.now() - 180 * 86400000);
-  const [manual, tasks, posts, sessions] = await Promise.all([
-    prisma.win.findMany({ where: { createdAt: { gte: since } } }),
-    prisma.task.findMany({ where: { doneAt: { gte: since } } }),
-    prisma.post.findMany({ where: { postedAt: { gte: since } } }),
-    prisma.studySession.findMany({ where: { endedAt: { gte: since } } }),
-  ]);
-  const minutes = (s: StudySession) => Math.round(activeMs(s) / 60000);
-  const iso = (d: Date | null) => (d ? d.toISOString() : ""); // never empty here: each query asks for the date
-  const list = [
-    ...manual.map((w) => ({ id: `win-${w.id}`, kind: "win", text: w.text, date: w.createdAt.toISOString(), manual: true, winId: w.id })),
-    ...tasks.map((t) => ({ id: `task-${t.id}`, kind: "task", text: `Finished: ${t.title}`, date: iso(t.doneAt) })),
-    ...posts.map((p) => ({ id: `post-${p.id}`, kind: "post", text: `Published a LinkedIn post: "${((p.draft || p.thought).split("\n").find((l) => l.trim()) ?? "").slice(0, 90)}"`, date: iso(p.postedAt) })),
-    ...sessions.filter((s) => minutes(s) >= 5).map((s) => ({ id: `study-${s.id}`, kind: "study", text: `Studied ${minutes(s)} min${s.course ? `: ${s.course}` : ""}${s.part ? ` / ${s.part}` : ""}`, date: iso(s.endedAt) })),
-  ];
-  return list.sort((a, b) => b.date.localeCompare(a.date));
-}
-app.get("/api/wins", wrap(async (_, res) => res.json(await allWins())));
-app.post("/api/wins", wrap(async (req, res) => {
-  if (!req.body.text?.trim()) return res.status(400).json({ error: "Write what you did." });
-  const w = await prisma.win.create({ data: { text: req.body.text.trim() } });
-  await events.publish("WinLogged", { winId: w.id, text: w.text });
-  res.json(w);
-}));
-app.delete("/api/wins/:id", wrap(async (req, res) => {
-  await prisma.win.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-app.post("/api/wins/summary", wrap(async (_, res) => {
-  const wins = (await allWins()).slice(0, 150);
-  if (wins.length < 3) return res.status(400).json({ error: "Log a few more wins first. There isn't enough here to summarise yet." });
-  res.json(await winsSummary(wins));
-}));
+// Wins moved to Hono: src/modules/wins (P2-14)
 
 // ---------- "I'm stuck" helper ----------
 app.post("/api/stuck", wrap(async (req, res) => {
@@ -245,22 +209,7 @@ app.post("/api/stuck", wrap(async (req, res) => {
   }));
 }));
 
-// ---------- Weekly review ----------
-const reviewOut = (r: Review) => ({ id: r.id, label: r.label, createdAt: r.createdAt, stats: JSON.parse(r.stats), content: JSON.parse(r.content) });
-app.get("/api/reviews", wrap(async (_, res) => {
-  res.json((await prisma.review.findMany({ orderBy: { createdAt: "desc" }, take: 30 })).map(reviewOut));
-}));
-app.post("/api/reviews", wrap(async (_, res) => {
-  const { stats, facts, label } = await gatherWeek(prisma);
-  const content = await writeReview(facts);
-  const r = await prisma.review.create({ data: { label, stats: JSON.stringify(stats), content: JSON.stringify(content) } });
-  await events.publish("ReviewWritten", { reviewId: r.id });
-  res.json(reviewOut(r));
-}));
-app.delete("/api/reviews/:id", wrap(async (req, res) => {
-  await prisma.review.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
+// The weekly review moved to Hono: src/modules/reviews (P2-14)
 
 // The skills gap map moved to Hono: src/modules/skills (P2-09)
 

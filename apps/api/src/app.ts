@@ -14,10 +14,12 @@ import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
 import { profileRouter } from "./modules/profile/routes.ts";
 import { remindersRouter } from "./modules/reminders/routes.ts";
+import { reviewsRouter } from "./modules/reviews/routes.ts";
 import { settingsRouter } from "./modules/settings/routes.ts";
 import { skillsRouter } from "./modules/skills/routes.ts";
 import { studyRouter } from "./modules/study/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
+import { winsRouter } from "./modules/wins/routes.ts";
 import type { EventBus } from "./events.ts";
 import { type Db, httpError } from "./types.ts";
 
@@ -90,6 +92,8 @@ export function createApp(deps: AppDeps) {
   app.route("/", skillsRouter(deps));
   app.route("/", booksRouter(deps));
   app.route("/", calendarRouter(deps));
+  app.route("/", winsRouter(deps));
+  app.route("/", reviewsRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {

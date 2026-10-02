@@ -76,6 +76,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-12 | **The calendar runs on Hono** (`src/modules/calendar`): events (add, change, skip one day of a repeating event, delete), everything for a date range, the `.ics` export (same file name and event IDs, so calendars that imported it don't get duplicates), AI quick add and "plan my study week". The calendar code moved with `git mv` (history kept); the event checks (`cleanEvent`) moved out of the Express file unchanged into `event-rules.ts`, a pure function, because they compare fields with each other (no start time = all day, end after start). The AI features get the gateway from `deps` instead of a global. New shared schemas `CalendarEvent`, `EventFields`, `SkipDayInput`, `CalendarRangeQuery`, `ParseEventInput` keep the old messages. P2 fix: deleting a missing event is a 404 "Event not found." (was a 500). | **12 new unit tests** for the rules: every repeat kind, the first day and repeatUntil limits, skipped days, month/year ends, the free-time finder (gaps, all-day events, "from now"), and the event checks · 1 new 404 contract test · full API suite **230/230** · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-14 | **Wins and the weekly review run on Hono** (`src/modules/wins`, `src/modules/reviews`). Wins: the timeline (her wins plus finished tasks, published posts and study of 5+ minutes, 180 days, newest first), adding and deleting a win, and AI talking points through the gateway. Weekly review: `review.ts` moved to `modules/reviews/week.ts` (git rename); the numbers still come only from her data and the AI only writes them up. New shared schemas `Win`, `WinItem`, `CreateWinInput`, `WinsSummary`, `Review` with the old messages ("Write what you did.", "Log a few more wins first…"). `WinLogged` and `ReviewWritten` kept. P2 fix: deleting a missing win or review is a 404 (was a 500). | 1 new 404 contract test · the existing timeline, summary and review contract tests unchanged · full API suite **231/231** · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -265,7 +267,7 @@ hyperfocus/
 | ✅ P2-11 | Port module: **books** (+ find, ask, chat) | M | P2-05 | " |
 | ✅ P2-12 | Port module: **calendar/events** (+ parse, plan, ics, repeats, skip) | L | P2-05 | Repeat logic unit-tested |
 | ✅ P2-13 | Port module: **reminders** | S | P2-03 | " |
-| P2-14 | Port module: **wins + reviews** | M | P2-05 | " |
+| ✅ P2-14 | Port module: **wins + reviews** | M | P2-05 | " |
 | P2-15 | Port module: **posts** (+ schedule, publish via `SocialPublisher` port, n8n adapter) | M | P2-05 | " |
 | P2-16 | Port module: **emails + templates + attachments** (behind a `MailProvider` port, Gmail app-password adapter for now) | L | P2-03 | " |
 | P2-17 | Port module: **jobs (applications)** | S | P2-16 | " |

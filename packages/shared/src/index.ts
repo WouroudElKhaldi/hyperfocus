@@ -12,3 +12,4 @@ export * from "./settings.ts";
 export * from "./skills.ts";
 export * from "./study.ts";
 export * from "./tasks.ts";
+export * from "./wins.ts";

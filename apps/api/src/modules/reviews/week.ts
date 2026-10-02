@@ -1,7 +1,5 @@
 import type { StudySession } from "@hyperfocus/db";
-import { prompts } from "@hyperfocus/ai";
-import { ai } from "./ai.ts";
-import type { Db } from "./types.ts";
+import type { Db } from "../../types.ts";
 
 // The numbers come from her own data, computed here. The AI only narrates them and never produces figures.
 const DAY = 86400000;
@@ -75,5 +73,3 @@ export async function gatherWeek(prisma: Db) {
   };
   return { stats, facts, label: `${day(from)} to ${day(now)}` };
 }
-
-export const writeReview = (facts: unknown) => ai.run(prompts.writeReview, { facts });
