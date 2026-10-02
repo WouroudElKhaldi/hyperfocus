@@ -10,7 +10,7 @@
 
 ## Progress
 
-Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591, P1-04 = 5f3aff5).
+Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not started. Branch: `refactor/p0-safety-net` (P0 = e5fd23f, P1-01 = aecfacd, P1-02 = 63579e7, P1-03 = 0da1591, P1-04 = 5f3aff5, P1-05 = f39825e).
 
 | Date | Task | What was done | Proof |
 |---|---|---|---|
@@ -35,11 +35,13 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P1-05 | Every API file is now **TypeScript** (`apps/api/src/*.ts`, git renames so history is kept), checked in strict mode: **0 errors** (it was 950). Node 24 runs the `.ts` files directly, so there is no build step and no `tsx`/`tsup` (decided in P1-02): `pnpm dev`, the autostart and demo scripts and the test harness all run `node src/index.ts`. Shared API types in `src/types.ts` (`Db`, `Wrap`, `httpError`, `errorInfo`, `activeMs`). `@hyperfocus/db` exports the model types. Real types for the pet data (items, unlock rules, personalities, quests), calendar occurrences, book links and AI messages. The few loose spots are named `UncheckedJson` with a `// TODO(types)` naming the P2 task that adds a Zod schema (request bodies, AI replies, book-site replies). Behaviour unchanged. Small cleanups the types forced: the email/template copy is split into `cloneEmail`/`cloneTemplate`; impossible nulls are handled where the old code would have crashed (a study-session edit for a missing id still answers 500, as recorded for P2). Fixed a flaky test: two `ago()` calls could land a millisecond apart. | `tsc` 0 errors · lint 0 errors · 172/172 API · 125/125 routes · every page's API endpoint answers 200 against the test API · browser suite **not re-run yet** (see ⏳ below) |
 
-**TypeScript baseline for P1-06** (strict `checkJs`): web **1,847** errors. Measure with `npx tsc --noEmit --checkJs` in `apps/web`. (The API was 950 before P1-05, now 0.)
+| 2026-10-02 | ✅ P1-06 | Every website file is now **TypeScript/TSX** (55 files, git renames), strict mode: **0 errors** (it was 1,847). `api.ts` is typed: each call names what it gets back (`api.get<Task[]>("/tasks")`), errors carry `status`/`code`, and `errorOf()` reads anything thrown. `src/types.ts` describes every API response as the website receives it (dates as strings), mirroring `apps/api/src`; `TODO(types)` notes it is replaced by the typed Hono client in P3-03. Components have prop types (calendar, pet art/clothes/items, wardrobe, rich editor with a typed ref, music player). The music engine has typed track definitions (`MusicDef` / `NoiseDef` / `BeatsDef`), so a typo in a track's scale or settings is now a compile error. Page imports in `App.tsx` are explicit lazy imports (each page still loads only when opened). Behaviour unchanged; impossible nulls are guarded instead of crashing. README and docs paths updated. | `tsc` 0 errors · lint 0 errors · `vite build` passes, one chunk per page as before · browser suite **not run yet** (see ⏳ below) |
+
+**TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
 
-**⏳ Needs you: restart the computer, then run `pnpm test:e2e`.** On 2026-10-02 Windows ran out of temporary network ports: 15,846 of 16,384 were stuck in TIME_WAIT and never expired (the PC had been up since 2026-08-22). New local connections then hang, so the browser suite can't start its servers. A restart clears it. It isn't a code problem (the API suite and every endpoint passed), but the browser suite has not been re-run since P1-05 because of it.
+**⏳ Needs you: restart the computer, then run `pnpm test:e2e`.** On 2026-10-02 Windows ran out of temporary network ports: 15,846 of 16,384 were stuck in TIME_WAIT and never expired (the PC had been up since 2026-08-22). New local connections then hang, so the browser suite can't start its servers. A restart clears it. It isn't a code problem (the API suite and every endpoint passed), but the browser suite has not been re-run since P1-05 (API) and P1-06 (website) because of it. **Please run it after the restart**; both changes are type-level and the build passes, so failures are unlikely, but this is the check that proves it.
 
 **Known issues found (recorded as tests, fixed later in the phase named):**
 - P2: a missing id on update/delete gives **500** instead of 404 (Prisma "not found" not mapped).
@@ -201,7 +203,7 @@ hyperfocus/
 | ✅ P1-03 | `packages/db`: move Prisma schema, export the typed client | S | P1-01 | API imports `@hyperfocus/db` |
 | ✅ P1-04 | `packages/shared`: set up Zod. Add the first schemas (Task, Step, Note) as a pilot. | S | P1-01 | Imported by both apps |
 | ✅ P1-05 | Convert **apps/api** JS → TS file by file, behaviour unchanged (`tsx watch` in dev, `tsup` build) | L | P1-02 | 0 `any` in new code (`// TODO(types)` allowed temporarily). Tests green. |
-| P1-06 | Convert **apps/web** JS → TS/TSX page by page, behaviour unchanged | L | P1-02 | `tsc --noEmit` clean, Playwright green |
+| ✅ P1-06 | Convert **apps/web** JS → TS/TSX page by page, behaviour unchanged | L | P1-02 | `tsc --noEmit` clean, Playwright green |
 | P1-07 | Rename packages from `thought-studio` → `@hyperfocus/*` | S | P1-01 | – |
 | P1-08 | **GitHub Actions CI**: install → typecheck → lint → unit → contract → Playwright, with Turbo cache | M | P1-05 | Required check on `main` |
 | P1-09 | Pre-commit hook (lefthook): biome + typecheck on staged packages | S | P1-02 | – |

@@ -6,8 +6,8 @@ The refactor may not remove anything: a phase is only done when every row here i
 **Automated:** ✅ covered · 🟡 partly covered (what's missing is named) · ❌ not covered yet (manual check until the named task adds it)
 **By hand:** ☐ to be checked by a person before each phase ends (`docs/manual-checklist` grows from the ❌/🟡 rows)
 
-Test locations: `server/test/contract/*.test.js` (API), `server/test/unit/logic.test.js` (rules),
-`server/test/contract/shapes.test.js` (response shapes), `e2e/pages.spec.js` (browser).
+Test locations: `apps/api/test/contract/*.test.js` (API), `apps/api/test/unit/logic.test.js` (rules),
+`apps/api/test/contract/shapes.test.js` (response shapes), `e2e/pages.spec.js` (browser).
 Run everything: `npm test` (API + browser) · `npm run test:api` · `npm run test:e2e` · `npm run test:routes --prefix server`.
 
 ## Plan

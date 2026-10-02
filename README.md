@@ -54,12 +54,13 @@ powershell -ExecutionPolicy Bypass -File scripts\open-database.ps1 -Stop # close
 
 ## The music player
 - **Generated music** (80+ tracks): made live in the browser with the Web Audio API, no audio files. See `apps/web/src/audio/`:
-  `engine.js` (the synth, composer, noise, 8D spinner), `tracks.js` (the library: each track is a small recipe).
-- **Songs**: real songs play in YouTube's own embedded player (`songs.js` is the allowlist of video IDs). The frame is sandboxed,
+  `engine.ts` (the synth, composer, noise, 8D spinner), `tracks.ts` (the library: each track is a small recipe).
+- **Songs**: real songs play in YouTube's own embedded player (`songs.ts` is the allowlist of video IDs). The frame is sandboxed,
   uses youtube-nocookie.com, and loads only when a song is played. `apps/web/security-headers.mjs` limits what the site may load.
 
 ## How the code is organised
 - `apps/web/src/pages/` one file per page, loaded only when opened. `components/` shared pieces. `audio/` the music. `data/` words and lists.
+  Everything is TypeScript: `api.ts` is the fetch wrapper (`api.get<Task[]>("/tasks")`) and `types.ts` describes what the API sends back.
 - `apps/web/src/shell.css` the layout, spacing variables (`--s-*`) and phone layer; `styles.css` the base design and colors.
 - `apps/api/src/index.ts` the API (TypeScript, run directly by Node 24, no build step); one small file per topic next to it (`pet.ts`, `books.ts`, `reminders.ts`, ...). Shared API types are in `types.ts`. Data model: `packages/db/prisma/schema.prisma`.
 - `apps/api/test/` API contract, unit and shape tests; `e2e/` browser tests. `docs/` plans and research; `TASKS.md` the refactor plan and progress.
