@@ -28,6 +28,7 @@ petEarnsXp(events, prisma);
 // The whole HTTP server is Hono (P2-22): the API, plus the built website in the demo.
 const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail }), {
   demo: DEMO,
+  corsOrigins: config.corsOrigins,
   webDist: fileURLToPath(new URL("../../web/dist/", import.meta.url)),
 });
 

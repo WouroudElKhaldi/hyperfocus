@@ -15,6 +15,11 @@ const url = (what: string) =>
   text.refine((v) => v === "" || /^https?:\/\/\S+$/.test(v), { message: `${what} must be a web address starting with http:// or https://` });
 // Any non-empty value switches a flag on (DEMO_MODE=1, DEMO_MODE=yes...), exactly as the app has always read it.
 const flag = text.transform((v) => v !== "");
+const perMinute = (what: string) => text.refine((v) => v === "" || (/^\d+$/.test(v) && Number(v) >= 1), { message: `${what} must be a whole number of requests per minute, like 60` });
+// a comma-separated list of web origins (scheme, host and port, no path)
+const origins = text.refine((v) => v.split(",").every((o) => !o.trim() || /^https?:\/\/[^/\s]+$/.test(o.trim())), {
+  message: "CORS_ORIGINS must be web origins separated by commas, like https://app.example.com,http://localhost:5173",
+});
 
 /** How much the API logs. "info" logs one line per request handled by the new (Hono) routes. */
 export const LOG_LEVELS = ["silent", "error", "warn", "info", "debug"] as const;
@@ -39,6 +44,9 @@ const schema = z.object({
   GMAIL_APP_KEY: text,
   SETTINGS_FILE: text,
   BACKUP_DIR: text,
+  CORS_ORIGINS: origins,
+  RATE_LIMIT_PER_MINUTE: perMinute("RATE_LIMIT_PER_MINUTE"),
+  AI_RATE_LIMIT_PER_MINUTE: perMinute("AI_RATE_LIMIT_PER_MINUTE"),
   LOG_LEVEL: text.refine((v) => v === "" || LOG_LEVELS.includes(v as LogLevel), { message: `LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}` }),
 });
 
@@ -61,6 +69,10 @@ export type ApiConfig = {
   settingsFile: string;
   backupDir: string;
   logLevel: LogLevel;
+  /** Web pages (origins) allowed to call the API from another address. Empty = pages on this computer only. */
+  corsOrigins: string[];
+  /** Requests per minute per visitor, for all routes and for the routes that call the AI (each costs credits). */
+  rateLimit: { perMinute: number; aiPerMinute: number };
 };
 
 export type ConfigResult = { ok: true; config: ApiConfig } | { ok: false; problems: string[] };
@@ -87,6 +99,8 @@ export function parseApiConfig(env: Env): ConfigResult {
       settingsFile: e.SETTINGS_FILE,
       backupDir: e.BACKUP_DIR,
       logLevel: (e.LOG_LEVEL || "info") as LogLevel, // checked above
+      corsOrigins: e.CORS_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean),
+      rateLimit: { perMinute: Number(e.RATE_LIMIT_PER_MINUTE || 600), aiPerMinute: Number(e.AI_RATE_LIMIT_PER_MINUTE || 30) },
     },
   };
 }

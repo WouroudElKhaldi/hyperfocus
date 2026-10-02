@@ -45,6 +45,9 @@ export async function startTestStack({ port } = {}) {
     DEEPSEEK_API_KEY: "test-key",
     N8N_WEBHOOK_URL: `${n8n.url}/webhook`,
     BOOK_SOURCES_URL: books.url,
+    // the suite sends hundreds of requests a minute from one address; the limits themselves are unit-tested
+    RATE_LIMIT_PER_MINUTE: "1000000",
+    AI_RATE_LIMIT_PER_MINUTE: "1000000",
     NOTIFY_DRY_RUN: "1",
     SETTINGS_FILE: path.join(tmp, "settings.json"),
     BACKUP_DIR: path.join(tmp, "backups"),

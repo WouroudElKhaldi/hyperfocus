@@ -5,6 +5,7 @@ import type { ApiConfig } from "@hyperfocus/shared/config";
 import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
 import { problemResponse } from "./http/problem.ts";
+import { apiHeaders, bodyLimits, rateLimit } from "./http/security.ts";
 import { defaultHook } from "./http/validation.ts";
 import { backupsRouter } from "./modules/backups/routes.ts";
 import { booksRouter } from "./modules/books/routes.ts";
@@ -77,6 +78,10 @@ export function createApp(deps: AppDeps) {
     reqLog.info({ method: c.req.method, path: c.req.path, status: c.res.status, ms: Math.round(performance.now() - started) }, "request");
   });
   app.onError((err, c) => problemResponse(c, err));
+  // P2-23: data-only headers on every answer, requests per minute per visitor (fewer for the AI), and body size limits
+  app.use(apiHeaders);
+  app.use(rateLimit(config.rateLimit));
+  app.use(bodyLimits());
   if (config.demo) {
     app.use(async (c, next) => {
       if (switchedOffInDemo(c.req.path)) throw httpError(403, "This is switched off in the demo.");

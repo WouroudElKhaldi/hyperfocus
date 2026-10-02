@@ -15,7 +15,8 @@ import { httpError } from "../../src/types.ts";
 const config = (over = {}) => ({
   databaseUrl: "file:./x.db", port: 4000, demo: false, notifyDryRun: true,
   deepseek: { apiKey: "k", url: "http://ai", model: "m" }, n8nWebhookUrl: "http://n8n", googleBooksApiKey: "", bookSourcesUrl: "",
-  gmail: { user: "", appKey: "" }, settingsFile: "", backupDir: "", logLevel: "silent", ...over,
+  gmail: { user: "", appKey: "" }, settingsFile: "", backupDir: "", logLevel: "silent",
+  corsOrigins: [], rateLimit: { perMinute: 1000, aiPerMinute: 1000 }, ...over,
 });
 const lines = [];
 const memoryLog = () => pino({ level: "info" }, { write: (l) => lines.push(JSON.parse(l)) });

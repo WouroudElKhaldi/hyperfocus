@@ -13,7 +13,7 @@ const read = (dir, ext) => fs.readdirSync(path.join(root, dir), { recursive: tru
 process.env.DATABASE_URL ||= "file:./route-check-never-opened.db";
 const { createApp } = await import("../../src/app.ts");
 const { pino } = await import("pino");
-const stubConfig = { deepseek: {}, gmail: {} };
+const stubConfig = { deepseek: {}, gmail: {}, rateLimit: { perMinute: 1, aiPerMinute: 1 } };
 const hono = createApp({ config: stubConfig, prisma: {}, log: pino({ level: "silent" }) });
 const honoRoutes = hono.routes.filter((r) => r.method !== "ALL").map((r) => ({ method: r.method, path: r.path }));
 

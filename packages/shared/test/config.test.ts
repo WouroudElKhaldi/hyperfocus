@@ -30,7 +30,19 @@ describe("API settings", () => {
       settingsFile: "",
       backupDir: "",
       logLevel: "info",
+      corsOrigins: [],
+      rateLimit: { perMinute: 600, aiPerMinute: 30 },
     });
+  });
+
+  // P2-23
+  it("reads CORS origins and rate limits, and refuses wrong ones", () => {
+    const c = ok({ DATABASE_URL: DB, CORS_ORIGINS: " https://app.example.com , http://localhost:5173 ", RATE_LIMIT_PER_MINUTE: "100", AI_RATE_LIMIT_PER_MINUTE: "5" });
+    expect(c.corsOrigins).toEqual(["https://app.example.com", "http://localhost:5173"]);
+    expect(c.rateLimit).toEqual({ perMinute: 100, aiPerMinute: 5 });
+    expect(problems({ DATABASE_URL: DB, CORS_ORIGINS: "https://app.example.com/path" })).toEqual([expect.stringMatching(/^CORS_ORIGINS must be web origins/)]);
+    expect(problems({ DATABASE_URL: DB, RATE_LIMIT_PER_MINUTE: "0" })).toEqual([expect.stringMatching(/^RATE_LIMIT_PER_MINUTE must be a whole number/)]);
+    expect(problems({ DATABASE_URL: DB, AI_RATE_LIMIT_PER_MINUTE: "lots" })).toEqual([expect.stringMatching(/^AI_RATE_LIMIT_PER_MINUTE/)]);
   });
 
   it("refuses to start without a database, and says how to fix it", () => {
