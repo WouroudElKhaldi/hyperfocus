@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { occurrenceDays } from "../../src/calendar.ts";
+import { occurrenceDays } from "../../src/modules/calendar/calendar.ts";
 import { isCrisis } from "../../src/chat.ts";
 import { cleanHtml, textOf } from "../../src/mail.ts";
 import { levelFor, studyXp, taskXp } from "../../src/pet.ts";

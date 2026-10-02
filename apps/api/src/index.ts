@@ -4,17 +4,15 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { type ChatThread, type Event, type Post, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
+import { type ChatThread, type Post, PrismaClient, type Review, type StudySession } from "@hyperfocus/db";
 import type { Request } from "express";
 import { gatherWeek, writeReview } from "./review.ts";
 import { remind } from "./notify.ts";
-import type { Cleaned } from "./pet.ts";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { companionReply, isCrisis } from "./chat.ts";
 import type { AiMessage } from "./ai.ts";
 import { checkReminders, checkMyReminders } from "./reminders.ts";
-import { buildCalendar, buildIcs, parseEventText, planStudyBlocks, CATEGORIES, REPEATS, DAY_RE, TIME_RE, toMin } from "./calendar.ts";
 import { startAutoBackup } from "./backup.ts";
 import { registerMail } from "./mail.ts";
 import { registerJobs } from "./jobs.ts";
@@ -354,95 +352,7 @@ app.post("/api/chat", wrap(async (req, res) => {
 
 // Books moved to Hono: src/modules/books (P2-11)
 
-// ---------- Calendar ----------
-// Validates and cleans the fields of an event. With partial=true only the fields that were sent are returned.
-type EventFields = Partial<Pick<Event, "title" | "day" | "allDay" | "startTime" | "endTime" | "category" | "repeat" | "repeatUntil" | "location" | "notes" | "remindMin">>;
-function cleanEvent(b: UncheckedJson, partial?: false): Cleaned<EventFields & Pick<Event, "title" | "day">>;
-function cleanEvent(b: UncheckedJson, partial: true): Cleaned<EventFields>;
-function cleanEvent(b: UncheckedJson, partial = false): Cleaned<EventFields> {
-  const d: EventFields = {};
-  const has = (k: string) => b[k] !== undefined;
-  if (!partial || has("title")) {
-    if (!String(b.title || "").trim()) return { error: "Give the event a title." };
-    d.title = String(b.title).trim().slice(0, 160);
-  }
-  if (!partial || has("day")) {
-    if (!DAY_RE.test(b.day || "")) return { error: "Pick a valid date." };
-    d.day = b.day;
-  }
-  if (has("allDay")) d.allDay = !!b.allDay;
-  if (d.allDay) { d.startTime = ""; d.endTime = ""; }
-  else {
-    for (const k of ["startTime", "endTime"] as const) {
-      if (!has(k)) continue;
-      if (b[k] !== "" && !TIME_RE.test(b[k])) return { error: "Times look like 14:30." };
-      d[k] = b[k];
-    }
-    if (d.startTime && d.endTime && toMin(d.endTime) <= toMin(d.startTime)) return { error: "The end must be after the start." };
-    if (!partial && !d.startTime && !has("allDay")) d.allDay = true;
-  }
-  if (has("category")) d.category = CATEGORIES.includes(b.category) ? b.category : "event";
-  if (has("repeat")) d.repeat = REPEATS.includes(b.repeat) ? b.repeat : "none";
-  if (has("repeatUntil")) {
-    if (b.repeatUntil && !DAY_RE.test(b.repeatUntil)) return { error: "Pick a valid end date for the repeat." };
-    d.repeatUntil = b.repeatUntil || "";
-  }
-  if (has("location")) d.location = String(b.location || "").slice(0, 200);
-  if (has("notes")) d.notes = String(b.notes || "").slice(0, 4000);
-  if (has("remindMin")) {
-    const n = Number(b.remindMin);
-    d.remindMin = Number.isFinite(n) && n >= 0 && n <= 10080 ? Math.round(n) : -1;
-  }
-  return { data: d };
-}
-
-app.get("/api/events", wrap(async (_, res) => {
-  res.json(await prisma.event.findMany({ orderBy: [{ day: "asc" }, { startTime: "asc" }] }));
-}));
-app.post("/api/events", wrap(async (req, res) => {
-  const c = cleanEvent(req.body);
-  if (c.error !== undefined) return res.status(400).json({ error: c.error });
-  res.json(await prisma.event.create({ data: c.data }));
-}));
-app.patch("/api/events/:id", wrap(async (req, res) => {
-  const c = cleanEvent(req.body, true);
-  if (c.error !== undefined) return res.status(400).json({ error: c.error });
-  const cur = await prisma.event.findUnique({ where: { id: id(req) } });
-  if (!cur) return res.status(404).json({ error: "Event not found." });
-  const st = c.data.startTime ?? cur.startTime, en = c.data.endTime ?? cur.endTime;
-  if (!c.data.allDay && st && en && toMin(en) <= toMin(st)) return res.status(400).json({ error: "The end must be after the start." });
-  res.json(await prisma.event.update({ where: { id: cur.id }, data: c.data }));
-}));
-// "delete only this day" for a repeating event
-app.post("/api/events/:id/skip", wrap(async (req, res) => {
-  const cur = await prisma.event.findUnique({ where: { id: id(req) } });
-  if (!cur) return res.status(404).json({ error: "Event not found." });
-  if (!DAY_RE.test(req.body.day || "")) return res.status(400).json({ error: "Pick a valid date." });
-  const list = new Set((cur.exceptions || "").split(",").filter(Boolean));
-  list.add(req.body.day);
-  res.json(await prisma.event.update({ where: { id: cur.id }, data: { exceptions: [...list].sort().join(",") } }));
-}));
-app.delete("/api/events/:id", wrap(async (req, res) => {
-  await prisma.event.delete({ where: { id: id(req) } });
-  res.json({ ok: true });
-}));
-
-// everything the calendar shows for a date range, in one call
-app.get("/api/calendar", wrap(async (req, res) => {
-  const from = String(req.query.from || ""), to = String(req.query.to || "");
-  if (!DAY_RE.test(from) || !DAY_RE.test(to) || to < from) return res.status(400).json({ error: "Give a valid from and to date." });
-  if ((new Date(to).getTime() - new Date(from).getTime()) / 86400000 > 100) return res.status(400).json({ error: "That range is too long." });
-  res.json(await buildCalendar(prisma, from, to));
-}));
-app.get("/api/calendar.ics", wrap(async (_, res) => {
-  res.set({ "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": 'attachment; filename="thought-studio.ics"' });
-  res.send(await buildIcs(prisma));
-}));
-app.post("/api/calendar/parse", wrap(async (req, res) => {
-  if (!String(req.body.text || "").trim()) return res.status(400).json({ error: "Type what you want to add, like: study Friday 3pm for 1h." });
-  res.json(await parseEventText(String(req.body.text).slice(0, 300)));
-}));
-app.post("/api/calendar/plan", wrap(async (_, res) => res.json(await planStudyBlocks(prisma))));
+// The calendar moved to Hono: src/modules/calendar (P2-12)
 
 // Goals, their actions and logs moved to Hono: src/modules/goals (P2-08)
 

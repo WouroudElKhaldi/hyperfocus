@@ -42,6 +42,14 @@ describe("calendar events", () => {
     expect((await post("/api/events/999999/skip", { day: day() })).status).toBe(404);
   });
 
+  // P2-12: deleting an event that doesn't exist is a 404 (it was a 500)
+  it("answers 404 for an event that doesn't exist", async () => {
+    for (const r of [await del("/api/events/999999"), await patch("/api/events/abc", { title: "x" })]) {
+      expect(r.status).toBe(404);
+      expect(r.body.error).toBe("Event not found.");
+    }
+  });
+
   it("lists and deletes events", async () => {
     const e = await ok(post("/api/events", { title: "bye", day: day() }));
     expect((await ok(get("/api/events"))).some((x) => x.id === e.id)).toBe(true);

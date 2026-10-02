@@ -8,6 +8,7 @@ import { problemResponse } from "./http/problem.ts";
 import { defaultHook } from "./http/validation.ts";
 import { backupsRouter } from "./modules/backups/routes.ts";
 import { booksRouter } from "./modules/books/routes.ts";
+import { calendarRouter } from "./modules/calendar/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
@@ -88,6 +89,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", backupsRouter(deps));
   app.route("/", skillsRouter(deps));
   app.route("/", booksRouter(deps));
+  app.route("/", calendarRouter(deps));
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", {

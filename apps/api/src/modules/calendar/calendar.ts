@@ -1,7 +1,6 @@
 import type { Event } from "@hyperfocus/db";
-import { prompts } from "@hyperfocus/ai";
-import { ai } from "./ai.ts";
-import { activeMs, type Db } from "./types.ts";
+import { type AiGateway, prompts } from "@hyperfocus/ai";
+import { activeMs, type Db } from "../../types.ts";
 
 // Everything about the calendar lives here so the website, the reminders and the export all agree
 // on what happens when. Days are local "YYYY-MM-DD" strings, times are "HH:mm".
@@ -79,7 +78,8 @@ export async function buildCalendar(prisma: Db, from: string, to: string) {
 
 // ---------- free time + AI planning ----------
 type Window = { day: string; from: string; to: string };
-function freeWindows(occurrences: Occurrence[], days: string[], now: Date, open = "09:00", close = "21:00", minLen = 45): Window[] {
+/** Free time between open and close on each day, at least minLen minutes, not before now (+15 min, rounded up to the half hour). */
+export function freeWindows(occurrences: Occurrence[], days: string[], now: Date, open = "09:00", close = "21:00", minLen = 45): Window[] {
   const out: Window[] = [];
   for (const day of days) {
     let from = toMin(open);
@@ -98,7 +98,7 @@ function freeWindows(occurrences: Occurrence[], days: string[], now: Date, open 
   return out;
 }
 
-export async function planStudyBlocks(prisma: Db) {
+export async function planStudyBlocks(ai: AiGateway, prisma: Db) {
   const now = new Date();
   const today = ymd(now);
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i));
@@ -135,7 +135,7 @@ export async function planStudyBlocks(prisma: Db) {
 }
 
 // ---------- AI quick add ----------
-export async function parseEventText(text: string) {
+export async function parseEventText(ai: AiGateway, text: string) {
   const now = new Date();
   const out = await ai.run(prompts.parseEvent, { text, today: ymd(now), weekday: now.toLocaleDateString("en-US", { weekday: "long" }), categories: CATEGORIES, repeats: REPEATS });
   const allDay = out.allDay || !TIME_RE.test(out.startTime);

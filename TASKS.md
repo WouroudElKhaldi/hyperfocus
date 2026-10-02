@@ -74,6 +74,8 @@ Legend: ✅ done · 🔄 in progress · ⏳ waiting on you · (no mark) not star
 
 | 2026-10-02 | ✅ P2-11 | **Books run on Hono** (`src/modules/books`): the reading list (CRUD factory), the conversation about one book (AI answers through the gateway) and "find free copies". The search (`sources.ts`) now **reads each book site's reply with a Zod schema** (Anti-Corruption Layer): a site changing its format, or one bad entry, means fewer results, never a crash or a made-up link. The old `books.ts` is gone. New shared schemas `Book`, `BookMessage`, `CreateBookInput`, `UpdateBookInput`, `AskBookInput` with the old messages ("Write the book's title.", "Write your question first."). `BookFinished` kept. P2 fix: changing or deleting a missing book is a 404 "That book was not found." (was a 500). **Known issue closed:** "find free copies" is now tested end to end. A test-only setting, `BOOK_SOURCES_URL`, points the three sites at a local stand-in during the tests (the same way the tests already replace DeepSeek and n8n); it is empty in your `.env`, so the app always searches the real Open Library, Google Books and Gutenberg. | 2 new contract tests (the search: links only from the sites, best first, a malformed entry skipped, author filled in, saved on the book; 404s and a 400) · full API suite **217/217** · 127/127 routes |
 
+| 2026-10-02 | ✅ P2-12 | **The calendar runs on Hono** (`src/modules/calendar`): events (add, change, skip one day of a repeating event, delete), everything for a date range, the `.ics` export (same file name and event IDs, so calendars that imported it don't get duplicates), AI quick add and "plan my study week". The calendar code moved with `git mv` (history kept); the event checks (`cleanEvent`) moved out of the Express file unchanged into `event-rules.ts`, a pure function, because they compare fields with each other (no start time = all day, end after start). The AI features get the gateway from `deps` instead of a global. New shared schemas `CalendarEvent`, `EventFields`, `SkipDayInput`, `CalendarRangeQuery`, `ParseEventInput` keep the old messages. P2 fix: deleting a missing event is a 404 "Event not found." (was a 500). | **12 new unit tests** for the rules: every repeat kind, the first day and repeatUntil limits, skipped days, month/year ends, the free-time finder (gaps, all-day events, "from now"), and the event checks · 1 new 404 contract test · full API suite **230/230** · 127/127 routes |
+
 **TypeScript:** API 0 errors (was 950), website 0 errors (was 1,847). `pnpm typecheck` checks both.
 
 **Still open:** the client has 4 advisories (`esbuild` via Vite 5, `react-router` 6). They need major upgrades, which are planned in P3-01/P3-04 (Vite 6+, TanStack Router).
@@ -261,7 +263,7 @@ hyperfocus/
 | ✅ P2-09 | Port module: **skills** (+ suggest, plan, bulk) | M | P2-05 | " |
 | ✅ P2-10 | Port module: **study sessions** (state machine: running → paused → stopped) | M | P2-04 | State transitions unit-tested |
 | ✅ P2-11 | Port module: **books** (+ find, ask, chat) | M | P2-05 | " |
-| P2-12 | Port module: **calendar/events** (+ parse, plan, ics, repeats, skip) | L | P2-05 | Repeat logic unit-tested |
+| ✅ P2-12 | Port module: **calendar/events** (+ parse, plan, ics, repeats, skip) | L | P2-05 | Repeat logic unit-tested |
 | ✅ P2-13 | Port module: **reminders** | S | P2-03 | " |
 | P2-14 | Port module: **wins + reviews** | M | P2-05 | " |
 | P2-15 | Port module: **posts** (+ schedule, publish via `SocialPublisher` port, n8n adapter) | M | P2-05 | " |

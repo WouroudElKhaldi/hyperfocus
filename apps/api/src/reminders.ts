@@ -1,6 +1,6 @@
 import { getSettings, remind, notify } from "./notify.ts";
 import type { Db } from "./types.ts";
-import { eventOccurrences, addDays } from "./calendar.ts";
+import { eventOccurrences, addDays } from "./modules/calendar/calendar.ts";
 
 // Checks once a minute for things worth a gentle nudge. Every reminder is sent once (see remind()).
 const pad = (n: number) => String(n).padStart(2, "0");
