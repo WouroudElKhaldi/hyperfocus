@@ -1,6 +1,6 @@
 import { prompts } from "@hyperfocus/ai";
+import type { AiGateway } from "@hyperfocus/ai";
 import { z } from "zod";
-import { ai } from "../../ai.ts";
 import { config } from "../../config.ts";
 import { errorInfo } from "../../types.ts";
 
@@ -114,7 +114,7 @@ function moreLinks(title: string, author: string): Link[] {
   ];
 }
 
-export async function findBook({ title, author }: { title: string; author: string }) {
+export async function findBook({ title, author }: { title: string; author: string }, ai: AiGateway) {
   const settled = await Promise.allSettled([openLibrary(title, author), googleBooks(title, author), gutenberg(title, author)]);
   const errors = settled.filter((s) => s.status === "rejected").map((s) => errorInfo(s.reason).message);
   const candidates = settled.flatMap((s) => (s.status === "fulfilled" ? s.value : [])).map((c, i) => ({ ...c, id: i }));

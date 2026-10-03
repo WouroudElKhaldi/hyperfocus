@@ -84,7 +84,7 @@ export function booksRouter({ prisma, events, ai }: AppDeps) {
     async (c) => {
       const book = await prisma.book.findUnique({ where: { id: pathId(c.req.param("id"), "Book not found.") } });
       if (!book) throw httpError(404, "Book not found.");
-      const result = await findBook({ title: book.title, author: book.author });
+      const result = await findBook({ title: book.title, author: book.author }, ai);
       const saved = await prisma.book.update({ where: { id: book.id }, data: { result: JSON.stringify(result), foundAt: new Date(), author: book.author || result.foundAuthor } });
       return c.json(saved, 200);
     },

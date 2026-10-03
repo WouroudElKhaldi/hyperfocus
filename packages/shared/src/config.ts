@@ -43,6 +43,7 @@ const schema = z.object({
   MAIL_DRY_RUN: flag,
   ADMIN_EMAILS: text,
   SECRETS_KEYS: text,
+  AI_DAILY_LIMIT: text.refine((v) => v === "" || /^\d+$/.test(v), { message: "AI_DAILY_LIMIT must be a whole number (0 = no limit)" }),
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
   DEEPSEEK_MODEL: text,
@@ -97,6 +98,8 @@ export type ApiConfig = {
   adminEmails: string[];
   /** The key ring that seals each person's tokens (P5-07): "id:base64key,…", first one seals. Empty in local mode = a key file. */
   secretsKeys: string;
+  /** AI requests a day per person on the app's own key (P5-10); 0 = no limit. Default: 30 in cloud mode, none in local mode. */
+  aiDailyLimit: number;
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -141,6 +144,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       },
       mailDryRun: e.MAIL_DRY_RUN,
       secretsKeys: e.SECRETS_KEYS,
+      aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),
       adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them
       deepseek: { apiKey: demo ? "" : e.DEEPSEEK_API_KEY, url: e.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions", model: e.DEEPSEEK_MODEL || "deepseek-chat" },

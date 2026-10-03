@@ -16,7 +16,8 @@ import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
 import { createServer } from "./server.ts";
 import { log } from "./log.ts";
-import { ai, aiReady } from "./ai.ts";
+import { ai as sharedAi, aiReady } from "./ai.ts";
+import { limitedAi } from "./ai-quota.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
@@ -44,6 +45,8 @@ const files = fileStorageFrom({ ...config.fileStorage, dir: config.fileStorage.d
 const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: authMailer({ mail: appMail, log, dryRun: config.mailDryRun }) }) : null;
 // The key that seals each person's tokens (P5-07): SECRETS_KEYS, or in local mode a key file made once next to the API.
 const secrets = config.secretsKeys ? keyRing(config.secretsKeys) : localKeyRing(fileURLToPath(new URL("../secrets.key", import.meta.url)));
+// AI daily limits on the app's own key (P5-10)
+const ai = limitedAi(sharedAi, prisma, config.aiDailyLimit);
 const server = createServer(createApp({ config, prisma, log, events, ai, aiReady, publisher, mail, files, auth, secrets }), {
   demo: DEMO,
   corsOrigins: config.corsOrigins,

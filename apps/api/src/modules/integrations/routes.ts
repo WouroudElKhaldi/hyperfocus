@@ -5,6 +5,7 @@ import { defaultHook } from "../../http/validation.ts";
 import { httpError } from "../../types.ts";
 import { CREDENTIALS, type CredentialKind, describe } from "../../credentials.ts";
 import { integrations } from "../../integrations.ts";
+import { aiUsage } from "../../ai-quota.ts";
 
 // Your connected accounts (P5-07): which ones you have, saving your own credentials (DeepSeek key, n8n webhook, Gmail
 // App Password), and disconnecting one (its secrets are deleted). The sign-in flows (P5-08 Gmail, P5-09 LinkedIn) add
@@ -20,8 +21,21 @@ const Connected = z
   .openapi("ConnectedAccount");
 const ProviderParam = z.object({ provider: z.string().openapi({ param: { name: "provider", in: "path" }, example: "gmail" }) });
 
-export function integrationsRouter({ prisma, secrets }: AppDeps) {
+const Usage = z
+  .object({
+    used: z.number().openapi({ description: "AI requests today on the app's key" }),
+    limit: z.number().openapi({ description: "How many a day (0 = no limit)" }),
+    ownKey: z.boolean().openapi({ description: "You use your own key: no limit" }),
+    resetsAt: z.string().openapi({ description: "When the count starts again (midnight UTC)" }),
+  })
+  .openapi("AiUsage");
+
+export function integrationsRouter({ prisma, secrets, config }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
+  app.openapi(
+    createRoute({ method: "get", path: "/api/ai/usage", tags: ["AI"], summary: "Your AI requests today and your daily limit (P5-10)", responses: { 200: json(Usage, "Today's usage") } }),
+    async (c) => c.json(await aiUsage(prisma, config.aiDailyLimit)(), 200),
+  );
   app.openapi(
     createRoute({ method: "get", path: "/api/integrations", tags: ["Integrations"], summary: "Your connected accounts (never their tokens)", responses: { 200: json(z.array(Connected), "What you have connected") } }),
     async (c) => {

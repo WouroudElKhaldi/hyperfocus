@@ -29,7 +29,8 @@ const KINDS: { id: "deepseek" | "n8n" | "gmail"; title: string; what: string; fi
 export default function Connections() {
   const client = useQueryClient();
   const saved = useApi("/integrations").data ?? [];
-  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: keyOf("/integrations") }), client.invalidateQueries({ queryKey: keyOf("/me") })]);
+  const usage = useApi("/ai/usage").data; // P5-10: today's AI requests on the app's key
+  const refresh = () => Promise.all([client.invalidateQueries({ queryKey: keyOf("/integrations") }), client.invalidateQueries({ queryKey: keyOf("/me") }), client.invalidateQueries({ queryKey: keyOf("/ai/usage") })]);
   const save = useMutation({
     mutationFn: ({ id, values }: { id: string; values: Record<string, string> }) => api.put(`/integrations/${id}`, values),
     onSuccess: refresh,
@@ -69,6 +70,9 @@ export default function Connections() {
                 </div>
               )}
             </div>
+            {k.id === "deepseek" && usage && usage.limit > 0 && !usage.ownKey && (
+              <p className="muted tiny" data-testid="ai-usage">Today: {usage.used} of {usage.limit} AI requests on the app's key. Add your own key above for no limit.</p>
+            )}
             {open && (
               <form className="form-grid" onSubmit={submit(k.id)}>
                 {k.fields.map((f) => (

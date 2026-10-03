@@ -561,6 +561,17 @@ model Integration {
   @@unique([userId, provider])
 }
 
+// AI requests per person per day (P5-10), for the daily limit on the app's shared key. `day` is the UTC date.
+model AiUsage {
+  id       Int    @id @default(autoincrement())
+  userId   String @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day      String
+  requests Int    @default(0)
+
+  @@unique([userId, day])
+}
+
 model FeatureFlag {
   key       String   @id
   enabled   Boolean  @default(false)
@@ -623,6 +634,7 @@ model User {
   emailAttachments EmailAttachment[]
   jobApplications JobApplication[]
   integrations    Integration[]
+  aiUsage         AiUsage[]
 }
 
 model Session {
