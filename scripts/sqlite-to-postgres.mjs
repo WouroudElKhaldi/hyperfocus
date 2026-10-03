@@ -63,7 +63,9 @@ await pg.$transaction(async (tx) => {
     const [{ n }] = await tx.$queryRawUnsafe(`SELECT count(*)::int AS n FROM "${schema}"."${t}"`);
     if (n > 0) throw new Error(`Table ${t} already has ${n} rows in the target. The target must be empty; nothing was written.`);
     const rows = lite.prepare(`SELECT * FROM "${t}"`).all();
-    for (const r of rows) {
+    for (const row of rows) {
+      // (P5-02/03) data from before accounts belongs to the owner account; the owner column has no usable default
+      const r = columns[t].userId && !("userId" in row) ? { ...row, userId: "owner" } : row;
       const cols = Object.keys(r);
       const params = cols.map((c) => toPg(columns[t][c] ?? "text", r[c]));
       const marks = cols.map((c, i) => (columns[t][c]?.startsWith("timestamp") ? `$${i + 1}::timestamptz` : `$${i + 1}`));

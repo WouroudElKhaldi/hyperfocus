@@ -15,6 +15,11 @@ import { coachRouter } from "./modules/coach/routes.ts";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
 import type { FileStorage } from "./storage/files.ts";
 import type { Auth } from "./auth.ts";
+import { OWNER_ID } from "./owner.ts";
+import { asUser } from "./tenancy.ts";
+
+/** What anyone may reach without signing in (cloud mode): health, signing in itself, and the API docs. */
+const OPEN = /^\/api\/(health$|auth\/|docs\/?$|openapi\.json$)/;
 import { emailsRouter } from "./modules/emails/routes.ts";
 import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
@@ -49,7 +54,7 @@ export type AppDeps = {
   auth?: Auth | null;
 };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
-export type AppEnv = { Variables: { requestId: string; log: Logger } };
+export type AppEnv = { Variables: { requestId: string; log: Logger; /** who is asking (P5-03) */ userId: string } };
 
 const Health = z
   .object({
@@ -101,6 +106,15 @@ export function createApp(deps: AppDeps) {
   app.use(apiHeaders);
   app.use(rateLimit(config.rateLimit));
   app.use(bodyLimits());
+  // P5-03: who is asking. Local mode: always the owner (nobody signs in). Cloud mode: the signed-in session, or 401.
+  // The rest of the request runs as that person: the tenancy guard scopes every query to their rows.
+  app.use("/api/*", async (c, next) => {
+    if (OPEN.test(c.req.path)) return next();
+    const userId = deps.auth ? ((await deps.auth.api.getSession({ headers: c.req.raw.headers }))?.user.id ?? null) : OWNER_ID;
+    if (!userId) throw httpError(401, "Please sign in.");
+    c.set("userId", userId);
+    return asUser(userId, () => next());
+  });
   if (config.demo) {
     app.use(async (c, next) => {
       if (switchedOffInDemo(c.req.path)) throw httpError(403, "This is switched off in the demo.");

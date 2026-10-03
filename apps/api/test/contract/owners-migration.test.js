@@ -23,17 +23,17 @@ const ownerColumns = async () => (await db.$queryRawUnsafe(`SELECT count(*)::int
 beforeAll(async () => {
   prismaCli("migrate", "deploy");
   db = new PrismaClient({ datasourceUrl: url.toString() });
-  const task = await db.task.create({ data: { title: "t", steps: { create: [{ text: "s1" }, { text: "s2" }] } } });
-  await db.note.createMany({ data: [{ body: "n1" }, { body: "n2" }, { body: "n3" }] });
-  const goal = await db.goal.create({ data: { original: "g" } });
-  await db.goalAction.create({ data: { goalId: goal.id, text: "a" } });
-  await db.win.create({ data: { text: "w" } });
-  await db.pet.create({ data: { name: "Pip", species: "fox", color: "#fff" } });
-  await db.petXp.createMany({ data: [{ source: "task", key: `task:${task.id}`, amount: 4 }, { source: "win", key: "win:1", amount: 4 }] });
-  await db.profile.create({ data: { name: "Sam" } });
-  await db.reminder.create({ data: { title: "r", at: new Date() } });
-  const thread = await db.chatThread.create({ data: { title: "c" } });
-  await db.chatMessage.create({ data: { threadId: thread.id, role: "user", content: "hi" } });
+  const task = await db.task.create({ data: { userId: "owner", title: "t", steps: { create: [{ userId: "owner", text: "s1" }, { userId: "owner", text: "s2" }] } } });
+  await db.note.createMany({ data: [{ userId: "owner", body: "n1" }, { userId: "owner", body: "n2" }, { userId: "owner", body: "n3" }] });
+  const goal = await db.goal.create({ data: { userId: "owner", original: "g" } });
+  await db.goalAction.create({ data: { userId: "owner", goalId: goal.id, text: "a" } });
+  await db.win.create({ data: { userId: "owner", text: "w" } });
+  await db.pet.create({ data: { userId: "owner", name: "Pip", species: "fox", color: "#fff" } });
+  await db.petXp.createMany({ data: [{ userId: "owner", source: "task", key: `task:${task.id}`, amount: 4 }, { userId: "owner", source: "win", key: "win:1", amount: 4 }] });
+  await db.profile.create({ data: { userId: "owner", name: "Sam" } });
+  await db.reminder.create({ data: { userId: "owner", title: "r", at: new Date() } });
+  const thread = await db.chatThread.create({ data: { userId: "owner", title: "c" } });
+  await db.chatMessage.create({ data: { userId: "owner", threadId: thread.id, role: "user", content: "hi" } });
 }, 120000);
 
 afterAll(async () => {
