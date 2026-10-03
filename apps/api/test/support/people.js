@@ -35,7 +35,7 @@ export function browser(base) {
 /** Signs a person up and in (confirming the email from the log). */
 export async function signUp(api, email, name) {
   const b = browser(() => api.url);
-  await b.json("POST", "/api/auth/sign-up/email", { email, password: `pass-${name}-12345`, name });
+  await b.json("POST", "/api/auth/sign-up/email", { email, password: `pass-${name}-12345`, name, phone: "+961 70 123 456" });
   let link;
   for (const end = Date.now() + 10000; Date.now() < end && !link; ) {
     const line = api.log().split("\n").reverse().find((l) => l.startsWith(`[auth mail] to=${email} `) && l.includes("Confirm"));

@@ -23,6 +23,8 @@ async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
     const e: ApiError = new Error(data.error || `Request failed (${res.status})`);
     e.code = data.error;
     e.status = res.status;
+    // cloud mode, signed out (or the session ended): the app shows the sign-in page (P5-04)
+    if (res.status === 401) window.dispatchEvent(new Event("signed-out"));
     throw e;
   }
   // anything that changed data may have earned your pet some XP, so tell the pet widget to look again

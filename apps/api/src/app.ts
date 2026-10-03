@@ -19,7 +19,7 @@ import { OWNER_ID } from "./owner.ts";
 import { asUser } from "./tenancy.ts";
 
 /** What anyone may reach without signing in (cloud mode): health, signing in itself, and the API docs. */
-const OPEN = /^\/api\/(health$|auth\/|docs\/?$|openapi\.json$)/;
+const OPEN = /^\/api\/(health$|me$|auth\/|docs\/?$|openapi\.json$)/;
 import { emailsRouter } from "./modules/emails/routes.ts";
 import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
@@ -68,6 +68,19 @@ const Health = z
 // In the demo nothing can reach your real backups, pop up notifications on this computer, or send email.
 const DEMO_OFF = ["/api/backups", "/api/notify", "/api/emails", "/api/email-templates", "/api/export", "/api/import"];
 const switchedOffInDemo = (path: string) => DEMO_OFF.some((p) => path === p || path.startsWith(`${p}/`));
+
+// P5-04: how this copy runs and who is signed in, so the website knows whether to show the sign-in pages
+const Me = z
+  .object({
+    mode: z.enum(["local", "cloud"]).openapi({ description: "local: just the owner, nobody signs in. cloud: people sign in." }),
+    user: z.object({ id: z.string(), name: z.string(), email: z.string() }).nullable().openapi({ description: "Who is signed in (in local mode, the owner); null = nobody" }),
+    google: z.boolean().openapi({ description: "Sign in with Google is offered" }),
+  })
+  .openapi("Me");
+const meRoute = createRoute({
+  method: "get", path: "/api/me", tags: ["System"], summary: "How this copy runs and who is signed in",
+  responses: { 200: { description: "The mode and the signed-in person", content: { "application/json": { schema: Me } } } },
+});
 
 const healthRoute = createRoute({
   method: "get",
@@ -125,6 +138,15 @@ export function createApp(deps: AppDeps) {
   // accounts and sign-in (P5-01, Better Auth): sign up, sign in and out, verify, reset, sessions, Google
   const auth = deps.auth;
   if (auth) app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+
+  app.openapi(meRoute, async (c) => {
+    if (!deps.auth) {
+      const owner = await deps.prisma.user.findUnique({ where: { id: OWNER_ID }, select: { id: true, name: true, email: true } });
+      return c.json({ mode: "local" as const, user: owner, google: false }, 200);
+    }
+    const s = await deps.auth.api.getSession({ headers: c.req.raw.headers });
+    return c.json({ mode: "cloud" as const, user: s ? { id: s.user.id, name: s.user.name, email: s.user.email } : null, google: !!config.auth.google }, 200);
+  });
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
 

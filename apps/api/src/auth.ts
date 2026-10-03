@@ -1,6 +1,7 @@
 import type { ApiConfig } from "@hyperfocus/shared/config";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import type { Logger } from "pino";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
 import type { Db } from "./types.ts";
@@ -26,6 +27,10 @@ export function authMailer({ mail, log, dryRun }: { mail: MailProvider; log: Pic
   };
 }
 
+/** A phone number people can be reached on: digits, with + spaces dashes dots or brackets, 7 to 15 digits. */
+export const PHONE = /^\+?[\d\s\-().]{7,25}$/;
+const phoneDigits = (p: string) => p.replace(/\D/g, "").length;
+
 export function createAuth({ prisma, config, send }: { prisma: Db; config: ApiConfig; send: ReturnType<typeof authMailer> }) {
   return betterAuth({
     database: prismaAdapter(prisma, { provider: "postgresql" }),
@@ -36,6 +41,18 @@ export function createAuth({ prisma, config, send }: { prisma: Db; config: ApiCo
     // always check where a signed-in request comes from (cross-site request forgery). Better Auth turns this off by itself
     // when NODE_ENV is "test"; here it is on whatever the environment says (found by the P5-01 tests)
     advanced: { disableOriginCheck: false, disableCSRFCheck: false },
+    // sign-up asks for the full name, the email and a phone number (P5-04, at your request)
+    user: { additionalFields: { phone: { type: "string", required: false, defaultValue: "", input: true } } },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-up/email") return;
+        const body = (ctx.body ?? {}) as { name?: unknown; phone?: unknown };
+        const name = String(body.name ?? "").trim();
+        const phone = String(body.phone ?? "").trim();
+        if (name.length < 2) throw new APIError("BAD_REQUEST", { message: "Please write your full name." });
+        if (!PHONE.test(phone) || phoneDigits(phone) < 7 || phoneDigits(phone) > 15) throw new APIError("BAD_REQUEST", { message: "Please add a phone number we can reach you on (like +961 70 123 456)." });
+      }),
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,

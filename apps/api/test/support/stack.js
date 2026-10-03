@@ -38,7 +38,7 @@ async function waitForHealth(url, child, log, ms = 60000) {
   throw new Error(`The API did not start. Its output:\n${fs.readFileSync(log, "utf8")}`);
 }
 
-export async function startTestStack({ port } = {}) {
+export async function startTestStack({ port, env: extraEnv = {} } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "hyperfocus-test-"));
   const schema = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   if (!new URL(TEST_DB).pathname.endsWith("_test")) throw new Error(`Refusing to run the tests against ${new URL(TEST_DB).pathname}: the test database's name must end in _test.`);
@@ -65,6 +65,7 @@ export async function startTestStack({ port } = {}) {
     GOOGLE_BOOKS_API_KEY: " ",
   };
   delete env.DEMO_MODE;
+  Object.assign(env, extraEnv); // (the cloud-mode stack for the browser tests, P5-04)
 
   // a run that was killed (not stopped) leaves its schemas behind: each run clears those older than an hour
   prismaCli(["db", "execute", "--url", TEST_DB, "--stdin"], env, `DO $$ DECLARE s text; BEGIN

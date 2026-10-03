@@ -9,6 +9,7 @@ import Stuck from "./components/Stuck.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import { PetCelebration, PetWidget } from "./features/pet/index.ts";
 import { useA11y } from "./features/settings/index.ts";
+import { AccountPages, useMe } from "./features/account/index.ts";
 import Quotes from "./components/Quotes.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
@@ -72,7 +73,16 @@ function Brand({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+// The root (P5-04): in cloud mode with nobody signed in, the sign-in pages; otherwise the app as always (local mode never
+// signs in, so it goes straight to the app).
 export default function App() {
+  const me = useMe();
+  if (me.isPending) return <div className="empty" role="status">Loading…</div>;
+  if (me.data?.mode === "cloud" && !me.data.user) return <AccountPages google={me.data.google} onSignedIn={() => void me.refetch()} />;
+  return <Shell />;
+}
+
+function Shell() {
   const [toast, setToast] = useState<{ msg: string; kind: string; id: number } | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [sheet, setSheet] = useState(false);

@@ -14,7 +14,7 @@
     "test": "turbo run test && playwright test --project=desktop --project=phone",
     "test:api": "turbo run test --filter=./apps/api",
     "test:packages": "turbo run test --filter=./packages/*",
-    "test:e2e": "playwright test --project=desktop --project=phone",
+    "test:e2e": "playwright test --project=desktop --project=phone --project=cloud",
     "test:visual": "playwright test --project=visual",
     "lint": "turbo run lint //#lint:root",
     "lint:root": "biome lint e2e scripts playwright.config.js",

@@ -1,3 +1,4 @@
+import { OWNER_ID } from "../../owner.ts";
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { DEFAULT_AVATAR, Profile, UpdateProfileInput } from "@hyperfocus/shared";
 import type { AppDeps, AppEnv } from "../../app.ts";
@@ -13,7 +14,14 @@ export function profileRouter({ prisma }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   app.openapi(
     createRoute({ method: "get", path: "/api/profile", tags: ["Profile"], summary: "Your profile (empty until saved)", responses: { 200: json(Profile, "The profile") } }),
-    async (c) => c.json((await prisma.profile.findFirst()) ?? EMPTY_PROFILE, 200),
+    async (c) => {
+      const saved = await prisma.profile.findFirst();
+      if (saved) return c.json(saved, 200);
+      // a new account (P5-04) starts with the name it signed up with; the owner (local mode) starts empty, as before
+      const userId = c.get("userId");
+      const account = userId && userId !== OWNER_ID ? await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }) : null;
+      return c.json(account ? { ...EMPTY_PROFILE, name: account.name, email: account.email } : EMPTY_PROFILE, 200);
+    },
   );
   app.openapi(
     createRoute({

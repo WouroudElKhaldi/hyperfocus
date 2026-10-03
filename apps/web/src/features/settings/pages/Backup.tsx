@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { signOut, useMe } from "../../account/index.ts";
 import { useEffect, useState } from "react";
 import { MyReminders } from "../../reminders/index.ts";
 import More from "../../../components/More.tsx";
@@ -40,6 +42,9 @@ export default function Backup() {
 
   const savePrefs = (patch: Parameters<typeof saveSettings.mutate>[0]) => saveSettings.mutate(patch);
   const testNotification = () => notifyTest.mutate(undefined, { onSuccess: () => toast("Sent. Look at the corner of your screen 🔔") });
+  // cloud mode (P5-04): who is signed in, and signing out
+  const me = useMe().data;
+  const client = useQueryClient();
   const backupNow = () => backup.mutate(undefined, { onSuccess: () => toast("Backup saved 💾 Everything you have right now is safe.") });
 
   const newest = data.backups[0];
@@ -48,6 +53,15 @@ export default function Backup() {
     <>
       <h1>Settings</h1>
       <p className="sub">Your reminders, plus a few things most people never need to change.</p>
+
+      {me?.mode === "cloud" && me.user && (
+        <div className="card">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <div><b>Signed in as {me.user.name}</b><div className="muted">{me.user.email}</div></div>
+            <button onClick={() => void signOut(client)}>Sign out</button>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <h2>Easier to use</h2>

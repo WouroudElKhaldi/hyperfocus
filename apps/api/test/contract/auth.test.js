@@ -53,7 +53,11 @@ describe("accounts (P5-01)", { timeout: 60000 }, () => {
 
   it("signs up; signing in waits until the email is confirmed", async () => {
     const b = browser();
-    const r = await b.call("POST", "/api/auth/sign-up/email", { email, password: "first-pass-123", name: "Sam" });
+    // the full name, the email and a phone number are all needed
+    expect((await b.call("POST", "/api/auth/sign-up/email", { email, password: "first-pass-123", name: "Sam" })).status).toBe(400);
+    expect((await b.call("POST", "/api/auth/sign-up/email", { email, password: "first-pass-123", name: "Sam", phone: "12" })).status).toBe(400);
+    expect((await b.call("POST", "/api/auth/sign-up/email", { email, password: "first-pass-123", name: "", phone: "+961 70 123 456" })).status).toBe(400);
+    const r = await b.call("POST", "/api/auth/sign-up/email", { email, password: "first-pass-123", name: "Sam", phone: "+961 70 123 456" });
     expect(r.status, await r.clone().text()).toBe(200);
     const early = await b.call("POST", "/api/auth/sign-in/email", { email, password: "first-pass-123" });
     expect(early.status).toBe(403); // not confirmed yet
@@ -65,7 +69,7 @@ describe("accounts (P5-01)", { timeout: 60000 }, () => {
     const r = await b.open(link);
     expect([200, 302]).toContain(r.status);
     const s = await (await b.call("GET", "/api/auth/get-session")).json();
-    expect(s.user).toMatchObject({ email, name: "Sam", emailVerified: true });
+    expect(s.user).toMatchObject({ email, name: "Sam", emailVerified: true, phone: "+961 70 123 456" }); // the phone is kept
   });
 
   it("signs out, and in again with the password", async () => {
@@ -79,7 +83,7 @@ describe("accounts (P5-01)", { timeout: 60000 }, () => {
   it("refuses a wrong password, and a password that is too short", async () => {
     const b = browser();
     expect((await b.call("POST", "/api/auth/sign-in/email", { email, password: "wrong-pass-999" })).status).toBe(401);
-    expect((await b.call("POST", "/api/auth/sign-up/email", { email: "short@example.com", password: "123", name: "S" })).status).toBe(400);
+    expect((await b.call("POST", "/api/auth/sign-up/email", { email: "short@example.com", password: "123", name: "Sam Short", phone: "+961 70 123 456" })).status).toBe(400);
   });
 
   it("resets a forgotten password with the emailed link; the old one stops working", async () => {
