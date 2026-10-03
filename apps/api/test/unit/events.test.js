@@ -45,14 +45,14 @@ describe("event bus", () => {
 });
 
 describe("the pet earns XP from events", () => {
-  it("listens to every kind of progress the routes used to award directly (11 events, 13 old call sites)", async () => {
+  it("listens to every kind of progress the routes used to award directly (11 events, 13 old call sites), and applying from Job Radar (P6-30)", async () => {
     const bus = new EventBus();
     const subscribed = [];
     const on = bus.on.bind(bus);
     bus.on = (event, handler) => { subscribed.push(event); return on(event, handler); };
     petEarnsXp(bus, {});
     expect(subscribed.sort()).toEqual([
-      "BookFinished", "GoalAchieved", "GoalStepDone", "NoteCaptured", "PostPublished", "ReviewWritten",
+      "BookFinished", "GoalAchieved", "GoalStepDone", "JobApplied", "NoteCaptured", "PostPublished", "ReviewWritten",
       "SkillLevelledUp", "StudySessionEnded", "TaskCaptured", "TaskCompleted", "WinLogged",
     ]);
   });

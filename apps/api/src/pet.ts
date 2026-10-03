@@ -40,7 +40,7 @@ const POINTS_BY_NAME: Record<string, number | undefined> = PRIORITY_POINTS;
 // After this many finished tasks in one day, each further task is worth 1 point, so a pile of tiny tasks can't be farmed.
 export const TASK_DAILY_FULL = 8;
 export const taskXp = (priority: string): number => POINTS_BY_NAME[priority] ?? 10;
-export const XP = { step: 2, goal: 50, post: 25, win: 4, review: 10, skill: 4, book: 15 };
+export const XP = { step: 2, goal: 50, post: 25, win: 4, review: 10, skill: 4, book: 15, apply: 10 };
 // Study: 2 points per 20 active minutes up to 16 per session, plus 6 for a deep-focus session of 45 minutes or more.
 export const studyXp = (activeMinutes: number): number => (activeMinutes >= 5 ? Math.min(16, Math.max(1, Math.floor(activeMinutes / 10)) * 2) + (activeMinutes >= 45 ? 6 : 0) : 0);
 // Small points just for adding things (capped per day so adding lots of tiny items can't farm points).

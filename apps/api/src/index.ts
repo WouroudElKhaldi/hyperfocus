@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { OWNER_OMIT, PrismaClient } from "@hyperfocus/db";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
+import { backfillFilter } from "./radar/matcher.ts";
 import { gmailAppPassword, personalMail } from "./modules/emails/mail-provider.ts";
 import { createApp } from "./app.ts";
 import { tenancy } from "./tenancy.ts";
@@ -43,6 +44,8 @@ const mail = personalMail(config.mode === "local" ? config.gmail : { user: "", a
 // Domain events (P2-04): routes say what happened, subscribers react. The pet earns its XP this way.
 const events = new EventBus((event, err) => log.error({ err, event }, "an event subscriber failed"));
 petEarnsXp(events, prisma);
+// Job Radar (P6-23): a filter made or changed is matched against the last two weeks at once
+events.on("JobFilterChanged", ({ filterId }) => backfillFilter(prisma, filterId));
 // The whole HTTP server is Hono (P2-22): the API, plus the built website in the demo.
 // Uploaded files: inside the database unless FILE_STORAGE says a folder (P4-07).
 // (the default folder is <project>/storage, next to backups)

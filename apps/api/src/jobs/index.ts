@@ -13,6 +13,7 @@ import { applyChatRetention } from "../retention.ts";
 import { processQueued } from "../radar/ingest.ts";
 import { ensureDefaultSources, fetchDue } from "../radar/fetch.ts";
 import { applyPostingRetention } from "../radar/retention.ts";
+import { matchNewPostings } from "../radar/matcher.ts";
 import type { KeyRing } from "../secrets.ts";
 import type { Db } from "../types.ts";
 import type { Job } from "./scheduler.ts";
@@ -54,6 +55,7 @@ export function backgroundJobs({ prisma, publisher, events, secrets, mode = "loc
     // Job Radar (P6): queued batches, fetching from the free sources, and dropping stale postings
     { name: "radar-ingest", everyMs: 10 * SECOND, firstAfterMs: 8 * SECOND, run: () => processQueued(prisma) },
     ...(radarFetch ? [{ name: "radar-fetch", everyMs: 10 * 60 * SECOND, firstAfterMs: 45 * SECOND, init: () => ensureDefaultSources(prisma), run: () => fetchDue(prisma) }] : []),
+    { name: "radar-match", everyMs: 30 * SECOND, firstAfterMs: 20 * SECOND, run: () => matchNewPostings(prisma) }, // P6-23
     { name: "radar-retention", everyMs: 6 * HOUR, firstAfterMs: 60 * SECOND, run: () => applyPostingRetention(prisma) },
     { name: "auto-backup", everyMs: 6 * HOUR, firstAfterMs: 0, run: () => backupIfDue(prisma) }, // when the newest backup is over a day old
   ];

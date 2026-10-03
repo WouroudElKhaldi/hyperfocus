@@ -110,6 +110,7 @@ describe("the background jobs", () => {
       ["email-digest", 60000, 10000], // P5-11: queues each person's daily email when it is time (sent only when the app has a mailer)
       ["chat-retention", 6 * 3600000, 30000], // P5-12: deletes AI chats older than each person chose
       ["radar-ingest", 10000, 8000], // P6-11: queued batches of postings
+      ["radar-match", 30000, 20000], // P6-23: new postings against everyone's filters
       ["radar-retention", 6 * 3600000, 60000], // P6-17: stale postings archived, old ones deleted
       ["auto-backup", 6 * 3600000, 0],
     ]);

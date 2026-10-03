@@ -9,6 +9,7 @@
     "test:watch": "vitest",
     "test:routes": "node test/support/route-coverage.mjs",
     "push:keys": "node -e \"const k=require('web-push').generateVAPIDKeys();console.log('VAPID_PUBLIC_KEY='+k.publicKey+'\\nVAPID_PRIVATE_KEY='+k.privateKey)\"",
+    "bench:matching": "node scripts/bench-matching.ts",
     "bench:typeahead": "node --env-file-if-exists=../../.env scripts/bench-typeahead.ts",
     "taxonomy:import": "node --env-file-if-exists=../../.env scripts/taxonomy.ts import",
     "secrets:new-key": "node scripts/secrets.ts new-key",

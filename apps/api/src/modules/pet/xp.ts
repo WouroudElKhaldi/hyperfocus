@@ -17,4 +17,6 @@ export function petEarnsXp(events: EventBus, prisma: Db): void {
   events.on("ReviewWritten", ({ reviewId }) => award(prisma, `review:${reviewId}`, "review", XP.review, "Did a weekly review"));
   events.on("SkillLevelledUp", ({ skillId, name, level }) => award(prisma, `skill:${skillId}:${level}`, "skill", XP.skill, `Skill level up: ${name}`));
   events.on("BookFinished", ({ bookId, title }) => award(prisma, `book:${bookId}`, "book", XP.book, `Finished a book: ${title}`));
+  // P6-30: applying to a job from Job Radar is brave; it counts once per application
+  events.on("JobApplied", ({ applicationId, title }) => award(prisma, `apply:${applicationId}`, "apply", XP.apply, `Applied: ${title}`.slice(0, 140)));
 }

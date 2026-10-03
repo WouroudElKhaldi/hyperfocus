@@ -7410,6 +7410,160 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/radar/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your matches, the best first (not dismissed, not expired) */
+        get: {
+            parameters: {
+                query?: {
+                    filterId?: number | null;
+                    limit?: number;
+                    status?: "new" | "seen" | "saved" | "dismissed" | "applied";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Best first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["RadarMatch"][];
+                            total: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/radar/matches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Seen, save, not for me, or 👍/👎 (teaches the filter) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        feedback?: -1 | 0 | 1;
+                        /** @enum {string} */
+                        status?: "new" | "seen" | "saved" | "dismissed";
+                    };
+                };
+            };
+            responses: {
+                /** @description The match */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RadarMatch"];
+                    };
+                };
+                /** @description Match not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/radar/matches/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply: it becomes a Job application in your Jobs list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The match and its new application */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applicationId: number;
+                            match: components["schemas"]["RadarMatch"];
+                        };
+                    };
+                };
+                /** @description Match not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reminders": {
         parameters: {
             query?: never;
@@ -9988,6 +10142,39 @@ export interface components {
             mode: "local" | "cloud";
             /** @description How many accounts there are */
             people: number;
+        };
+        RadarMatch: {
+            applicationId: number | null;
+            createdAt: string;
+            feedback: number;
+            filterId: number;
+            filterName: string;
+            id: number;
+            posting: components["schemas"]["RadarPosting"];
+            reasons: string[];
+            score: number;
+            /** @enum {string} */
+            status: "new" | "seen" | "saved" | "dismissed" | "applied";
+        };
+        RadarPosting: {
+            company: string;
+            countryCode: string;
+            description: string;
+            employmentType: string | null;
+            expiresAt: string;
+            id: number;
+            locationText: string;
+            postedAt: string;
+            salaryCurrency: string;
+            salaryMax: number | null;
+            salaryMin: number | null;
+            salaryPeriod: string;
+            seniority: string | null;
+            /** @description The source to name: "via Arbeitnow" */
+            source: string;
+            title: string;
+            url: string;
+            workMode: string | null;
         };
         SkillPlan: {
             books: {

@@ -33,6 +33,7 @@ import { taxonomyRouter } from "./modules/taxonomy/routes.ts";
 import { presetsRouter } from "./modules/taxonomy/presets-routes.ts";
 import { radarFiltersRouter } from "./modules/radar/filters-routes.ts";
 import { ingestRouter } from "./modules/radar/ingest-routes.ts";
+import { radarMatchesRouter } from "./modules/radar/matches-routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -225,6 +226,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", presetsRouter(deps)); // P6-07: "I study ___" presets
   app.route("/", radarFiltersRouter(deps)); // P6-20: your Job Radar filters
   app.route("/", ingestRouter(deps)); // P6-11: signed batches of postings
+  app.route("/", radarMatchesRouter(deps)); // P6-25/26/27: your matches
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

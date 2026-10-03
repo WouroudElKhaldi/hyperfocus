@@ -1002,6 +1002,8 @@ model JobPosting {
   duplicateOfId   Int?
   contentHash     String
   archivedAt      DateTime?
+  /// when it was matched against everyone's filters (P6-23); null = not yet
+  matchedAt       DateTime?
   raw             Json              @default("{}")
   skills          JobPostingSkill[]
   matches         JobMatch[]
@@ -1013,6 +1015,7 @@ model JobPosting {
   @@index([postedAt])
   @@index([expiresAt])
   @@index([occupationId])
+  @@index([matchedAt])
 }
 
 /// A skill a posting asks for (found by the skill extractor, P6-14).
