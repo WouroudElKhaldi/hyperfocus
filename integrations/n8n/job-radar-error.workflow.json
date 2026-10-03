@@ -1,0 +1,40 @@
+{
+  "name": "Hyperfocus · Job Radar alert",
+  "nodes": [
+    {
+      "id": "0c1f0a10-0002-4000-8000-000000000001",
+      "name": "When the ingest fails",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    },
+    {
+      "id": "0c1f0a10-0002-4000-8000-000000000002",
+      "name": "Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "notes": "A free push alert to your phone with ntfy (https://ntfy.sh): set ALERT_URL to https://ntfy.sh/<a long random topic> and install the ntfy app.",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ALERT_URL }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Title", "value": "Job Radar ingest failed" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/plain",
+        "body": "={{ $json.workflow.name }}: {{ $json.execution.lastNodeExecuted }} failed: {{ $json.execution.error.message }}"
+      }
+    }
+  ],
+  "connections": {
+    "When the ingest fails": { "main": [[{ "node": "Alert", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "hyperfocus" }],
+  "pinData": {}
+}

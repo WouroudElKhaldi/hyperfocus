@@ -80,3 +80,8 @@ PostgreSQL and Hyperfocus also running.
 
 n8n is free to run yourself under its Sustainable Use License (personal and internal use). Only n8n's hosted cloud is
 paid, and you don't use it.
+
+## Optional: fetch job postings with n8n
+
+The app fetches its job sources by itself. If you would rather do it in your n8n, import the two workflows in
+`integrations/n8n/` (their README shows the four settings to add).

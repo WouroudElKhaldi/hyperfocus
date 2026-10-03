@@ -1,0 +1,122 @@
+{
+  "name": "Hyperfocus · Job Radar ingest",
+  "nodes": [
+    {
+      "id": "0c1f0a10-0001-4000-8000-000000000001",
+      "name": "Every 2 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 2 }] } }
+    },
+    {
+      "id": "0c1f0a10-0001-4000-8000-000000000002",
+      "name": "Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "notes": "One item per source = one branch each. The source key must exist in Hyperfocus (Admin → Job sources). Add Greenhouse or Lever boards here.",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// One item per source: its key in Hyperfocus, the first page, and where the postings are in the answer.\nreturn [\n  { json: { source: 'arbeitnow', url: 'https://www.arbeitnow.com/api/job-board-api', itemsAt: 'data' } },\n  // { json: { source: 'greenhouse:gitlab', url: 'https://boards-api.greenhouse.io/v1/boards/gitlab/jobs?content=true', itemsAt: 'jobs' } },\n  // { json: { source: 'lever:spotify', url: 'https://api.lever.co/v0/postings/spotify?mode=json', itemsAt: '' } },\n];"
+      }
+    },
+    {
+      "id": "0c1f0a10-0001-4000-8000-000000000003",
+      "name": "Fetch pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "Follows the 'next page' link (Arbeitnow); Greenhouse and Lever answer in one page. At most 10 pages a run.",
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "timeout": 30000,
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.links ? $response.body.links.next : '' }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !($response.body.links && $response.body.links.next) }}",
+              "limitPagesFetched": true,
+              "maxRequests": 10,
+              "requestInterval": 1000
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "0c1f0a10-0001-4000-8000-000000000004",
+      "name": "Make batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// One page of a source -> one batch for Hyperfocus (at most 500 postings), named so that sending it again changes nothing.\nconst source = $('Sources').item.json;\nconst answer = $json;\nconst items = (source.itemsAt ? answer[source.itemsAt] : Array.isArray(answer) ? answer : answer.data) || [];\nconst body = JSON.stringify({ source: source.source, items: items.slice(0, 500) });\nconst timestamp = String(Math.floor(Date.now() / 1000));\nconst key = `${source.source}:${$execution.id}:${$itemIndex}`;\nreturn { json: { body, timestamp, key, toSign: `${timestamp}.${body}`, count: items.length } };"
+      }
+    },
+    {
+      "id": "0c1f0a10-0001-4000-8000-000000000005",
+      "name": "Sign",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [880, 0],
+      "notes": "HMAC-SHA256 of '<timestamp>.<body>' with the same INGEST_SECRET as the Hyperfocus server.",
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.toSign }}",
+        "dataPropertyName": "signature",
+        "secret": "={{ $env.HYPERFOCUS_INGEST_SECRET }}",
+        "encoding": "hex"
+      }
+    },
+    {
+      "id": "0c1f0a10-0001-4000-8000-000000000006",
+      "name": "Send to Hyperfocus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 30000,
+      "notes": "202 = queued. A replay of the same key is answered 202 again and changes nothing.",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.HYPERFOCUS_URL }}/api/ingest/jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-Timestamp", "value": "={{ $json.timestamp }}" },
+            { "name": "X-Signature", "value": "=sha256={{ $json.signature }}" },
+            { "name": "X-Idempotency-Key", "value": "={{ $json.key }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": { "timeout": 60000 }
+      }
+    }
+  ],
+  "connections": {
+    "Every 2 hours": { "main": [[{ "node": "Sources", "type": "main", "index": 0 }]] },
+    "Sources": { "main": [[{ "node": "Fetch pages", "type": "main", "index": 0 }]] },
+    "Fetch pages": { "main": [[{ "node": "Make batch", "type": "main", "index": 0 }]] },
+    "Make batch": { "main": [[{ "node": "Sign", "type": "main", "index": 0 }]] },
+    "Sign": { "main": [[{ "node": "Send to Hyperfocus", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": [{ "name": "hyperfocus" }],
+  "pinData": {}
+}
