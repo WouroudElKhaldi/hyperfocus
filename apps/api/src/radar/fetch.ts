@@ -22,7 +22,7 @@ export async function fetchDue(db: Db, { now = new Date(), http = httpJson, base
   const reports: FetchReport[] = [];
   for (const source of await db.jobSource.findMany({ where: { enabled: true }, orderBy: { id: "asc" } })) {
     const adapter = ADAPTERS[source.kind];
-    if (!adapter) continue;
+    if (!adapter || (adapter.enabled && !adapter.enabled())) continue;
     if (source.lastRunAt && now.getTime() - source.lastRunAt.getTime() < adapter.everyMinutes * 60_000) continue;
     await db.jobSource.update({ where: { id: source.id }, data: { lastRunAt: now } });
     const config = { ...((source.config ?? {}) as Record<string, string>), ...(base ? { base } : {}) };
