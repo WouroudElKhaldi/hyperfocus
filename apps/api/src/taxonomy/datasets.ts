@@ -209,10 +209,46 @@ export async function importEsco(db: Db, dir: string): Promise<Report> {
   return report;
 }
 
-export const DATASETS = { industries: importIndustries, onet: importOnet, cip: importCip, geo: importGeo, esco: importEsco } as const;
+// ---------- ESCO ↔ O*NET (the official crosswalk, P6-05) ----------
+/**
+ * Marks each ESCO occupation as the same as its O*NET one (Occupation.sameAs), so search and presets show each job
+ * once with all its titles. The crosswalk comes as a CSV with the ESCO files (data/taxonomy/esco/); its columns are
+ * found by their names (an O*NET code column, an ESCO URI column, and the type of match when there is one). Only
+ * exact and close matches count; a broader or narrower match is a different job.
+ */
+export async function importEscoOnet(db: Db, dir: string): Promise<Report> {
+  const base = path.join(dir, "esco");
+  const name = fs.existsSync(base) ? fs.readdirSync(base).find((n) => /onet/i.test(n) && n.endsWith(".csv")) : undefined;
+  if (!name) throw new Error(`Missing the ESCO–O*NET crosswalk CSV in ${base}. See docs/taxonomy.md.`);
+  const rows = await collect(csv(textChunks(path.join(base, name))), (r) => r);
+  const cols = Object.keys(rows[0] ?? {});
+  const find = (re: RegExp) => cols.find((c) => re.test(c));
+  const onetCol = find(/o*?net.*(id|code|soc)/i);
+  const escoCol = find(/esco.*(uri|id|code)/i);
+  const matchCol = find(/match/i);
+  if (!onetCol || !escoCol) throw new Error(`The crosswalk ${name} has no O*NET code or ESCO URI column (it has: ${cols.join(", ")}).`);
+  const onet = new Map((await db.occupation.findMany({ where: { source: "onet" }, select: { id: true, code: true } })).map((o) => [o.code.slice(5), o.id]));
+  const esco = new Map((await db.occupation.findMany({ where: { source: "esco" }, select: { id: true, code: true, sameAsId: true } })).map((o) => [o.code.slice(5), o]));
+  const changes = noChanges();
+  const done = new Set<number>();
+  for (const r of rows) {
+    const match = (matchCol ? r[matchCol] : "exact") ?? "";
+    if (matchCol && !/exact|close/i.test(match)) continue;
+    const e = esco.get((r[escoCol] ?? "").split("/").pop() ?? "");
+    const o = onet.get((r[onetCol] ?? "").trim());
+    if (!e || !o || done.has(e.id)) continue;
+    done.add(e.id); // (the first exact or close match an ESCO occupation has is kept)
+    if (e.sameAsId === o) { changes.unchanged++; continue; }
+    await db.occupation.update({ where: { id: e.id }, data: { sameAsId: o } });
+    changes.updated++;
+  }
+  return { Occupation: changes };
+}
+
+export const DATASETS = { industries: importIndustries, onet: importOnet, cip: importCip, geo: importGeo, esco: importEsco, "esco-onet": importEscoOnet } as const;
 export type Dataset = keyof typeof DATASETS;
 /** The order "all" runs them in (CIP links to O*NET occupations, so O*NET first). */
-export const ALL: Dataset[] = ["industries", "onet", "cip", "geo", "esco"];
+export const ALL: Dataset[] = ["industries", "onet", "cip", "geo", "esco", "esco-onet"];
 
 /** Runs one dataset and records it in TaxonomyImport. */
 export async function runImport(db: Db, dataset: Dataset, dir: string): Promise<Report> {
@@ -225,6 +261,7 @@ export async function runImport(db: Db, dataset: Dataset, dir: string): Promise<
       cip: () => db.fieldOfStudy.findFirst({ where: { source: "cip" }, select: { version: true } }),
       geo: () => db.country.findFirst({ select: { version: true } }),
       esco: () => db.occupation.findFirst({ where: { source: "esco" }, select: { version: true } }),
+      "esco-onet": async () => ({ version: "esco-onet" }),
     };
     return (await tables[dataset]())?.version ?? "";
   })();

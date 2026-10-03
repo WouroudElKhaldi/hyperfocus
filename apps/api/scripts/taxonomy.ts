@@ -1,4 +1,4 @@
-// pnpm taxonomy:import <onet|esco|cip|geo|industries|all> [--download] [--dir data/taxonomy]   (P6-04)
+// pnpm taxonomy:import <onet|esco|esco-onet|cip|geo|industries|all> [--download] [--dir data/taxonomy]   (P6-04)
 // Imports the open datasets into the taxonomy tables. Running it again with the same files changes nothing.
 // --download fetches what can be fetched (O*NET, CIP, GeoNames) into the folder first; ESCO is downloaded by hand
 // (see docs/taxonomy.md).
@@ -20,7 +20,7 @@ const dirArg = args[args.indexOf("--dir") + 1];
 const dir = path.resolve(args.includes("--dir") && dirArg ? dirArg : fileURLToPath(new URL("../../../data/taxonomy/", import.meta.url)));
 const datasets: Dataset[] = which === "all" ? ALL : which in DATASETS ? [which as Dataset] : [];
 if (!datasets.length) {
-  console.log("Use: pnpm taxonomy:import <onet|esco|cip|geo|industries|all> [--download] [--dir <folder>]");
+  console.log("Use: pnpm taxonomy:import <onet|esco|esco-onet|cip|geo|industries|all> [--download] [--dir <folder>]");
   process.exit(1);
 }
 
@@ -42,8 +42,8 @@ const { config } = await import("../src/config.ts");
 const db = new PrismaClient({ datasourceUrl: config.databaseUrl });
 try {
   for (const d of datasets) {
-    if (d === "esco" && which === "all" && !fs.existsSync(path.join(dir, "esco", "occupations_en.csv"))) {
-      console.log("esco: skipped (download the ESCO CSV files into data/taxonomy/esco/, see docs/taxonomy.md)");
+    if ((d === "esco" || d === "esco-onet") && which === "all" && !fs.existsSync(path.join(dir, "esco", "occupations_en.csv"))) {
+      console.log(`${d}: skipped (download the ESCO CSV files into data/taxonomy/esco/, see docs/taxonomy.md)`);
       continue;
     }
     const started = performance.now();

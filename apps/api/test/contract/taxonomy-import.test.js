@@ -68,6 +68,12 @@ their uses.","",`,
     "http://data.europa.eu/esco/occupation/aaa-111,essential,skill/competence,http://data.europa.eu/esco/skill/sss-1",
     "http://data.europa.eu/esco/occupation/aaa-111,optional,knowledge,http://data.europa.eu/esco/skill/sss-2",
   ].join("\n") + "\n");
+  // the official ESCO–O*NET crosswalk (P6-05): an exact match counts, a broader one doesn't
+  fs.writeFileSync(path.join(dir, "esco", "ESCO_ONET_crosswalk.csv"), [
+    "O*NET Id,O*NET Title,ESCO or ISCO URI,ESCO or ISCO Title,Type of Match",
+    "15-1252.00,Software Developers,http://data.europa.eu/esco/occupation/aaa-111,software developer,exactMatch",
+    "29-1141.00,Registered Nurses,http://data.europa.eu/esco/occupation/aaa-111,software developer,broadMatch",
+  ].join("\n") + "\n");
   fs.writeFileSync(path.join(dir, "esco", "ISCOGroups_en.csv"), "conceptType,conceptUri,code,preferredLabel\nISCOGroup,http://data.europa.eu/esco/isco/C2512,2512,Software developers\n");
 }
 
@@ -123,6 +129,13 @@ describe("the taxonomy importer", () => {
     expect(esco.titles.map((t) => t.title).sort()).toEqual(["programmer, software", "software developer", "web developer"]);
     expect(Object.fromEntries(esco.skills.map((s) => [s.skill.name, [s.essential, s.skill.type]]))).toEqual({ "use version control": [true, "skill"], algorithms: [false, "knowledge"] });
     expect((await db.taxonomySkill.findUnique({ where: { code: "esco:sss-1" } })).altLabels).toEqual(["git", "svn"]);
+  });
+
+  it("ESCO ↔ O*NET: an ESCO occupation is marked the same as its O*NET one (exact or close matches only)", async () => {
+    const esco = await db.occupation.findUnique({ where: { code: "esco:aaa-111" }, include: { sameAs: true } });
+    expect(esco.sameAs).toMatchObject({ code: "onet:15-1252.00" });
+    const nurse = await db.occupation.findUnique({ where: { code: "onet:29-1141.00" }, include: { sameAsOf: true } });
+    expect(nurse.sameAsOf).toEqual([]);
   });
 
   it("a new release only changes what changed", async () => {
