@@ -4,7 +4,7 @@ export const en = {
   nav: {
     groups: { Plan: "Plan", Grow: "Grow", Share: "Share", You: "You" },
     today: "Today", calendar: "Calendar", tasks: "Tasks", goals: "Goals", skills: "Skills map", study: "Study log", books: "Books",
-    review: "Weekly review", notes: "Thoughts & ideas", posts: "LinkedIn posts", emails: "Email", jobs: "Job applications",
+    review: "Weekly review", notes: "Thoughts & ideas", posts: "LinkedIn posts", emails: "Email", jobs: "Job applications", radar: "Job Radar",
     chat: "Talk it out", chatShort: "Talk", pet: "Companion", wins: "Wins", profile: "Profile", settings: "Settings & backup",
   },
   shell: {

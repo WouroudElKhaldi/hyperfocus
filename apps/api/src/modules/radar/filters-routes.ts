@@ -4,6 +4,7 @@ import type { AppDeps, AppEnv } from "../../app.ts";
 import { IdParam, body, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
 import { presetForField } from "../../taxonomy/presets.ts";
+import { previewFilter } from "../../radar/matcher.ts";
 import { httpError } from "../../types.ts";
 
 // Your Job Radar filters (P6-20): as many as you like, each with a name, on or off, and what it looks for (a
@@ -45,6 +46,26 @@ export function radarFiltersRouter({ prisma, events }: AppDeps) {
       const f = await prisma.jobFilter.create({ data: { name, enabled: enabled ?? true, spec: JobFilterSpec.parse(spec ?? {}) } });
       await changed(f.id);
       return c.json(show(f), 200);
+    },
+  );
+  app.openapi(
+    createRoute({
+      method: "post", path: "/api/job-filters/preview", tags: ["Job Radar"], summary: "≈ how many jobs a week this filter would find (from the last 7 days)",
+      request: { body: body(z.object({ spec: JobFilterSpec })) },
+      responses: { 200: json(z.object({ perWeek: z.number(), examples: z.array(z.string()) }), "The estimate and a few examples") },
+    }),
+    async (c) => c.json(await previewFilter(prisma, JobFilterSpec.parse(c.req.valid("json").spec)), 200),
+  );
+  app.openapi(
+    createRoute({
+      method: "get", path: "/api/radar/status", tags: ["Job Radar"], summary: "Is Job Radar finding jobs: sources, last check, postings this week",
+      responses: { 200: json(z.object({ sources: z.number(), lastCheckedAt: z.string().nullable(), trouble: z.array(z.string()), postingsThisWeek: z.number() }), "The state") },
+    }),
+    async (c) => {
+      const sources = await prisma.jobSource.findMany({ where: { enabled: true }, select: { name: true, lastOkAt: true, lastError: true } });
+      const last = sources.map((s) => s.lastOkAt?.getTime() ?? 0).reduce((a, b) => Math.max(a, b), 0);
+      const postingsThisWeek = await prisma.jobPosting.count({ where: { duplicateOfId: null, archivedAt: null, postedAt: { gte: new Date(Date.now() - 7 * 24 * 3600_000) } } });
+      return c.json({ sources: sources.length, lastCheckedAt: last ? new Date(last).toISOString() : null, trouble: sources.filter((s) => s.lastError).map((s) => s.name), postingsThisWeek }, 200);
     },
   );
   app.openapi(

@@ -45,6 +45,7 @@ const NAV: NavGroup[] = [
     { to: "/posts", icon: "posts", label: "posts" },
     { to: "/emails", icon: "mail", label: "emails" },
     { to: "/jobs", icon: "jobs", label: "jobs" },
+    { to: "/radar", icon: "radar", label: "radar" },
   ] },
   { group: "You", items: [
     { to: "/chat", icon: "chat", label: "chat", tab: true },

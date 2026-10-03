@@ -36,6 +36,7 @@ const Pet = lazyRouteComponent(() => import("./features/pet/pages/Pet.tsx"));
 const Profile = lazyRouteComponent(() => import("./features/profile/pages/Profile.tsx"));
 const Privacy = lazyRouteComponent(() => import("./features/settings/pages/Privacy.tsx")); // P5-12
 const ConnectionsHelp = lazyRouteComponent(() => import("./features/settings/pages/ConnectionsHelp.tsx")); // how to get each key
+const Radar = lazyRouteComponent(() => import("./features/radar/pages/Radar.tsx")); // P6-27: Job Radar
 const Admin = lazyRouteComponent(() => import("./features/admin/pages/Admin.tsx")); // P5-06: admins only
 // the design system page (P3-02): development only, so it never ships in the built app
 // development pages: in development, and in the browser-test build (pnpm build:e2e sets VITE_DEV_PAGES); never in the app you use
@@ -81,6 +82,7 @@ const routes = [
   page("/emails", Emails),
   page("/emails/$id", EmailEditor),
   page("/jobs", Jobs),
+  page("/radar", Radar),
   page("/jobs/$id", JobDetail),
   page("/chat", Chat),
   page("/pet", Pet),

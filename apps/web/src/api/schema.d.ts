@@ -4928,6 +4928,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/job-filters/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ≈ how many jobs a week this filter would find (from the last 7 days) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        spec: {
+                            /**
+                             * @default {
+                             *       "include": [],
+                             *       "exclude": []
+                             *     }
+                             */
+                            companies?: {
+                                /** @default [] */
+                                exclude?: string[];
+                                /** @default [] */
+                                include?: string[];
+                            };
+                            /**
+                             * @default daily
+                             * @enum {string}
+                             */
+                            digest?: "off" | "realtime" | "daily" | "weekly";
+                            /**
+                             * @default null
+                             * @enum {string|null}
+                             */
+                            educationLevel?: "none" | "secondary" | "vocational" | "associate" | "bachelor" | "master" | "doctorate" | null;
+                            /** @default [] */
+                            employmentTypes?: ("full_time" | "part_time" | "internship" | "apprenticeship" | "contract" | "freelance" | "volunteer" | "student_job")[];
+                            /** @default [] */
+                            fieldsOfStudy?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /** @default [] */
+                            industries?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /**
+                             * @default {
+                             *       "include": [],
+                             *       "exclude": [],
+                             *       "scope": [
+                             *         "title",
+                             *         "description"
+                             *       ]
+                             *     }
+                             */
+                            keywords?: {
+                                /** @default [] */
+                                exclude?: string[];
+                                /** @default [] */
+                                include?: string[];
+                                /**
+                                 * @default [
+                                 *       "title",
+                                 *       "description"
+                                 *     ]
+                                 */
+                                scope?: ("title" | "description" | "requirements")[];
+                            };
+                            /** @default [] */
+                            languages?: string[];
+                            /** @default [] */
+                            locations?: {
+                                code: string;
+                                label: string;
+                                /** @default null */
+                                radiusKm?: number | null;
+                            }[];
+                            /** @default null */
+                            maxYearsExperience?: number | null;
+                            /** @default [] */
+                            occupations?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /** @default null */
+                            postedWithinDays?: number | null;
+                            /** @default null */
+                            salaryMin?: {
+                                amount: number;
+                                currency: string;
+                            } | null;
+                            /** @default [] */
+                            seniority?: ("student" | "intern" | "entry" | "junior" | "mid" | "senior" | "lead")[];
+                            /**
+                             * @default {
+                             *       "must": [],
+                             *       "nice": []
+                             *     }
+                             */
+                            skills?: {
+                                /** @default [] */
+                                must?: {
+                                    code: string;
+                                    label: string;
+                                }[];
+                                /** @default [] */
+                                nice?: {
+                                    code: string;
+                                    label: string;
+                                }[];
+                            };
+                            /** @default [] */
+                            titles?: string[];
+                            /** @default null */
+                            visaSponsorship?: boolean | null;
+                            /** @default [] */
+                            workModes?: ("onsite" | "hybrid" | "remote")[];
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description The estimate and a few examples */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            examples: string[];
+                            perWeek: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -7558,6 +7710,47 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/radar/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Is Job Radar finding jobs: sources, last check, postings this week */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            lastCheckedAt: string | null;
+                            postingsThisWeek: number;
+                            sources: number;
+                            trouble: string[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

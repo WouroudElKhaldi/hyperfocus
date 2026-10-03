@@ -16,6 +16,9 @@ const stack = await startTestStack({
 // a small taxonomy (jobs, skills, majors, places) so the Job Radar pages have something to show (P6)
 const { seedTaxonomy } = await import("../apps/api/test/support/taxonomy-fixture.js");
 await seedTaxonomy(stack.databaseUrl);
+// and a few job postings for Job Radar (P6-27)
+const { seedPostings } = await import("../apps/api/test/support/radar-fixture.js");
+await seedPostings(stack.databaseUrl);
 if (cloud) fs.writeFileSync(path.join(os.tmpdir(), "hyperfocus-e2e-cloud.json"), JSON.stringify({ log: path.join(stack.tmpDir, "api.log") }));
 console.log(`Test API on ${stack.apiUrl} (data in ${stack.tmpDir})`);
 

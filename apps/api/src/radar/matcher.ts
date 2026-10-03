@@ -86,6 +86,24 @@ export function matchNewPostings(db: Db, now = new Date()): Promise<number> {
   });
 }
 
+/** P6-28: how many postings of the last 7 days a filter would have matched (≈ per week), and a few of their titles. */
+export async function previewFilter(db: Db, spec: JobFilterSpec, now = new Date()): Promise<{ perWeek: number; examples: string[] }> {
+  const ctx = await contextFor(db, spec);
+  let after = 0;
+  let perWeek = 0;
+  const examples: { title: string; score: number }[] = [];
+  for (;;) {
+    const postings = await postingsFor(db, { id: { gt: after }, duplicateOfId: null, archivedAt: null, postedAt: { gte: new Date(now.getTime() - 7 * DAY) } }, 2000);
+    if (!postings.length) break;
+    for (const p of postings) {
+      const r = score(spec, p, ctx, {}, now);
+      if (r && r.score >= MIN_SCORE) { perWeek++; examples.push({ title: `${p.title}${p.company ? ` · ${p.company}` : ""}`, score: r.score }); }
+    }
+    after = postings[postings.length - 1]?.id ?? after;
+  }
+  return { perWeek, examples: examples.sort((a, b) => b.score - a.score).slice(0, 3).map((e) => e.title) };
+}
+
 /**
  * Matches one filter against the last 14 days (it was made or changed). Runs as its owner. New matches are added,
  * existing ones get their new score and reasons, and ones it no longer matches go (unless saved or applied).
