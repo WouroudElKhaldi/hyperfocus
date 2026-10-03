@@ -19,6 +19,10 @@ export type DomainEvents = {
   ReviewWritten: { reviewId: number };
   SkillLevelledUp: { skillId: number; name: string; level: number };
   BookFinished: { bookId: number; title: string };
+  /** P6: a Job Radar filter was made or changed: match it against recent postings */
+  JobFilterChanged: { filterId: number };
+  /** P6-30: a job was applied to from Job Radar */
+  JobApplied: { matchId: number; applicationId: number; title: string };
 };
 export type EventName = keyof DomainEvents;
 type Handler<K extends EventName> = (payload: DomainEvents[K]) => unknown;

@@ -39,6 +39,7 @@ beforeAll(async () => {
   await a("PUT", "/api/profile", { name: `${SECRET} name`, role: "", location: "", email: "", linkedin: "", about: SECRET, helps: SECRET, avatar: "#7447e6" });
   await a("POST", "/api/pet", { name: SECRET, species: "fox", color: "#ff9f6b", gender: "girl", traits: [] });
   await a("POST", "/api/reviews");
+  await a("POST", "/api/job-filters", { name: `${SECRET} filter`, spec: { keywords: { include: [SECRET] } } }); // Job Radar (P6-20)
 }, 180000);
 afterAll(() => api?.stop());
 

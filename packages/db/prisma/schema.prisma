@@ -262,18 +262,18 @@ model BookMessage {
 
 // A skill on the way from mid to senior. level: 0 = not rated yet, 1 shaky ... 5 could teach it. target = where she wants to be.
 model Skill {
-  id        Int      @id @default(autoincrement())
-  name      String
-  area      String   @default("")
-  level     Int      @default(0)
-  target    Int      @default(4)
-  notes     String   @default("")
+  id            Int      @id @default(autoincrement())
+  name          String
+  area          String   @default("")
+  level         Int      @default(0)
+  target        Int      @default(4)
+  notes         String   @default("")
   /// the standard skill it is (P6-08, optional): its taxonomy code and name, kept by value so a re-import of the
   /// taxonomy or "Export my data" never breaks it. Empty = a free-text skill, as before.
-  taxonomyCode  String @default("")
-  taxonomyLabel String @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  taxonomyCode  String   @default("")
+  taxonomyLabel String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // P5-02: whose it is. Every row has an owner; existing rows belong to the owner account ("owner").
   // (P5-03: the tenancy guard writes it. The default reads a setting the app never sets, so an insert that bypasses
@@ -695,6 +695,8 @@ model User {
   outbox           OutboxMessage[]
   notifications    Notification[]
   pushDevices      PushSubscription[]
+  jobFilters       JobFilter[]
+  jobMatches       JobMatch[]
 }
 
 model Session {
@@ -947,4 +949,139 @@ model TaxonomyImport {
   startedAt  DateTime  @default(now())
   finishedAt DateTime?
   changes    Json      @default("{}")
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Job Radar (P6-10, P6-20). Postings are the same for everyone (no owner); each person's filters and matches are theirs.
+
+/// Where postings come from: one row per source (and per company board: "greenhouse:gitlab").
+model JobSource {
+  id        Int           @id @default(autoincrement())
+  key       String        @unique // "arbeitnow", "greenhouse:gitlab", "lever:spotify"
+  kind      String // arbeitnow | greenhouse | lever | linkedin …
+  name      String
+  /// what the adapter needs (a board's name…), never a secret
+  config    Json          @default("{}")
+  enabled   Boolean       @default(true)
+  lastRunAt DateTime?
+  lastOkAt  DateTime?
+  lastError String        @default("")
+  lastItems Int           @default(0)
+  postings  JobPosting[]
+  batches   IngestBatch[]
+  createdAt DateTime      @default(now())
+}
+
+/// One job ad, normalised from its source (the raw item is kept to re-process it).
+model JobPosting {
+  id              Int               @id @default(autoincrement())
+  sourceId        Int
+  source          JobSource         @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  externalId      String
+  url             String
+  title           String
+  company         String            @default("")
+  description     String            @default("") // plain text
+  locationText    String            @default("")
+  countryCode     String            @default("")
+  cityId          Int?
+  workMode        WorkMode?
+  employmentType  EmploymentType?
+  seniority       Seniority?
+  educationLevel  EducationLevel?
+  yearsMin        Int?
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String            @default("")
+  salaryPeriod    String            @default("") // year | month | hour
+  visaSponsorship Boolean?
+  occupationId    Int?
+  postedAt        DateTime
+  expiresAt       DateTime
+  /// the same job seen before (from another source, or reposted): matches use the first one
+  duplicateOfId   Int?
+  contentHash     String
+  archivedAt      DateTime?
+  raw             Json              @default("{}")
+  skills          JobPostingSkill[]
+  matches         JobMatch[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([sourceId, externalId])
+  @@index([contentHash])
+  @@index([postedAt])
+  @@index([expiresAt])
+  @@index([occupationId])
+}
+
+/// A skill a posting asks for (found by the skill extractor, P6-14).
+model JobPostingSkill {
+  postingId Int
+  posting   JobPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  skillId   Int
+  /// how it was found: dictionary | ai
+  via       String     @default("dictionary")
+
+  @@id([postingId, skillId])
+  @@index([skillId])
+}
+
+/// One delivery of postings (from a fetch job, or POSTed by n8n): replaying the same key changes nothing.
+model IngestBatch {
+  id             Int       @id @default(autoincrement())
+  sourceId       Int
+  source         JobSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  idempotencyKey String    @unique
+  cursor         String    @default("")
+  received       Int       @default(0)
+  created        Int       @default(0)
+  updated        Int       @default(0)
+  duplicates     Int       @default(0)
+  failed         Int       @default(0)
+  errors         Json      @default("[]")
+  status         String    @default("queued") // queued | done | failed
+  createdAt      DateTime  @default(now())
+  finishedAt     DateTime?
+}
+
+/// A person's Job Radar filter (P6-20): what they look for (JobFilterSpec in @hyperfocus/shared).
+model JobFilter {
+  id        Int        @id @default(autoincrement())
+  userId    String     @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  enabled   Boolean    @default(true)
+  spec      Json       @default("{}")
+  /// skill weights learned from 👍/👎 (P6-26)
+  weights   Json       @default("{}")
+  matches   JobMatch[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+/// A posting that fits one of a person's filters, with why (P6-22) and what they did with it.
+model JobMatch {
+  id            Int        @id @default(autoincrement())
+  userId        String     @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filterId      Int
+  filter        JobFilter  @relation(fields: [filterId], references: [id], onDelete: Cascade)
+  postingId     Int
+  posting       JobPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  score         Float
+  reasons       Json       @default("[]")
+  status        String     @default("new") // new | seen | saved | dismissed | applied
+  /// 👍 +1 / 👎 -1 (P6-26)
+  feedback      Int        @default(0)
+  /// the Job application it became (P6-25)
+  applicationId Int?
+  notifiedAt    DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([filterId, postingId])
+  @@index([userId, status])
 }

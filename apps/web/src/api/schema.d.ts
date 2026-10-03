@@ -4389,6 +4389,457 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/job-filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your Job Radar filters */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Oldest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobFilter"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Make a filter */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        enabled?: boolean;
+                        name: string;
+                        spec?: {
+                            /**
+                             * @default {
+                             *       "include": [],
+                             *       "exclude": []
+                             *     }
+                             */
+                            companies?: {
+                                /** @default [] */
+                                exclude?: string[];
+                                /** @default [] */
+                                include?: string[];
+                            };
+                            /**
+                             * @default daily
+                             * @enum {string}
+                             */
+                            digest?: "off" | "realtime" | "daily" | "weekly";
+                            /**
+                             * @default null
+                             * @enum {string|null}
+                             */
+                            educationLevel?: "none" | "secondary" | "vocational" | "associate" | "bachelor" | "master" | "doctorate" | null;
+                            /** @default [] */
+                            employmentTypes?: ("full_time" | "part_time" | "internship" | "apprenticeship" | "contract" | "freelance" | "volunteer" | "student_job")[];
+                            /** @default [] */
+                            fieldsOfStudy?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /** @default [] */
+                            industries?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /**
+                             * @default {
+                             *       "include": [],
+                             *       "exclude": [],
+                             *       "scope": [
+                             *         "title",
+                             *         "description"
+                             *       ]
+                             *     }
+                             */
+                            keywords?: {
+                                /** @default [] */
+                                exclude?: string[];
+                                /** @default [] */
+                                include?: string[];
+                                /**
+                                 * @default [
+                                 *       "title",
+                                 *       "description"
+                                 *     ]
+                                 */
+                                scope?: ("title" | "description" | "requirements")[];
+                            };
+                            /** @default [] */
+                            languages?: string[];
+                            /** @default [] */
+                            locations?: {
+                                code: string;
+                                label: string;
+                                /** @default null */
+                                radiusKm?: number | null;
+                            }[];
+                            /** @default null */
+                            maxYearsExperience?: number | null;
+                            /** @default [] */
+                            occupations?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /** @default null */
+                            postedWithinDays?: number | null;
+                            /** @default null */
+                            salaryMin?: {
+                                amount: number;
+                                currency: string;
+                            } | null;
+                            /** @default [] */
+                            seniority?: ("student" | "intern" | "entry" | "junior" | "mid" | "senior" | "lead")[];
+                            /**
+                             * @default {
+                             *       "must": [],
+                             *       "nice": []
+                             *     }
+                             */
+                            skills?: {
+                                /** @default [] */
+                                must?: {
+                                    code: string;
+                                    label: string;
+                                }[];
+                                /** @default [] */
+                                nice?: {
+                                    code: string;
+                                    label: string;
+                                }[];
+                            };
+                            /** @default [] */
+                            titles?: string[];
+                            /** @default null */
+                            visaSponsorship?: boolean | null;
+                            /** @default [] */
+                            workModes?: ("onsite" | "hybrid" | "remote")[];
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description The new filter */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobFilter"];
+                    };
+                };
+                /** @description Not valid, or too many filters */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/job-filters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a filter (and its matches) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Deleted */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                        };
+                    };
+                };
+                /** @description Filter not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Rename, switch on or off, or change what it looks for */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        enabled?: boolean;
+                        name?: string;
+                        spec?: {
+                            /**
+                             * @default {
+                             *       "include": [],
+                             *       "exclude": []
+                             *     }
+                             */
+                            companies?: {
+                                /** @default [] */
+                                exclude?: string[];
+                                /** @default [] */
+                                include?: string[];
+                            };
+                            /**
+                             * @default daily
+                             * @enum {string}
+                             */
+                            digest?: "off" | "realtime" | "daily" | "weekly";
+                            /**
+                             * @default null
+                             * @enum {string|null}
+                             */
+                            educationLevel?: "none" | "secondary" | "vocational" | "associate" | "bachelor" | "master" | "doctorate" | null;
+                            /** @default [] */
+                            employmentTypes?: ("full_time" | "part_time" | "internship" | "apprenticeship" | "contract" | "freelance" | "volunteer" | "student_job")[];
+                            /** @default [] */
+                            fieldsOfStudy?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /** @default [] */
+                            industries?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /**
+                             * @default {
+                             *       "include": [],
+                             *       "exclude": [],
+                             *       "scope": [
+                             *         "title",
+                             *         "description"
+                             *       ]
+                             *     }
+                             */
+                            keywords?: {
+                                /** @default [] */
+                                exclude?: string[];
+                                /** @default [] */
+                                include?: string[];
+                                /**
+                                 * @default [
+                                 *       "title",
+                                 *       "description"
+                                 *     ]
+                                 */
+                                scope?: ("title" | "description" | "requirements")[];
+                            };
+                            /** @default [] */
+                            languages?: string[];
+                            /** @default [] */
+                            locations?: {
+                                code: string;
+                                label: string;
+                                /** @default null */
+                                radiusKm?: number | null;
+                            }[];
+                            /** @default null */
+                            maxYearsExperience?: number | null;
+                            /** @default [] */
+                            occupations?: {
+                                code: string;
+                                label: string;
+                            }[];
+                            /** @default null */
+                            postedWithinDays?: number | null;
+                            /** @default null */
+                            salaryMin?: {
+                                amount: number;
+                                currency: string;
+                            } | null;
+                            /** @default [] */
+                            seniority?: ("student" | "intern" | "entry" | "junior" | "mid" | "senior" | "lead")[];
+                            /**
+                             * @default {
+                             *       "must": [],
+                             *       "nice": []
+                             *     }
+                             */
+                            skills?: {
+                                /** @default [] */
+                                must?: {
+                                    code: string;
+                                    label: string;
+                                }[];
+                                /** @default [] */
+                                nice?: {
+                                    code: string;
+                                    label: string;
+                                }[];
+                            };
+                            /** @default [] */
+                            titles?: string[];
+                            /** @default null */
+                            visaSponsorship?: boolean | null;
+                            /** @default [] */
+                            workModes?: ("onsite" | "hybrid" | "remote")[];
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description The filter */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobFilter"];
+                    };
+                };
+                /** @description Filter not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/job-filters/from-preset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** One click: "I study ___" becomes your filter */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        fieldCode: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The new filter */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobFilter"];
+                    };
+                };
+                /** @description Too many filters */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such field of study */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs": {
         parameters: {
             query?: never;
@@ -9140,6 +9591,121 @@ export interface components {
             url?: string;
         } & {
             [key: string]: unknown;
+        };
+        JobFilter: {
+            createdAt: string;
+            enabled: boolean;
+            id: number;
+            name: string;
+            spec: {
+                /**
+                 * @default {
+                 *       "include": [],
+                 *       "exclude": []
+                 *     }
+                 */
+                companies: {
+                    /** @default [] */
+                    exclude: string[];
+                    /** @default [] */
+                    include: string[];
+                };
+                /**
+                 * @default daily
+                 * @enum {string}
+                 */
+                digest: "off" | "realtime" | "daily" | "weekly";
+                /**
+                 * @default null
+                 * @enum {string|null}
+                 */
+                educationLevel: "none" | "secondary" | "vocational" | "associate" | "bachelor" | "master" | "doctorate" | null;
+                /** @default [] */
+                employmentTypes: ("full_time" | "part_time" | "internship" | "apprenticeship" | "contract" | "freelance" | "volunteer" | "student_job")[];
+                /** @default [] */
+                fieldsOfStudy: {
+                    code: string;
+                    label: string;
+                }[];
+                /** @default [] */
+                industries: {
+                    code: string;
+                    label: string;
+                }[];
+                /**
+                 * @default {
+                 *       "include": [],
+                 *       "exclude": [],
+                 *       "scope": [
+                 *         "title",
+                 *         "description"
+                 *       ]
+                 *     }
+                 */
+                keywords: {
+                    /** @default [] */
+                    exclude: string[];
+                    /** @default [] */
+                    include: string[];
+                    /**
+                     * @default [
+                     *       "title",
+                     *       "description"
+                     *     ]
+                     */
+                    scope: ("title" | "description" | "requirements")[];
+                };
+                /** @default [] */
+                languages: string[];
+                /** @default [] */
+                locations: {
+                    code: string;
+                    label: string;
+                    /** @default null */
+                    radiusKm: number | null;
+                }[];
+                /** @default null */
+                maxYearsExperience: number | null;
+                /** @default [] */
+                occupations: {
+                    code: string;
+                    label: string;
+                }[];
+                /** @default null */
+                postedWithinDays: number | null;
+                /** @default null */
+                salaryMin: {
+                    amount: number;
+                    currency: string;
+                } | null;
+                /** @default [] */
+                seniority: ("student" | "intern" | "entry" | "junior" | "mid" | "senior" | "lead")[];
+                /**
+                 * @default {
+                 *       "must": [],
+                 *       "nice": []
+                 *     }
+                 */
+                skills: {
+                    /** @default [] */
+                    must: {
+                        code: string;
+                        label: string;
+                    }[];
+                    /** @default [] */
+                    nice: {
+                        code: string;
+                        label: string;
+                    }[];
+                };
+                /** @default [] */
+                titles: string[];
+                /** @default null */
+                visaSponsorship: boolean | null;
+                /** @default [] */
+                workModes: ("onsite" | "hybrid" | "remote")[];
+            };
+            updatedAt: string;
         };
         JobFilterPreset: {
             field: {

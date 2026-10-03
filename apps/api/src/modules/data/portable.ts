@@ -20,6 +20,7 @@ const SKIP = new Set([
   "Integration", // your connected accounts' secrets (P5-07)
   "UserSettings", // travels as settings.json in the zip
   "OutboxMessage", "Notification", "PushSubscription", "AiUsage", // the app's own bookkeeping
+  "JobMatch", // found again from your filters (they point at shared postings another copy may not have)
 ]);
 
 type Model = (typeof Prisma.dmmf.datamodel.models)[number];
