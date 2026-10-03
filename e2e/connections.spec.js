@@ -52,3 +52,20 @@ test("Connect with Google: explains when it isn't set up, and reports how coming
   await page.goto("/backup?connected=gmail");
   await expect(page.getByRole("status").filter({ hasText: "Gmail connected with Google" })).toBeVisible();
 });
+
+// P5-07c: step-by-step guides for people who aren't in tech, reached from each connection
+test("each connection links to its step-by-step guide", async ({ page }) => {
+  await page.goto("/backup");
+  await page.getByRole("region", { name: "Email (Gmail)" }).getByRole("link", { name: "How do I get this?" }).click();
+  await expect(page).toHaveURL(/\/help\/connections#gmail$/);
+  await expect(page.getByRole("heading", { name: "How to connect your accounts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "2. Email: send from your own Gmail" })).toBeInViewport();
+  for (const h of ["1. The AI: your DeepSeek API key", "3. LinkedIn posting (through n8n)", "Step B: the part that receives your posts (Webhook)"]) {
+    await expect(page.getByRole("heading", { name: h })).toBeVisible();
+  }
+  await expect(page.getByText("{{ $json.body.text }}")).toBeVisible();
+  await page.getByText('n8n asks for a Client ID and Client Secret (getting your LinkedIn "id")').click();
+  await expect(page.getByText("Primary Client Secret")).toBeVisible();
+  await page.getByRole("region", { name: "1. The AI: your DeepSeek API key" }).getByRole("link", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/\/backup$/);
+});

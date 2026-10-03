@@ -71,10 +71,12 @@ export async function startTestStack({ port, env: extraEnv = {} } = {}) {
   delete env.DEMO_MODE;
   Object.assign(env, extraEnv); // (the cloud-mode stack for the browser tests, P5-04)
 
-  // a run that was killed (not stopped) leaves its schemas behind: each run clears those older than an hour
+  // a run that was killed (not stopped) leaves its schemas behind: each run clears those older than an hour, the oldest
+  // few at a time (all of them in one go can run out of the database's locks: "out of shared memory")
   prismaCli(["db", "execute", "--url", TEST_DB, "--stdin"], env, `DO $$ DECLARE s text; BEGIN
     FOR s IN SELECT schema_name FROM information_schema.schemata
       WHERE schema_name ~ '^run_[0-9]+_' AND split_part(schema_name, '_', 2)::bigint < extract(epoch FROM now()) * 1000 - 3600000
+      ORDER BY schema_name LIMIT 4
     LOOP EXECUTE format('DROP SCHEMA %I CASCADE', s); END LOOP; END $$;`);
   prismaCli(["migrate", "deploy"], env); // the same migrations the app runs, into this run's own schema
 

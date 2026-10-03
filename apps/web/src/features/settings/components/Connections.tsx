@@ -3,6 +3,10 @@ import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../../../api.ts";
 import { useApi } from "../../../api/hooks.ts";
 import { keyOf } from "../../../api/query.ts";
+import { Link } from "@tanstack/react-router";
+
+// which part of the step-by-step guide (/help/connections) explains each one
+const GUIDE = { deepseek: "ai", gmail: "gmail", n8n: "linkedin" } as const;
 
 // Your own credentials (P5-07): the AI (DeepSeek key), LinkedIn posting (your n8n webhook) and email (your Gmail with an
 // App Password). Sealed on the server and never shown again: after saving you only see which account it is.
@@ -67,7 +71,7 @@ export default function Connections() {
   return (
     <div className="card">
       <h2>Your connections</h2>
-      <p className="muted">Your own keys for the AI, LinkedIn and email. They are locked (encrypted) when saved and never shown again.</p>
+      <p className="muted">Your own keys for the AI, LinkedIn and email. They are locked (encrypted) when saved and never shown again. Not sure how? <Link to="/help/connections">Step-by-step guides</Link>.</p>
       {notice && <p role="status">{notice}</p>}
       {KINDS.map((k) => {
         // Gmail connected with Google (P5-08) takes the place of the App Password form
@@ -79,6 +83,7 @@ export default function Connections() {
             <div className="row" style={{ justifyContent: "space-between" }}>
               <div>
                 <b>{k.title}</b>
+                <Link className="tiny" to="/help/connections" hash={GUIDE[k.id]}>How do I get this?</Link>
                 <div className="muted">{viaGoogle ? <>✅ Connected with Google: {viaGoogle.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
               </div>
               {viaGoogle && <button onClick={() => remove.mutate("gmail-oauth")}>Disconnect</button>}
