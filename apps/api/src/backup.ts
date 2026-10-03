@@ -9,7 +9,7 @@ import { type Db, httpError } from "./types.ts";
 // Older backups from the SQLite days (.db) are still listed and can be downloaded.
 // BACKUP_DIR lets tests (and other setups) keep backups somewhere else
 const DIR = config.backupDir ? path.resolve(config.backupDir) : fileURLToPath(new URL("../../../backups/", import.meta.url));
-const NAME = /^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.(dump|db)$/;
+const NAME = /^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(-\d+)?\.(dump|db)$/; // -2, -3: more than one in a second
 
 // pg_dump: from PG_DUMP, or from the newest PostgreSQL installed in Program Files (Windows), or from PATH
 function findPgDump(): string {
@@ -77,13 +77,27 @@ function prune() {
 // (prisma stays a parameter so the callers don't change; pg_dump reads the database itself)
 export async function createBackup(_prisma: Db): Promise<string> {
   fs.mkdirSync(DIR, { recursive: true });
-  const name = `thought-studio-${stamp()}.dump`;
-  const file = path.join(DIR, name);
-  if (fs.existsSync(file)) {
-    throw httpError(429, "A backup was just made a second ago. Try again in a moment.");
+  // two backups in the same second (the daily one and a click, or two copies of the API) both succeed: -2, -3 …
+  // The name is claimed by creating the file ("wx": only if it doesn't exist), so two at once can never pick the same one.
+  const base = `thought-studio-${stamp()}`;
+  let name = `${base}.dump`;
+  for (let n = 2; ; n++) {
+    try {
+      fs.closeSync(fs.openSync(path.join(DIR, name), "wx"));
+      break;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+      name = `${base}-${n}.dump`;
+    }
   }
+  const file = path.join(DIR, name);
   // pg_dump writes a complete, consistent copy even while the app is using the database
-  await pgDump(file);
+  try {
+    await pgDump(file);
+  } catch (e) {
+    fs.rmSync(file, { force: true }); // no empty "backup" left behind
+    throw e;
+  }
   prune();
   return name;
 }

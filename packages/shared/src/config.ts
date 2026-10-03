@@ -34,6 +34,7 @@ const schema = z.object({
   }),
   DEMO_MODE: flag,
   NOTIFY_DRY_RUN: flag,
+  NO_BACKGROUND_JOBS: flag,
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
   DEEPSEEK_MODEL: text,
@@ -67,6 +68,8 @@ export type ApiConfig = {
   demo: boolean;
   /** Log notifications instead of showing them (tests, and always in the demo). */
   notifyDryRun: boolean;
+  /** This copy answers requests only; another copy runs the reminders, the post scheduler and backups (P4-08). */
+  noBackgroundJobs: boolean;
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -101,6 +104,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       port: e.PORT ? Number(e.PORT) : 4000,
       demo,
       notifyDryRun: demo || e.NOTIFY_DRY_RUN,
+      noBackgroundJobs: e.NO_BACKGROUND_JOBS,
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them
       deepseek: { apiKey: demo ? "" : e.DEEPSEEK_API_KEY, url: e.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions", model: e.DEEPSEEK_MODEL || "deepseek-chat" },
       n8nWebhookUrl: demo ? "" : e.N8N_WEBHOOK_URL,

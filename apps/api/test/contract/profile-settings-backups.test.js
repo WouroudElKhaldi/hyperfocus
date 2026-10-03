@@ -46,10 +46,16 @@ describe("settings & notifications", () => {
 describe("backups", () => {
   it("creates a backup in the configured folder and lists it", async () => {
     const r = await ok(post("/api/backups"));
-    expect(r.name).toMatch(/^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.dump$/);
+    expect(r.name).toMatch(/^thought-studio-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(-\d+)?\.dump$/);
     expect(path.resolve(r.folder)).toBe(path.resolve(inject("tmpDir"), "backups"));
     expect(fs.existsSync(path.join(r.folder, r.name))).toBe(true);
     expect((await ok(get("/api/backups"))).backups.some((b) => b.name === r.name)).toBe(true);
+  });
+
+  it("makes two backups in the same second (the daily one and a click): both are kept, under different names", async () => {
+    const [a, b] = await Promise.all([ok(post("/api/backups")), ok(post("/api/backups"))]);
+    expect(a.name).not.toBe(b.name);
+    for (const n of [a.name, b.name]) expect(fs.existsSync(path.join(a.folder, n))).toBe(true);
   });
 
   it("downloads a backup, and refuses names it did not create", async () => {

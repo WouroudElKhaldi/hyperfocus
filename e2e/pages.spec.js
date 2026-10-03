@@ -949,3 +949,14 @@ test.describe("translation-ready @phone", () => {
     }
   });
 });
+
+// P4-08: "Export my data" downloads one zip from the Settings page.
+test.describe("export my data", () => {
+  test("the Settings page downloads a zip of everything", async ({ page }) => {
+    await page.goto("/backup");
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "⬇ Export my data" }).click()]);
+    expect(download.suggestedFilename()).toMatch(/^hyperfocus-export-\d{4}-\d{2}-\d{2}\.zip$/);
+    const bytes = await (await import("node:fs")).promises.readFile(await download.path());
+    expect(bytes.subarray(0, 2).toString()).toBe("PK"); // a zip file
+  });
+});

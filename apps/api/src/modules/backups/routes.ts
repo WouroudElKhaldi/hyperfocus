@@ -23,7 +23,7 @@ export function backupsRouter({ prisma }: AppDeps) {
   app.openapi(
     createRoute({
       method: "post", path: "/api/backups", tags: ["Backups"], summary: "Make a backup now",
-      responses: { 200: json(Backups.extend({ name: z.string() }), "The new backup's name, and the list"), 429: problem("A backup was made a second ago") },
+      responses: { 200: json(Backups.extend({ name: z.string() }), "The new backup's name, and the list") },
     }),
     async (c) => {
       const name = await createBackup(prisma);

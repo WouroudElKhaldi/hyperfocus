@@ -15,6 +15,7 @@ import { coachRouter } from "./modules/coach/routes.ts";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
 import type { FileStorage } from "./storage/files.ts";
 import { emailsRouter } from "./modules/emails/routes.ts";
+import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { jobsRouter } from "./modules/jobs/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
@@ -57,7 +58,7 @@ const Health = z
   .openapi("Health");
 
 // In the demo nothing can reach your real backups, pop up notifications on this computer, or send email.
-const DEMO_OFF = ["/api/backups", "/api/notify", "/api/emails", "/api/email-templates"];
+const DEMO_OFF = ["/api/backups", "/api/notify", "/api/emails", "/api/email-templates", "/api/export", "/api/import"];
 const switchedOffInDemo = (path: string) => DEMO_OFF.some((p) => path === p || path.startsWith(`${p}/`));
 
 const healthRoute = createRoute({
@@ -125,6 +126,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", chatRouter(deps));
   app.route("/", coachRouter(deps));
   app.route("/", emailsRouter(deps));
+  app.route("/", dataRouter(deps)); // P4-08: export my data, and bring an export back
   app.route("/", jobsRouter(deps));
 
   // ---------- documentation ----------

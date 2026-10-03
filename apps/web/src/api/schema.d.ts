@@ -411,18 +411,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description A backup was made a second ago */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": {
-                            error: string;
-                            status: number;
-                        };
-                    };
-                };
             };
         };
         delete?: never;
@@ -2992,6 +2980,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export my data: every table as JSON plus the attached files, in one zip */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The zip */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/zip": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goal-actions/{id}": {
         parameters: {
             query?: never;
@@ -3690,6 +3714,58 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring an export back, into an empty database only (all or nothing) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/zip": string;
+                };
+            };
+            responses: {
+                /** @description Imported */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportResult"];
+                    };
+                };
+                /** @description Not an export, or the database isn't empty */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7945,6 +8021,13 @@ export interface components {
             n8n: boolean;
             /** @description Always true when the API answers */
             ok: boolean;
+        };
+        ImportResult: {
+            /** @enum {boolean} */
+            ok: true;
+            tables: {
+                [key: string]: number;
+            };
         };
         JobFields: {
             appliedAt?: string | null;

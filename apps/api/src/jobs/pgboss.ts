@@ -18,7 +18,7 @@ function bossTarget(databaseUrl: string): { url: string; schema: string } {
 
 export function pgBossScheduler({ databaseUrl, log }: { databaseUrl: string; log: Pick<Logger, "error" | "warn" | "info"> }): Scheduler {
   const { url, schema } = bossTarget(databaseUrl);
-  const boss = new PgBoss({ connectionString: url, schema });
+  const boss = new PgBoss({ connectionString: url, schema, max: 4 }); // a small pool: the scheduler needs few connections
   boss.on("error", (e: unknown) => log.error({ err: errorInfo(e).message }, "job queue error"));
   const jobs = new Map<string, Job>();
   const timers: ReturnType<typeof setTimeout>[] = [];

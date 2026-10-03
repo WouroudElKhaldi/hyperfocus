@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import { PrismaClient } from "@hyperfocus/db";
 import path from "node:path";
+import { execFileSync, spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { freePort } from "../support/stack.js";
 import { fake, get, ok, patch, post } from "../support/api.js";
 
 // The API runs timers in the background: "my reminders" every 20s and the LinkedIn post scheduler every 30s.
@@ -62,10 +65,32 @@ describe("background jobs", { timeout: 60000 }, () => {
     expect(sent.some((b) => b.postId === old.id)).toBe(false); // a missed post is never sent
   });
 
-  // P2-21: the automatic backup is a background job too; on start-up there is no backup yet, so it makes one right away
+  // P2-21: the automatic backup is a background job too; with no backup yet, it makes one right away. Checked on an API with a
+  // database (and so a job queue) and a backups folder of its own: the shared API's queue rightly runs the daily backup only
+  // once for every copy, and another test may already have made a backup there.
   it("makes the automatic backup at start-up", async () => {
-    const log = path.join(inject("tmpDir"), "api.log");
-    const line = await until(() => fs.readFileSync(log, "utf8").match(/Automatic backup: (thought-studio-[\d_-]+\.dump)/));
-    expect((await ok(get("/api/backups"))).backups.map((b) => b.name)).toContain(line[1]);
-  });
+    const url = new URL(inject("databaseUrl"));
+    const schema = `${url.searchParams.get("schema")}_startup`;
+    url.searchParams.set("schema", schema);
+    const dbDir = fileURLToPath(new URL("../../../../packages/db/", import.meta.url));
+    const prismaCli = (args, input) => execFileSync(process.execPath, [path.join(dbDir, "node_modules/prisma/build/index.js"), ...args], { cwd: dbDir, env: { ...process.env, DATABASE_URL: url.toString() }, stdio: "pipe", ...(input ? { input } : {}) });
+    prismaCli(["migrate", "deploy"]);
+    const dir = path.join(inject("tmpDir"), "backups-startup");
+    const log = path.join(inject("tmpDir"), "api-startup.log");
+    const port = await freePort();
+    const out = fs.openSync(log, "a");
+    const child = spawn(process.execPath, ["src/index.ts"], {
+      cwd: fileURLToPath(new URL("../../", import.meta.url)), stdio: ["ignore", out, out],
+      env: { ...process.env, DATABASE_URL: url.toString(), PORT: String(port), NOTIFY_DRY_RUN: "1", BACKUP_DIR: dir,
+        SETTINGS_FILE: path.join(inject("tmpDir"), "settings-startup.json"), GMAIL_USER: " ", GMAIL_APP_KEY: " ", DEEPSEEK_API_KEY: "test-key" },
+    });
+    try {
+      const line = await until(() => fs.readFileSync(log, "utf8").match(/Automatic backup: (thought-studio-[\d_-]+\.dump)/));
+      expect(fs.readdirSync(dir)).toContain(line[1]);
+    } finally {
+      child.kill();
+      await new Promise((r) => child.once("exit", r));
+      try { prismaCli(["db", "execute", "--url", url.toString(), "--stdin"], `DROP SCHEMA IF EXISTS "${schema}" CASCADE; DROP SCHEMA IF EXISTS "${schema}_jobs" CASCADE;`); } catch { /* gone */ }
+    }
+  }, 90000);
 });

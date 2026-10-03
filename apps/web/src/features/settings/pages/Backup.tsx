@@ -148,7 +148,7 @@ export default function Backup() {
       )}
 
       <h2 style={{ marginTop: "var(--s-4)" }}>Backup</h2>
-      <p className="sub">Everything you save lives in one file on this computer. Backups keep copies of it.</p>
+      <p className="sub">Everything you save lives in the database on this computer. Backups keep copies of it.</p>
 
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between" }}>
@@ -157,6 +157,16 @@ export default function Backup() {
             <div className="muted">The app also backs up by itself once a day and keeps the newest 30.</div>
           </div>
           <button className="primary big" disabled={busy} onClick={backupNow}>{busy ? "Saving…" : "Back up now"}</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <div>
+            <b>Export my data</b>
+            <div className="muted">Everything you saved, as one zip you can open: each list as readable JSON, plus your email files. Yours to keep or take elsewhere.</div>
+          </div>
+          <a className="btn" href="/api/export" download>⬇ Export my data</a>
         </div>
       </div>
 

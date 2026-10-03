@@ -40,6 +40,7 @@ const port = config.port;
 serve({ fetch: server.fetch, port, hostname: "127.0.0.1" }, () => {
   console.log(`API on http://localhost:${port}${DEMO ? " (DEMO MODE)" : ""}`);
   if (DEMO) return; // no scheduler, reminders or automatic backups in the demo
+  if (config.noBackgroundJobs) return; // NO_BACKGROUND_JOBS: this copy only answers requests
   // a queue in PostgreSQL (P4-05), so the jobs run once even with several copies of the API
   const scheduler = pgBossScheduler({ databaseUrl: config.databaseUrl, log });
   for (const job of backgroundJobs({ prisma, publisher, events })) scheduler.add(job);

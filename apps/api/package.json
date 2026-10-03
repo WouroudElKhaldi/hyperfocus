@@ -20,6 +20,7 @@
     "@scalar/hono-api-reference": "^0.12.8",
     "aws4fetch": "^1.0.20",
     "dotenv": "^16.4.5",
+    "fflate": "^0.8.3",
     "hono": "^4.13.12",
     "nodemailer": "^10.0.13",
     "pg-boss": "^12.35.1",

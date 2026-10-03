@@ -46,7 +46,8 @@ export async function startTestStack({ port } = {}) {
 
   const env = {
     ...process.env,
-    DATABASE_URL: `${TEST_DB}?schema=${schema}`,
+    // a small pool: several test API processes share one PostgreSQL (100 connections by default)
+    DATABASE_URL: `${TEST_DB}?schema=${schema}&connection_limit=5`,
     PORT: String(apiPort),
     DEEPSEEK_URL: `${ai.url}/chat/completions`,
     DEEPSEEK_API_KEY: "test-key",
