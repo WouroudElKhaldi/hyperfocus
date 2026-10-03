@@ -505,3 +505,12 @@ a.book-title:hover { color: var(--accent-strong); text-decoration: underline; }
 .step-row > label { flex: 1; min-width: 0; }
 .step-row .icon-btn { opacity: .55; }
 .step-row .icon-btn:hover, .step-row .icon-btn:focus-visible { opacity: 1; }
+
+/* phones (P5-11): the bell joined the top bar, so the empty "Get a companion" chip shows only its egg (its words stay
+   for screen readers) and the brand keeps its full name */
+@media (max-width: 480px) {
+  .pet-chip.empty .pc-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pet-chip.empty { padding: var(--s-2); }
+  .pet-chip .pc-text b { white-space: nowrap; }
+  .tb-right { gap: var(--s-1); }
+}
