@@ -111,6 +111,7 @@ describe("the background jobs", () => {
       ["chat-retention", 6 * 3600000, 30000], // P5-12: deletes AI chats older than each person chose
       ["radar-ingest", 10000, 8000], // P6-11: queued batches of postings
       ["radar-match", 30000, 20000], // P6-23: new postings against everyone's filters
+      ["radar-digest", 300000, 40000], // P6-24: telling people about new matches
       ["radar-retention", 6 * 3600000, 60000], // P6-17: stale postings archived, old ones deleted
       ["auto-backup", 6 * 3600000, 0],
     ]);
