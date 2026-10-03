@@ -9196,7 +9196,7 @@ export interface components {
             ai: boolean;
             /** @description Sending email is set up */
             email: boolean;
-            /** @description Where uploaded files go: database, disk or s3 */
+            /** @description Where uploaded files go: database or disk */
             fileStorage: string;
             /** @description Sign in with Google is set up */
             google: boolean;

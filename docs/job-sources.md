@@ -21,21 +21,17 @@ Rules for every source, built into the app:
 | **Greenhouse job boards** `boards-api.greenhouse.io/v1/boards/{company}/jobs` | Each company's own published openings (per company we add) | Public, no authentication for reading published jobs; meant for career sites. Aggregation isn't explicitly granted or forbidden. | Only companies we add on purpose (a list in admin). Link to the posting; name the company and "via Greenhouse". Fetch every 2–4 h per company. |
 | **Lever job boards** `api.lever.co/v0/postings/{company}` | The same for companies on Lever | Lever's docs: "all job postings in the published state are publicly viewable". | Same as Greenhouse. |
 
-## Local mode only (just you, on your computer)
-
-| Source | Why not in the hosted app |
-|---|---|
-| **Remotive** `remotive.com/api/remote-jobs` | Its terms say: *"Displaying our jobs in order to collect signups/email addresses to show a listing constitutes a breach of our terms of services."* The hosted Hyperfocus requires an account, so it can't show Remotive jobs. Also: link back to the Remotive URL **and** mention Remotive as the source; jobs are delayed 24 h; *"we advise max. 4 times a day"*, more than 2 requests a minute are blocked; don't pass their jobs to other job sites. For the hosted app: their private, paid API (hello@remotive.com). |
-
 ## Ready, switched on when you add a key (free registration)
 
-| Source | Key | Rules to follow once approved |
+| Source | Key (free registration) | Rules to follow once approved |
 |---|---|---|
 | **Adzuna** (many countries) | developer.adzuna.com: app id + key | Their developer terms require visible attribution to Adzuna with a link; respect their call limits. |
 | **Jooble** | jooble.org/api/about: request a key | Partner terms come with the key: read them then. |
 | **USAJOBS** (US government) | developer.usajobs.gov: key + your email as User-Agent | Public data; follow their API terms and rate limits. |
 
 ## Not used
+
+- **Remotive**: its terms forbid showing its jobs where people must sign up (the hosted Hyperfocus requires an account), and its other option is a paid API. Dropped (the owner: free sources only).
 
 - **LinkedIn jobs**: no public job-search API for general developers; scraping breaks their terms (ADR-012). Only an
   interface and a feature flag exist (P6-19), switched on if LinkedIn ever grants official partner access.

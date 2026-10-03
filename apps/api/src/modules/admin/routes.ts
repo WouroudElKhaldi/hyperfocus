@@ -22,7 +22,7 @@ const Providers = z
     linkedin: z.boolean().openapi({ description: "LinkedIn posting (n8n) is set up" }),
     email: z.boolean().openapi({ description: "Sending email is set up" }),
     google: z.boolean().openapi({ description: "Sign in with Google is set up" }),
-    fileStorage: z.string().openapi({ description: "Where uploaded files go: database, disk or s3" }),
+    fileStorage: z.string().openapi({ description: "Where uploaded files go: database or disk" }),
     people: z.number().openapi({ description: "How many accounts there are" }),
   })
   .openapi("ProviderHealth");

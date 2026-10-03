@@ -44,7 +44,7 @@ const mail = personalMail(config.mode === "local" ? config.gmail : { user: "", a
 const events = new EventBus((event, err) => log.error({ err, event }, "an event subscriber failed"));
 petEarnsXp(events, prisma);
 // The whole HTTP server is Hono (P2-22): the API, plus the built website in the demo.
-// Uploaded files: inside the database unless FILE_STORAGE says a folder or S3-compatible storage (P4-07).
+// Uploaded files: inside the database unless FILE_STORAGE says a folder (P4-07).
 // (the default folder is <project>/storage, next to backups)
 const files = fileStorageFrom({ ...config.fileStorage, dir: config.fileStorage.dir || fileURLToPath(new URL("../../../storage/", import.meta.url)) });
 // Accounts (P5-01): cloud mode only; local mode has one owner and nobody signs in.

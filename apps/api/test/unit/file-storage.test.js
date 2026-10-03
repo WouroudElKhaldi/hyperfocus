@@ -2,11 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { diskStorage, fileStorageFrom, newKey, s3Storage } from "../../src/storage/files.ts";
+import { diskStorage, fileStorageFrom, newKey } from "../../src/storage/files.ts";
 import { attachmentFiles } from "../../src/storage/attachments.ts";
-import { startFakeS3 } from "../support/fake-s3.js";
 
-// P4-07: the file storage port. Both adapters keep bytes exactly, say "no such file" with null, and only ever use the
+// P4-07: the file storage port. The folder keeps bytes exactly, say "no such file" with null, and only ever use the
 // app's own unguessable names (a path or a URL trick in a key is refused before anything is touched).
 
 const bytes = new Uint8Array([0, 1, 2, 250, 255, 128]);
@@ -41,29 +40,11 @@ describe("disk storage", () => {
   });
 });
 
-describe("S3-compatible storage", () => {
-  let s3;
-  beforeAll(async () => { s3 = await startFakeS3(); });
-  afterAll(() => s3.close());
-  const make = () => s3Storage({ endpoint: s3.url, bucket: "hf-files", accessKeyId: "test-key", secretAccessKey: "secret", region: "auto" });
-  contract(make);
-  it("signs every request (AWS Signature V4) and uses path-style addresses in its bucket", async () => {
-    await make().put(newKey(), bytes, "image/png");
-    expect(s3.requests.length).toBeGreaterThan(0);
-    expect(s3.requests.every((r) => r.signed)).toBe(true);
-    expect(s3.requests.every((r) => r.path.startsWith("/hf-files/"))).toBe(true);
-  });
-  it("says why when the service refuses (wrong key)", async () => {
-    const wrong = s3Storage({ endpoint: s3.url, bucket: "hf-files", accessKeyId: "nope", secretAccessKey: "x", region: "auto" });
-    await expect(wrong.put(newKey(), bytes, "x/y")).rejects.toThrow(/upload failed \(403\)/);
-  });
-});
-
 describe("attachments over the storage", () => {
   it("database mode keeps the bytes in the row; other modes keep only a key", async () => {
     expect(await attachmentFiles(null).save(bytes, "x/y")).toEqual({ data: bytes, storageKey: "" });
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hf-att-"));
-    const store = attachmentFiles(fileStorageFrom({ kind: "disk", dir, s3: {} }));
+    const store = attachmentFiles(fileStorageFrom({ kind: "disk", dir }));
     const row = await store.save(bytes, "x/y");
     expect(row.data).toBeNull();
     expect(row.storageKey).toMatch(/^[0-9a-f-]{36}$/);
