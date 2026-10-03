@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { type KeyRing, unseal } from "./secrets.ts";
 import type { Db } from "./types.ts";
 import type { GmailOAuthTokens } from "./google-oauth.ts";
+import type { LinkedInTokens } from "./linkedin.ts";
 
 // Your own credentials (P5-07, at your request): each person saves their DeepSeek key, their n8n LinkedIn webhook and
 // their Gmail App Password in Settings → Connections. They are sealed in the Integration table (src/secrets.ts) and
@@ -30,9 +31,11 @@ export const CREDENTIAL_KINDS = Object.keys(CREDENTIALS) as CredentialKind[];
 export type Credentials = { [K in CredentialKind]?: z.infer<(typeof CREDENTIALS)[K]> } & {
   /** "Connect with Google" for Gmail (P5-08) */
   "gmail-oauth"?: GmailOAuthTokens;
+  /** "Connect LinkedIn" (P5-09) */
+  linkedin?: LinkedInTokens;
 };
 /** Everything opened per request: what people paste, and what the Google sign-in flow saves. */
-const LOADED = [...CREDENTIAL_KINDS, "gmail-oauth"];
+const LOADED = [...CREDENTIAL_KINDS, "gmail-oauth", "linkedin"];
 
 /** What the list shows for each (never the secret itself). */
 export function describe(kind: CredentialKind, c: Credentials[CredentialKind]): string {

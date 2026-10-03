@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { checkState as checkSigned, makeState } from "./oauth-state.ts";
 
 // "Connect with Google" for Gmail (P5-08): each person lets the app send email from their own Gmail, without an App
 // Password. Google's OAuth 2.0 web flow with the gmail.send scope only (the app can send, never read your mail).
@@ -14,17 +14,9 @@ const endpoints = (baseUrl: string) =>
 export const tokenUrl = (s: Pick<GoogleOAuthSettings, "baseUrl">) => endpoints(s.baseUrl).token;
 export const redirectUri = (s: Pick<GoogleOAuthSettings, "publicUrl">) => `${s.publicUrl}/api/integrations/gmail-oauth/callback`;
 
-const sign = (secret: string, text: string) => createHmac("sha256", secret).update(text).digest("base64url");
-
-/**
- * Where to send the browser, and the nonce to keep in a cookie. The `state` carries who is connecting and when it
- * expires (10 minutes), signed; the callback also checks that the nonce in it matches this browser's cookie, so nobody can
- * attach their Gmail to someone else's account by sending them a link.
- */
+/** Where to send the browser, and the nonce to keep in a cookie (see src/oauth-state.ts). */
 export function startUrl(s: GoogleOAuthSettings, userId: string, now = Date.now()) {
-  const nonce = randomBytes(16).toString("base64url");
-  const body = Buffer.from(JSON.stringify({ u: userId, e: now + 10 * 60_000, n: nonce })).toString("base64url");
-  const state = `${body}.${sign(s.secret, body)}`;
+  const { state, nonce } = makeState(s.secret, userId, now);
   const q = new URLSearchParams({
     client_id: s.clientId, redirect_uri: redirectUri(s), response_type: "code", scope: GMAIL_SCOPES.join(" "),
     access_type: "offline", prompt: "consent", include_granted_scopes: "true", state,
@@ -33,18 +25,8 @@ export function startUrl(s: GoogleOAuthSettings, userId: string, now = Date.now(
 }
 
 /** Checks the state from the callback: signed by us, not expired, for this person, from this browser. */
-export function checkState(s: GoogleOAuthSettings, state: string, userId: string, cookieNonce: string | undefined, now = Date.now()): string | null {
-  const [body, mac] = state.split(".");
-  if (!body || !mac) return "That link isn't from Hyperfocus.";
-  const want = Buffer.from(sign(s.secret, body));
-  const got = Buffer.from(mac);
-  if (want.length !== got.length || !timingSafeEqual(want, got)) return "That link isn't from Hyperfocus.";
-  const { u, e, n } = JSON.parse(Buffer.from(body, "base64url").toString()) as { u: string; e: number; n: string };
-  if (e < now) return "That took too long. Please try connecting again.";
-  if (u !== userId) return "This was started by someone else.";
-  if (!cookieNonce || cookieNonce !== n) return "Please start connecting from this browser.";
-  return null;
-}
+export const checkState = (s: GoogleOAuthSettings, state: string, userId: string, cookieNonce: string | undefined, now = Date.now()) =>
+  checkSigned(s.secret, state, userId, cookieNonce, now);
 
 /** Trades the code Google sent back for tokens, and reads which Gmail address it is. */
 export async function exchangeCode(s: GoogleOAuthSettings, code: string, fetchImpl: typeof fetch = fetch, now = Date.now()): Promise<GmailOAuthTokens> {

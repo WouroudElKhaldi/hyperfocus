@@ -26,7 +26,7 @@ export default function ConnectionsHelp() {
         website's owner.
       </p>
       <nav className="card" aria-label="Guides">
-        <b>Jump to:</b> <a href="#ai">The AI (DeepSeek key)</a> · <a href="#gmail">Email (Gmail)</a> · <a href="#linkedin">LinkedIn posting (n8n)</a>
+        <b>Jump to:</b> <a href="#ai">The AI (DeepSeek key)</a> · <a href="#gmail">Email (Gmail)</a> · <a href="#linkedin">LinkedIn posting</a>
       </nav>
 
       <section id="ai" className="card" aria-labelledby="ai-title">
@@ -102,6 +102,19 @@ export default function ConnectionsHelp() {
           Without it, you can still use everything: Hyperfocus gives you a <b>Copy</b> button and you paste the post on LinkedIn yourself.
         </p>
 
+        <h3>The easy way: Connect LinkedIn (1 minute)</h3>
+        <Steps>
+          <li>In <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting</b>, click <b>Connect LinkedIn</b>.</li>
+          <li>LinkedIn opens. Sign in if asked, and click <b>Allow</b> so Hyperfocus can post for you (it can't read your messages or change your profile).</li>
+          <li>You come back to Settings, and it says <i>Connected to LinkedIn as</i> your name. Your posts now go straight to your LinkedIn.</li>
+        </Steps>
+        <p className="muted">
+          LinkedIn asks you to allow it again about every 60 days; Hyperfocus tells you when. If the button says it isn't set up for this
+          app, the website's owner hasn't switched it on yet: use n8n below instead.
+        </p>
+
+        <h3>Or: through your own n8n</h3>
+        <p className="muted">For people who already use n8n, or when Connect LinkedIn isn't available.</p>
         <h3>Step A: get n8n</h3>
         <Steps>
           <li>
@@ -138,7 +151,7 @@ export default function ConnectionsHelp() {
           <li>Click <b>Save</b>, then switch the workflow on (the <b>Inactive / Active</b> switch at the top, or <b>Publish</b>, depending on your n8n version).</li>
           <li>Open the <b>Webhook</b> box again. Click <b>Production URL</b> (not "Test URL") and copy the address. It looks like <code>https://yourname.app.n8n.cloud/webhook/…</code>.</li>
           <li>
-            In Hyperfocus, <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting (n8n)</b>: paste it and click{" "}
+            In Hyperfocus, <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting</b>: paste it and click{" "}
             <b>Save</b>.
           </li>
           <li>Try it: write a short post in Hyperfocus and click <b>Publish</b>. It should appear on your LinkedIn within a few seconds.</li>

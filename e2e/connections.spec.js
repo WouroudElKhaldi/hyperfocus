@@ -69,3 +69,18 @@ test("each connection links to its step-by-step guide", async ({ page }) => {
   await page.getByRole("region", { name: "1. The AI: your DeepSeek API key" }).getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/backup$/);
 });
+
+// P5-09: "Connect LinkedIn". This test copy has no LinkedIn app, so it says to use n8n; the way back reports under
+// LinkedIn (the full flow with a stand-in LinkedIn is in the API suite)
+test("Connect LinkedIn: explains when it isn't set up, and reports how coming back from LinkedIn went", async ({ page }) => {
+  await page.goto("/backup");
+  const li = page.getByRole("region", { name: "LinkedIn posting" });
+  await li.getByRole("button", { name: "Connect LinkedIn" }).click();
+  await expect(li.getByRole("alert")).toContainText("Connecting LinkedIn directly isn't set up for this app");
+  await page.goto(`/backup?connect-error=${encodeURIComponent("You didn't allow it, so nothing changed.")}&for=linkedin`);
+  await expect(li.getByRole("alert")).toHaveText("You didn't allow it, so nothing changed.");
+  await page.goto("/backup?connected=linkedin");
+  await expect(page.getByRole("status").filter({ hasText: "LinkedIn connected" })).toBeVisible();
+  await li.getByRole("link", { name: "How do I get this?" }).click();
+  await expect(page.getByRole("heading", { name: "The easy way: Connect LinkedIn (1 minute)" })).toBeVisible();
+});

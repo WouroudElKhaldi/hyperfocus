@@ -18,7 +18,7 @@ const KINDS: { id: "deepseek" | "n8n" | "gmail"; title: string; what: string; fi
     fields: [{ name: "apiKey", label: "DeepSeek API key", type: "password", placeholder: "sk-…", hint: "From platform.deepseek.com → API keys." }],
   },
   {
-    id: "n8n", title: "LinkedIn posting (n8n)", what: "Publishing your posts to LinkedIn, now or scheduled.",
+    id: "n8n", title: "LinkedIn posting", what: "Publishing your posts to LinkedIn, now or scheduled.",
     fields: [{ name: "webhookUrl", label: "n8n webhook address", type: "url", placeholder: "https://your-n8n.example/webhook/…", hint: "The production URL of the Webhook node in your LinkedIn workflow." }],
   },
   {
@@ -47,15 +47,18 @@ export default function Connections() {
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get("connected") === "gmail") setNotice("✅ Gmail connected with Google. Your emails now go from your Gmail.");
+    if (q.get("connected") === "linkedin") setNotice("✅ LinkedIn connected. Your posts now go straight to your LinkedIn.");
     const failed = q.get("connect-error");
-    if (failed) setError({ id: "gmail", message: failed });
+    if (failed) setError({ id: q.get("for") === "linkedin" ? "n8n" : "gmail", message: failed });
     if (q.has("connected") || failed) window.history.replaceState(null, "", window.location.pathname);
   }, []);
   const googleGmail = saved.find((s) => s.provider === "gmail-oauth");
-  const connectGoogle = () =>
-    api.get("/integrations/gmail-oauth/start").then(
+  const directLinkedIn = saved.find((s) => s.provider === "linkedin"); // P5-09
+  /** Off to Google or LinkedIn to allow it; back in Settings afterwards. */
+  const connectVia = (to: "google" | "linkedin", id: string) =>
+    (to === "google" ? api.get("/integrations/gmail-oauth/start") : api.get("/integrations/linkedin/start")).then(
       ({ url }) => window.location.assign(url),
-      (err) => setError({ id: "gmail", message: err instanceof Error ? err.message : "That didn't work." }),
+      (err) => setError({ id, message: err instanceof Error ? err.message : "That didn't work." }),
     );
 
   const submit = (id: string) => (e: FormEvent<HTMLFormElement>) => {
@@ -75,7 +78,7 @@ export default function Connections() {
       {notice && <p role="status">{notice}</p>}
       {KINDS.map((k) => {
         // Gmail connected with Google (P5-08) takes the place of the App Password form
-        const viaGoogle = k.id === "gmail" ? googleGmail : undefined;
+        const viaGoogle = k.id === "gmail" ? googleGmail : k.id === "n8n" ? directLinkedIn : undefined;
         const have = viaGoogle ?? saved.find((s) => s.provider === k.id);
         const open = !viaGoogle && (editing === k.id || !have);
         return (
@@ -84,9 +87,9 @@ export default function Connections() {
               <div>
                 <b>{k.title}</b>
                 <Link className="tiny" to="/help/connections" hash={GUIDE[k.id]}>How do I get this?</Link>
-                <div className="muted">{viaGoogle ? <>✅ Connected with Google: {viaGoogle.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
+                <div className="muted">{viaGoogle ? <>✅ {k.id === "n8n" ? "Connected to LinkedIn as" : "Connected with Google:"} {viaGoogle.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
               </div>
-              {viaGoogle && <button onClick={() => remove.mutate("gmail-oauth")}>Disconnect</button>}
+              {viaGoogle && <button onClick={() => remove.mutate(viaGoogle.provider)}>Disconnect</button>}
               {!viaGoogle && have && editing !== k.id && (
                 <div className="row">
                   <button onClick={() => setEditing(k.id)}>Change</button>
@@ -98,7 +101,10 @@ export default function Connections() {
               <p className="muted tiny" data-testid="ai-usage">Today: {usage.used} of {usage.limit} AI requests on the app's key. Add your own key above for no limit.</p>
             )}
             {k.id === "gmail" && !viaGoogle && (
-              <p><button type="button" onClick={() => void connectGoogle()}>Connect with Google</button> <span className="muted tiny">No App Password needed: Google asks you to allow sending only.</span></p>
+              <p><button type="button" onClick={() => void connectVia("google", "gmail")}>Connect with Google</button> <span className="muted tiny">No App Password needed: Google asks you to allow sending only.</span></p>
+            )}
+            {k.id === "n8n" && !viaGoogle && (
+              <p><button type="button" onClick={() => void connectVia("linkedin", "n8n")}>Connect LinkedIn</button> <span className="muted tiny">The easy way: no n8n needed. Or use your own n8n webhook below.</span></p>
             )}
             {open && (
               <form className="form-grid" onSubmit={submit(k.id)}>

@@ -13,6 +13,7 @@ import { fileStorageFrom } from "./storage/files.ts";
 import { keyRing, localKeyRing } from "./secrets.ts";
 import { tokenUrl } from "./google-oauth.ts";
 import { pushChannel, vapidFrom } from "./push.ts";
+import { linkedinFirst } from "./linkedin.ts";
 import { n8nPublisher, personalPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
@@ -30,7 +31,9 @@ const prisma = new PrismaClient({ datasourceUrl: config.databaseUrl, omit: OWNER
 if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_API_KEY", "GMAIL_APP_KEY"]) delete process.env[k];
 // Where finished posts go: LinkedIn through the n8n webhook (empty in the demo, so nothing can be posted).
 // (each person's own webhook from Settings → Connections; the .env one only in local mode, P5-07)
-const publisher = DEMO ? n8nPublisher("") : personalPublisher(config.mode === "local" ? config.n8nWebhookUrl : "");
+// (and before that, P5-09: their own LinkedIn connected directly, when the website has a LinkedIn app)
+const n8nOrFallback = personalPublisher(config.mode === "local" ? config.n8nWebhookUrl : "");
+const publisher = DEMO ? n8nPublisher("") : config.linkedin ? linkedinFirst(config.linkedin, n8nOrFallback) : n8nOrFallback;
 // Sending email: her Gmail with an App Password (switched off in the demo).
 // (each person's own Gmail from Settings → Connections; the .env one only in local mode, P5-07). The account emails
 // (confirm, reset) are the app's own: always the .env Gmail.

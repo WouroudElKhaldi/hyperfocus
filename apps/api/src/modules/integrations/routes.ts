@@ -8,6 +8,8 @@ import { integrations } from "../../integrations.ts";
 import { aiUsage } from "../../ai-quota.ts";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { checkState, exchangeCode, startUrl } from "../../google-oauth.ts";
+import { checkState as checkSigned } from "../../oauth-state.ts";
+import { linkedinExchange, linkedinStart } from "../../linkedin.ts";
 
 // Your connected accounts (P5-07): which ones you have, saving your own credentials (DeepSeek key, n8n webhook, Gmail
 // App Password), and disconnecting one (its secrets are deleted). The sign-in flows (P5-08 Gmail, P5-09 LinkedIn) add
@@ -37,6 +39,47 @@ export function integrationsRouter({ prisma, secrets, config, log }: AppDeps) {
   // "Connect with Google" for Gmail (P5-08)
   const google = config.auth?.google ? { ...config.auth.google, publicUrl: config.auth.publicUrl, secret: config.auth.secret, baseUrl: config.googleOAuthUrl } : null;
   const NONCE = "hf_gmail_oauth";
+  // "Connect LinkedIn" (P5-09)
+  const linkedin = config.linkedin ? { ...config.linkedin, publicUrl: config.auth.publicUrl, secret: config.auth.secret } : null;
+  const LI_NONCE = "hf_linkedin_oauth";
+  app.openapi(
+    createRoute({
+      method: "get", path: "/api/integrations/linkedin/start", tags: ["Integrations"], summary: "Start \"Connect LinkedIn\": where to send the browser",
+      responses: { 200: json(z.object({ url: z.string() }), "LinkedIn's consent page"), 409: problem("LinkedIn isn't set up for this app") },
+    }),
+    (c) => {
+      if (!linkedin) throw httpError(409, "Connecting LinkedIn directly isn't set up for this app (LINKEDIN_CLIENT_ID). Use n8n instead.");
+      const { url, nonce } = linkedinStart(linkedin, c.get("userId"));
+      setCookie(c, LI_NONCE, nonce, { httpOnly: true, sameSite: "Lax", path: "/api/integrations/linkedin", maxAge: 600, secure: linkedin.publicUrl.startsWith("https://") });
+      return c.json({ url }, 200);
+    },
+  );
+  app.openapi(
+    createRoute({
+      method: "get", path: "/api/integrations/linkedin/callback", tags: ["Integrations"], summary: "Where LinkedIn sends you back: saves the permission, then back to Settings",
+      request: { query: z.object({ code: z.string().optional(), state: z.string().optional(), error: z.string().optional() }) },
+      responses: { 302: { description: "Back to Settings, with ?connected=linkedin or ?connect-error=…" } },
+    }),
+    async (c) => {
+      const back = (q: string) => c.redirect(`/backup?${q}`, 302);
+      const fail = (m: string) => back(`connect-error=${encodeURIComponent(m)}&for=linkedin`);
+      const { code, state, error } = c.req.valid("query");
+      const nonce = getCookie(c, LI_NONCE);
+      deleteCookie(c, LI_NONCE, { path: "/api/integrations/linkedin" });
+      if (!linkedin || !secrets) return fail("Connecting LinkedIn isn't set up for this app.");
+      if (error || !code || !state) return fail(error === "user_cancelled_authorize" || error === "user_cancelled_login" ? "You didn't allow it, so nothing changed." : "LinkedIn didn't finish connecting.");
+      const wrong = checkSigned(linkedin.secret, state, c.get("userId"), nonce);
+      if (wrong) return fail(wrong);
+      try {
+        const tokens = await linkedinExchange(linkedin, code);
+        await integrations(prisma, secrets).save("linkedin", tokens.name || "LinkedIn", tokens);
+        return back("connected=linkedin");
+      } catch (e) {
+        log.warn({ err: (e as Error).message }, "Connect LinkedIn failed");
+        return fail((e as Error).message);
+      }
+    },
+  );
   app.openapi(
     createRoute({
       method: "get", path: "/api/integrations/gmail-oauth/start", tags: ["Integrations"], summary: "Start \"Connect with Google\" for Gmail: where to send the browser",
