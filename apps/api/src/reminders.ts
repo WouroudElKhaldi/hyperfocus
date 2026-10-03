@@ -1,6 +1,7 @@
 import { getSettings, remind } from "./notify.ts";
 import { enqueue } from "./outbox.ts";
 import type { Db } from "./types.ts";
+import { clockIn, reached } from "./clock.ts";
 import { eventOccurrences, addDays } from "./modules/calendar/calendar.ts";
 
 // Checks once a minute for things worth a gentle nudge. Every reminder is sent once (see remind()).
@@ -40,10 +41,9 @@ export async function checkReminders(prisma: Db): Promise<void> {
     }
   }
 
-  // 4. Morning: what is on for today (once a day, after the chosen time)
-  const [hh = Number.NaN, mm = Number.NaN] = settings.morningAt.split(":").map(Number);
-  if (now.getHours() > hh || (now.getHours() === hh && now.getMinutes() >= mm)) {
-    const today = localDay(now);
+  // 4. Morning: what is on for today (once a day, after the chosen time, on their own clock: P5-11)
+  if (reached(settings.morningAt, settings.timeZone, now)) {
+    const today = clockIn(settings.timeZone, now).day;
     const tasks = await prisma.task.findMany({ where: { done: false, OR: [{ today: true }, { dueDay: today }] } });
     if (tasks.length) {
       await remind(prisma, `morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0]?.title}. Just that one.`);

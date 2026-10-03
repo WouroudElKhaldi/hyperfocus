@@ -8,7 +8,9 @@ import type { Db } from "./types.ts";
 
 /** Anything that can write to the outbox: the client, or a transaction (`prisma.$transaction(async (tx) => …)`). */
 type Writer = Pick<Db, "outboxMessage">;
-export type Send = (title: string, body: string) => Promise<{ ok: boolean; error?: string }>;
+/** One message as the sender sees it: for whom, which one, and what it says. */
+export type OutboxNote = { userId: string; key: string; title: string; body: string };
+export type Send = (note: OutboxNote) => Promise<{ ok: boolean; error?: string }>;
 
 export const MAX_ATTEMPTS = 5;
 
@@ -19,13 +21,14 @@ export async function enqueue(db: Writer, key: string, title: string, body: stri
 
 /** Sends what is waiting, oldest first. Several copies may run this at once: each message is claimed before sending. */
 export async function deliverOutbox(db: Pick<Db, "outboxMessage">, send: Send, { kind = "notification", limit = 20 } = {}): Promise<number> {
-  const pending = await db.outboxMessage.findMany({ where: { kind, sentAt: null, attempts: { lt: MAX_ATTEMPTS } }, orderBy: { id: "asc" }, take: limit });
+  // (the owner id is left out of every result, so it is asked for here: the sender needs to know whom it is for)
+  const pending = await db.outboxMessage.findMany({ where: { kind, sentAt: null, attempts: { lt: MAX_ATTEMPTS } }, orderBy: { id: "asc" }, take: limit, omit: { userId: false } });
   let sent = 0;
   for (const m of pending) {
     // claim this attempt: only one copy gets count 1 for the same message and attempt number
     const claim = await db.outboxMessage.updateMany({ where: { id: m.id, sentAt: null, attempts: m.attempts }, data: { attempts: { increment: 1 } } });
     if (claim.count !== 1) continue;
-    const r = await send(m.title, m.body).catch((e: unknown) => ({ ok: false, error: e instanceof Error ? e.message : String(e) }));
+    const r = await send({ userId: m.userId, key: m.key, title: m.title, body: m.body }).catch((e: unknown) => ({ ok: false, error: e instanceof Error ? e.message : String(e) }));
     await db.outboxMessage.update({ where: { id: m.id }, data: r.ok ? { sentAt: new Date(), lastError: "" } : { lastError: r.error ?? "It couldn't be sent." } });
     if (r.ok) sent++;
     else console.error(`Notification "${m.title}" failed (try ${m.attempts + 1}/${MAX_ATTEMPTS}): ${r.error}`);

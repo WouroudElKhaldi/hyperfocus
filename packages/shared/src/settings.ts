@@ -19,10 +19,30 @@ export const Settings = z.object({
   textSize: z.enum(TEXT_SIZES),
   /** Focus mode: the sidebar is hidden, so only the page is on screen. */
   focusMode: z.boolean(),
+  /** Notifications (P5-11): pop-ups on this computer (local mode only). */
+  desktop: z.boolean(),
+  /** Web push on your devices (P5-11). */
+  push: z.boolean(),
+  /** A daily email with the day's notifications, at digestAt (P5-11). */
+  emailDigest: z.boolean(),
+  digestAt: z.string(),
+  /** Quiet hours "HH:MM"–"HH:MM" (over midnight is fine): nothing pops up; everything is still in the bell. Empty = none. */
+  quietFrom: z.string(),
+  quietTo: z.string(),
+  /** Your time zone, like "Asia/Beirut" (empty = the server's). Set by the website from your device. */
+  timeZone: z.string(),
 });
 export type Settings = z.infer<typeof Settings>;
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const knownTimeZone = (tz: string) => {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return tz.length <= 64;
+  } catch {
+    return false;
+  }
+};
 const oneOf = <T extends string>(list: readonly T[]) => (v: unknown): v is T => list.includes(v as T);
 const only = <T>(keep: (v: unknown) => v is T, fix: (v: T) => T = (v) => v) => (v: unknown) => (keep(v) ? fix(v) : undefined);
 
@@ -38,5 +58,12 @@ export const UpdateSettingsInput = z.object({
   font: z.preprocess(only(oneOf(FONT_CHOICES)), z.enum(FONT_CHOICES).optional()),
   textSize: z.preprocess(only(oneOf(TEXT_SIZES)), z.enum(TEXT_SIZES).optional()),
   focusMode: z.preprocess(only((v): v is boolean => typeof v === "boolean"), z.boolean().optional()),
+  desktop: z.preprocess(only((v): v is boolean => typeof v === "boolean"), z.boolean().optional()),
+  push: z.preprocess(only((v): v is boolean => typeof v === "boolean"), z.boolean().optional()),
+  emailDigest: z.preprocess(only((v): v is boolean => typeof v === "boolean"), z.boolean().optional()),
+  digestAt: z.preprocess(only((v): v is string => typeof v === "string" && TIME.test(v)), z.string().optional()),
+  quietFrom: z.preprocess(only((v): v is string => typeof v === "string" && (v === "" || TIME.test(v))), z.string().optional()),
+  quietTo: z.preprocess(only((v): v is string => typeof v === "string" && (v === "" || TIME.test(v))), z.string().optional()),
+  timeZone: z.preprocess(only((v): v is string => typeof v === "string" && (v === "" || knownTimeZone(v))), z.string().optional()),
 });
 export type UpdateSettingsInput = z.input<typeof UpdateSettingsInput>;

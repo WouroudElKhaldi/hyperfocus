@@ -49,6 +49,12 @@ export default function Backup() {
   const client = useQueryClient();
   const backupNow = () => backup.mutate(undefined, { onSuccess: () => toast("Backup saved 💾 Everything you have right now is safe.") });
 
+  // your time zone, from this device, the first time (P5-11: quiet hours and the morning note use your clock)
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (prefs && !prefs.timeZone && tz) saveSettings.mutate({ timeZone: tz });
+  }, [prefs, saveSettings]);
+
   const newest = data.backups[0];
 
   return (
@@ -169,8 +175,31 @@ export default function Backup() {
             </label>
             <button onClick={testNotification}>Send a test notification</button>
           </div>
-          <p className="muted tiny" style={{ marginTop: "var(--s-2)" }}>Don't see the test? Check that Windows "Do not disturb" or "Focus" is off and that notifications are allowed in Windows settings.</p>
+          {me?.mode !== "cloud" && <p className="muted tiny" style={{ marginTop: "var(--s-2)" }}>Don't see the pop-up? Check that Windows "Do not disturb" or "Focus" is off and that notifications are allowed in Windows settings.</p>}
           </More>
+        </div>
+      )}
+
+      {prefs && (
+        <div className="card" aria-labelledby="notif-title">
+          <h2 id="notif-title" style={{ marginTop: 0 }}>Where notifications go</h2>
+          <p className="muted">Every notification is in the bell 🔔 at the top. These decide what also pops up.</p>
+          {me?.mode !== "cloud" && (
+            <label className="row" style={{ gap: "var(--s-1)" }}>
+              <input type="checkbox" className="check" checked={prefs.desktop} onChange={(e) => savePrefs({ desktop: e.target.checked })} />
+              Pop-ups on this computer
+            </label>
+          )}
+          <div className="row" style={{ marginTop: "var(--s-2)" }}>
+            <label className="muted">Quiet from
+              <input type="time" aria-label="Quiet hours start" style={{ width: "auto", margin: "0 var(--s-1)" }} value={prefs.quietFrom} onChange={(e) => savePrefs({ quietFrom: e.target.value })} />
+            </label>
+            <label className="muted">to
+              <input type="time" aria-label="Quiet hours end" style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.quietTo} onChange={(e) => savePrefs({ quietTo: e.target.value })} />
+            </label>
+            {(prefs.quietFrom || prefs.quietTo) && <button className="ghost" onClick={() => savePrefs({ quietFrom: "", quietTo: "" })}>No quiet hours</button>}
+          </div>
+          <p className="muted tiny">During quiet hours nothing pops up; it all waits in the bell. Times are in your time zone: {prefs.timeZone || "this computer's"}.</p>
         </div>
       )}
 

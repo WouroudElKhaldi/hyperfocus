@@ -583,6 +583,21 @@ model UserSettings {
   updatedAt DateTime @updatedAt
 }
 
+// A person's notifications in the app (P5-11): the bell at the top. One per outbox message (same key).
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    String    @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  title     String
+  body      String    @default("")
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@unique([userId, key])
+  @@index([userId, readAt])
+}
+
 model FeatureFlag {
   key       String   @id
   enabled   Boolean  @default(false)
@@ -652,6 +667,7 @@ model User {
   aiUsage         AiUsage[]
   settings        UserSettings?
   outbox          OutboxMessage[]
+  notifications   Notification[]
 }
 
 model Session {

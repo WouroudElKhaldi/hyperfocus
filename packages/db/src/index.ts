@@ -20,6 +20,7 @@ export type Integration = Seen<Rows.Integration>;
 export type AiUsage = Seen<Rows.AiUsage>;
 export type UserSettings = Seen<Rows.UserSettings>;
 export type OutboxMessage = Seen<Rows.OutboxMessage>;
+export type Notification = Seen<Rows.Notification>;
 export type Note = Seen<Rows.Note>;
 export type Pet = Seen<Rows.Pet>;
 export type PetXp = Seen<Rows.PetXp>;
@@ -44,5 +45,5 @@ export const OWNER_OMIT = {
   bookMessage: { userId: true }, skill: { userId: true }, review: { userId: true }, win: { userId: true }, pet: { userId: true },
   petXp: { userId: true }, chatThread: { userId: true }, chatMessage: { userId: true }, profile: { userId: true },
   reminder: { userId: true }, email: { userId: true }, emailTemplate: { userId: true }, emailAttachment: { userId: true },
-  jobApplication: { userId: true }, integration: { userId: true }, aiUsage: { userId: true }, userSettings: { userId: true }, outboxMessage: { userId: true },
+  jobApplication: { userId: true }, integration: { userId: true }, aiUsage: { userId: true }, userSettings: { userId: true }, outboxMessage: { userId: true }, notification: { userId: true },
 } as const satisfies P.GlobalOmitConfig;

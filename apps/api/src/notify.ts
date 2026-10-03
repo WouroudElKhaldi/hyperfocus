@@ -13,7 +13,11 @@ import { type Db, compact } from "./types.ts";
 const SETTINGS_FILE = config.settingsFile || fileURLToPath(new URL("../settings.json", import.meta.url));
 export type Settings = SharedSettings;
 // the accessibility settings (P3-18) start as the app always looked: motion follows the computer, usual fonts and size
-const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", motion: "auto", font: "default", textSize: "normal", focusMode: false };
+const DEFAULTS: Settings = {
+  reminders: true, breakEveryMin: 50, morningAt: "09:00", motion: "auto", font: "default", textSize: "normal", focusMode: false,
+  // notifications (P5-11): pop-ups on this computer as before; push and the digest are switched on by you
+  desktop: true, push: false, emailDigest: false, digestAt: "18:00", quietFrom: "", quietTo: "", timeZone: "",
+};
 const KEYS = Object.keys(DEFAULTS) as (keyof Settings)[];
 /** Only the known fields (an old file may carry others, like the "sent" log it once kept). */
 const known = (o: Record<string, unknown>) => Object.fromEntries(KEYS.filter((k) => k in o).map((k) => [k, o[k]])) as Partial<Settings>;

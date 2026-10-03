@@ -25,6 +25,7 @@ import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { jobsRouter } from "./modules/jobs/routes.ts";
 import { adminRouter } from "./modules/admin/routes.ts";
+import { notificationsRouter } from "./modules/notifications/routes.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
 import type { KeyRing } from "./secrets.ts";
 import { withCredentials } from "./credentials.ts";
@@ -201,6 +202,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", dataRouter(deps)); // P4-08: export my data, and bring an export back
   app.route("/", jobsRouter(deps));
   app.route("/", adminRouter(deps)); // P5-06: admins only
+  app.route("/", notificationsRouter(deps)); // P5-11: the bell
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

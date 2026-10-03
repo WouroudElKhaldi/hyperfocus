@@ -577,3 +577,12 @@ select.chip { width: auto; border: 0; padding: var(--s-1) var(--s-3); cursor: po
 .guide details { margin: 0.6em 0; }
 .guide details summary { cursor: pointer; font-weight: 600; }
 .guide section { scroll-margin-top: 80px; }
+
+/* the bell (P5-11) */
+.bell { position: relative; }
+.bell-btn { position: relative; }
+.bell-count { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--danger, #d43c3c); color: #fff; font-size: 10px; line-height: 16px; text-align: center; font-weight: 700; }
+.bell-panel { position: absolute; right: 0; top: calc(100% + 6px); width: min(360px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; z-index: 50; }
+.bell-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.bell-list li { padding: 8px 0; border-top: 1px solid var(--border, rgba(0,0,0,.08)); }
+.bell-list li.unread b::before { content: "● "; color: var(--accent, #7447e6); }

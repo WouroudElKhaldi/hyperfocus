@@ -26,6 +26,7 @@ export const en = {
     points: "{{xp}} points", petLine: "{{name}} · Age {{age}}", petTitle: "{{name}} · Age {{age}} {{stage}} · {{xp}} points",
     getPet: "Get a companion", yourProfile: "Your profile", namedProfile: "{{name}}'s profile",
   },
+  bell: { label: "Notifications", labelUnread: "Notifications, {{count}} unread", readAll: "Mark all as read", empty: "Nothing yet. Reminders and news about your posts show up here." },
   pet: { getTitle: "Get your companion", getHint: "A pet that grows with you", ageLine: "Age {{age}} · {{xp}} points" },
   stuck: {
     button: "I'm stuck", title: "It's okay. Let's just start. 💜", energy: "How's your energy right now?",

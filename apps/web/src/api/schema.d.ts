@@ -4953,6 +4953,86 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your latest notifications (50) and how many are unread */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationInbox"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark notifications as read (these ids, or all of them) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids?: number[];
+                    };
+                };
+            };
+            responses: {
+                /** @description How many are still unread */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            unread: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notify/test": {
         parameters: {
             query?: never;
@@ -4962,7 +5042,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Show a test notification on this computer */
+        /** Send yourself a test notification (the bell, and pop-ups you switched on) */
         post: {
             parameters: {
                 query?: never;
@@ -6889,15 +6969,22 @@ export interface paths {
                     content: {
                         "application/json": {
                             breakEveryMin: number;
+                            desktop: boolean;
+                            digestAt: string;
+                            emailDigest: boolean;
                             focusMode: boolean;
                             /** @enum {string} */
                             font: "default" | "readable";
                             morningAt: string;
                             /** @enum {string} */
                             motion: "auto" | "reduce";
+                            push: boolean;
+                            quietFrom: string;
+                            quietTo: string;
                             reminders: boolean;
                             /** @enum {string} */
                             textSize: "normal" | "large" | "larger";
+                            timeZone: string;
                         };
                     };
                 };
@@ -6920,15 +7007,22 @@ export interface paths {
                 content: {
                     "application/json": {
                         breakEveryMin?: number | null;
+                        desktop?: boolean | null;
+                        digestAt?: string | null;
+                        emailDigest?: boolean | null;
                         focusMode?: boolean | null;
                         /** @enum {string|null} */
                         font?: "default" | "readable" | null;
                         morningAt?: string | null;
                         /** @enum {string|null} */
                         motion?: "auto" | "reduce" | null;
+                        push?: boolean | null;
+                        quietFrom?: string | null;
+                        quietTo?: string | null;
                         reminders?: boolean | null;
                         /** @enum {string|null} */
                         textSize?: "normal" | "large" | "larger" | null;
+                        timeZone?: string | null;
                     };
                 };
             };
@@ -6941,15 +7035,22 @@ export interface paths {
                     content: {
                         "application/json": {
                             breakEveryMin: number;
+                            desktop: boolean;
+                            digestAt: string;
+                            emailDigest: boolean;
                             focusMode: boolean;
                             /** @enum {string} */
                             font: "default" | "readable";
                             morningAt: string;
                             /** @enum {string} */
                             motion: "auto" | "reduce";
+                            push: boolean;
+                            quietFrom: string;
+                            quietTo: string;
                             reminders: boolean;
                             /** @enum {string} */
                             textSize: "normal" | "large" | "larger";
+                            timeZone: string;
                         };
                     };
                 };
@@ -8689,6 +8790,17 @@ export interface components {
                 /** @enum {string} */
                 role: "user" | "admin";
             } | null;
+        };
+        Notification: {
+            body: string;
+            createdAt: string;
+            id: number;
+            read: boolean;
+            title: string;
+        };
+        NotificationInbox: {
+            items: components["schemas"]["Notification"][];
+            unread: number;
         };
         Ok: {
             /** @enum {boolean} */

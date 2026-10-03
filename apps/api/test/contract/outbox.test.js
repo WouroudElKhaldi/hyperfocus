@@ -20,7 +20,7 @@ const it = (name, fn, timeout) => vitestIt(name, () => asUser("owner", fn), time
 const sender = (failures = 0) => {
   const out = [];
   let left = failures;
-  const send = async (title, body) => {
+  const send = async ({ title, body }) => {
     if (left > 0) { left--; return { ok: false, error: "offline" }; }
     out.push(`${title}|${body}`);
     return { ok: true };
