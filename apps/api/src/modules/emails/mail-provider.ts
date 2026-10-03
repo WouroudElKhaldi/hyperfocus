@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { own } from "../../credentials.ts";
 import { errorInfo, httpError } from "../../types.ts";
 
 // Sending email (P2-16) behind a port: her Gmail with an App Password today (local mode), Gmail OAuth per user later
@@ -17,6 +18,19 @@ export type MailProvider = {
   /** Sends; the address it was sent from and the message id come back. Failures throw with a message for her. */
   send(mail: OutgoingMail): Promise<{ from: string; messageId: string }>;
 };
+
+/** Gmail with the person's own address and App Password (Settings → Connections), otherwise `fallback` (local mode: the .env). */
+export function personalMail(fallback: { user: string; appKey: string }, { demo = false } = {}): MailProvider {
+  const current = () => gmailAppPassword(own("gmail") ?? fallback, { demo });
+  return {
+    status: () => current().status(),
+    unavailable: () => {
+      const why = current().unavailable();
+      return why && why.status === 400 ? { status: 400, message: "Gmail isn't set up: add your Gmail address and App Password in Settings → Connections." } : why;
+    },
+    send: (mail) => current().send(mail),
+  };
+}
 
 /** Gmail through SMTP with an App Password (GMAIL_USER + GMAIL_APP_KEY, see https://myaccount.google.com/apppasswords). */
 export function gmailAppPassword({ user, appKey }: { user: string; appKey: string }, { demo = false } = {}): MailProvider {

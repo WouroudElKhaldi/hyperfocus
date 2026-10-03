@@ -83,7 +83,7 @@ export function postsRouter({ prisma, events, ai, publisher }: AppDeps) {
       notSentYet(post);
       const problemWithDraft = autoPostProblem(post.draft);
       if (problemWithDraft) throw httpError(400, problemWithDraft);
-      if (!publisher.configured()) throw httpError(400, "Auto-posting needs n8n connected (N8N_WEBHOOK_URL).");
+      if (!publisher.configured()) throw httpError(400, "Auto-posting needs your n8n LinkedIn webhook: add it in Settings → Connections.");
       const data = { status: "scheduled", scheduledAt: when, attempts: 0, lastError: "", lastAttemptAt: null };
       return c.json(await prisma.post.update({ where: { id: post.id }, data }), 200);
     },

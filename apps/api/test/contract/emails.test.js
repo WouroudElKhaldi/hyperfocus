@@ -65,7 +65,7 @@ describe("emails", () => {
     const e = await ok(post("/api/emails", { toAddr: "a@b.co", subject: "s", html: "<p>x</p>" }));
     const r = await post(`/api/emails/${e.id}/send`);
     expect(r.status).toBe(400);
-    expect(r.body.error).toMatch(/Gmail is not set up/);
+    expect(r.body.error).toMatch(/Gmail isn't set up: add your Gmail address and App Password in Settings → Connections/);
     expect((await ok(get(`/api/emails/${e.id}`))).status).toBe("draft");
   });
 

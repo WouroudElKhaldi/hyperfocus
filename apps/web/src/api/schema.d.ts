@@ -4098,7 +4098,62 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Save your own credentials: deepseek { apiKey }, n8n { webhookUrl }, gmail { user, appKey }
+         * @description Sealed before they are stored; never sent back. Used for your AI, LinkedIn posts and emails from then on.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    provider: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConnectedAccount"];
+                    };
+                };
+                /** @description Something is missing or wrong */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Not something you can save here */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
         post?: never;
         /** Disconnect an account (its tokens are deleted) */
         delete: {
@@ -8477,6 +8532,12 @@ export interface components {
             [key: string]: unknown;
         };
         Me: {
+            /** @description What works for you: your own credentials, or the app's where it shares them */
+            connected: {
+                ai: boolean;
+                email: boolean;
+                linkedin: boolean;
+            };
             /** @description The features an admin switched on (P5-06) */
             flags: string[];
             /** @description Sign in with Google is offered */

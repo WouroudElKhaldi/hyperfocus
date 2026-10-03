@@ -3,9 +3,12 @@ import type { AppDeps, AppEnv } from "../../app.ts";
 import { Ok, json, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
 import { httpError } from "../../types.ts";
+import { CREDENTIALS, type CredentialKind, describe } from "../../credentials.ts";
+import { integrations } from "../../integrations.ts";
 
-// Your connected accounts (P5-07): which ones you have, and disconnecting one (its tokens are deleted). Connecting comes
-// with each provider's sign-in flow (P5-08 Gmail, P5-09 LinkedIn). No route ever sends a token out.
+// Your connected accounts (P5-07): which ones you have, saving your own credentials (DeepSeek key, n8n webhook, Gmail
+// App Password), and disconnecting one (its secrets are deleted). The sign-in flows (P5-08 Gmail, P5-09 LinkedIn) add
+// theirs. No route ever sends a secret out.
 
 const Connected = z
   .object({
@@ -17,13 +20,33 @@ const Connected = z
   .openapi("ConnectedAccount");
 const ProviderParam = z.object({ provider: z.string().openapi({ param: { name: "provider", in: "path" }, example: "gmail" }) });
 
-export function integrationsRouter({ prisma }: AppDeps) {
+export function integrationsRouter({ prisma, secrets }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   app.openapi(
     createRoute({ method: "get", path: "/api/integrations", tags: ["Integrations"], summary: "Your connected accounts (never their tokens)", responses: { 200: json(z.array(Connected), "What you have connected") } }),
     async (c) => {
       const rows = await prisma.integration.findMany({ orderBy: { provider: "asc" }, select: { provider: true, account: true, createdAt: true, updatedAt: true } });
       return c.json(rows.map((r) => ({ provider: r.provider, account: r.account, connectedAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() })), 200);
+    },
+  );
+  app.openapi(
+    createRoute({
+      method: "put", path: "/api/integrations/{provider}", tags: ["Integrations"],
+      summary: "Save your own credentials: deepseek { apiKey }, n8n { webhookUrl }, gmail { user, appKey }",
+      description: "Sealed before they are stored; never sent back. Used for your AI, LinkedIn posts and emails from then on.",
+      request: { params: ProviderParam, body: { content: { "application/json": { schema: z.record(z.string(), z.string()) } }, required: true } },
+      responses: { 200: json(Connected, "Saved"), 400: problem("Something is missing or wrong"), 404: problem("Not something you can save here") },
+    }),
+    async (c) => {
+      const provider = c.req.valid("param").provider;
+      if (!(provider in CREDENTIALS)) throw httpError(404, "Not something you can save here.");
+      const kind = provider as CredentialKind;
+      const parsed = CREDENTIALS[kind].safeParse(c.req.valid("json"));
+      if (!parsed.success) throw httpError(400, parsed.error.issues[0]?.message ?? "Something is missing.");
+      if (!secrets) throw httpError(500, "Saving credentials isn't possible: the app has no key to seal them with.");
+      await integrations(prisma, secrets).save(kind, describe(kind, parsed.data), parsed.data);
+      const r = await prisma.integration.findFirstOrThrow({ where: { provider }, select: { provider: true, account: true, createdAt: true, updatedAt: true } });
+      return c.json({ provider: r.provider, account: r.account, connectedAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() }, 200);
     },
   );
   app.openapi(

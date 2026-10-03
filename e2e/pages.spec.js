@@ -637,7 +637,7 @@ test.describe("Emails keep their data", () => {
       await page.reload();
       await expect(page.getByPlaceholder("What is it about?")).toHaveValue("E2E subject");
       await page.getByRole("button", { name: /Send/ }).first().click();
-      await expect(page.getByText(/^Gmail is not set up./)).toBeVisible();
+      await expect(page.getByText(/^Gmail isn't set up: add your Gmail address and App Password in Settings → Connections./)).toBeVisible();
       await expect(page.getByPlaceholder("What is it about?")).toHaveValue("E2E subject");
       await expect(page.getByPlaceholder("What is it about?")).toBeEnabled(); // still a draft
     });

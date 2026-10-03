@@ -6,7 +6,8 @@ import type { Db } from "./types.ts";
 // provider per person. The tokens are only ever opened here, by the code that uses them (P5-08 Gmail, P5-09 LinkedIn);
 // no route sends them out.
 
-export const PROVIDERS = ["gmail", "linkedin"] as const;
+// the credentials people paste in Settings (src/credentials.ts: deepseek, n8n, gmail) and the sign-in flows (P5-08, P5-09)
+export const PROVIDERS = ["deepseek", "n8n", "gmail", "gmail-oauth", "linkedin"] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 const context = (provider: string) => `integration:${provider}`;

@@ -85,6 +85,8 @@ export default function App() {
 function Shell() {
   const [toast, setToast] = useState<{ msg: string; kind: string; id: number } | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
+  // what works for you (your own keys, or the app's), P5-07; the server-wide health until it is known
+  const connected = useMe().data?.connected;
   const [sheet, setSheet] = useState(false);
   useA11y(); // the accessibility settings (P3-18), kept in step with what is saved
   const [sbWidth, setSbWidth] = useState(() => clampW(lsGet("sb-width", SB.def)));
@@ -182,8 +184,8 @@ function Shell() {
               <div className="status">
                 {[
                   [health?.ok !== false, health?.ok === false ? "bad" : "ok", health?.ok === false ? t("shell.status.serverOff") : t("shell.status.serverOn")],
-                  [!!health?.ai, health?.ai ? "ok" : "off", health?.ai ? t("shell.status.aiOn") : t("shell.status.aiOff")],
-                  [!!health?.n8n, health?.n8n ? "ok" : "off", health?.n8n ? t("shell.status.n8nOn") : t("shell.status.n8nOff")],
+                  [!!(connected?.ai ?? health?.ai), (connected?.ai ?? health?.ai) ? "ok" : "off", (connected?.ai ?? health?.ai) ? t("shell.status.aiOn") : t("shell.status.aiOff")],
+                  [!!(connected?.linkedin ?? health?.n8n), (connected?.linkedin ?? health?.n8n) ? "ok" : "off", (connected?.linkedin ?? health?.n8n) ? t("shell.status.n8nOn") : t("shell.status.n8nOff")],
                 ].map(([, dot, text]) => (
                   <div key={String(text)} title={String(text)}><i className={`dot-s ${dot}`} /><span className="st-text">{text}</span></div>
                 ))}

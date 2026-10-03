@@ -9,6 +9,7 @@ import { useToast } from "../../../App.tsx";
 import { type ThemeMode, getTheme, setTheme } from "../../../theme.ts";
 import { useBackupNow, useBackups, useSaveSettings, useSettings } from "../api.ts";
 import type { A11y } from "../a11y.ts";
+import Connections from "../components/Connections.tsx";
 
 // the choices for each accessibility setting, in the order they are shown (P3-18)
 const A11Y_OPTIONS: { key: Exclude<keyof A11y, "focusMode">; label: string; hint: string; choices: [string, string][] }[] = [
@@ -63,6 +64,8 @@ export default function Backup() {
           </div>
         </div>
       )}
+
+      <Connections />
 
       {me?.user?.role === "admin" && (
         <div className="card">

@@ -27,6 +27,7 @@ import { jobsRouter } from "./modules/jobs/routes.ts";
 import { adminRouter } from "./modules/admin/routes.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
 import type { KeyRing } from "./secrets.ts";
+import { withCredentials } from "./credentials.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
 import type { SocialPublisher } from "./modules/posts/publisher.ts";
@@ -55,6 +56,8 @@ export type AppDeps = {
   files?: FileStorage | null;
   /** The key ring that seals people's tokens (P5-07); left out = the integrations routes can list and disconnect only. */
   secrets?: KeyRing | null;
+  /** Is the AI usable for the person asking (P5-07); left out = when the app has a DeepSeek key. */
+  aiReady?: () => boolean;
   /** Accounts and sign-in (P5-01): only in cloud mode; left out = local mode (nobody signs in). */
   auth?: Auth | null;
 };
@@ -80,6 +83,7 @@ const Me = z
     mode: z.enum(["local", "cloud"]).openapi({ description: "local: just the owner, nobody signs in. cloud: people sign in." }),
     user: z.object({ id: z.string(), name: z.string(), email: z.string(), role: z.enum(["user", "admin"]) }).nullable().openapi({ description: "Who is signed in (in local mode, the owner); null = nobody" }),
     flags: z.array(z.string()).openapi({ description: "The features an admin switched on (P5-06)" }),
+    connected: z.object({ ai: z.boolean(), linkedin: z.boolean(), email: z.boolean() }).openapi({ description: "What works for you: your own credentials, or the app's where it shares them" }),
     google: z.boolean().openapi({ description: "Sign in with Google is offered" }),
   })
   .openapi("Me");
@@ -149,7 +153,8 @@ export function createApp(deps: AppDeps) {
     const userId = who.id;
     c.set("userId", userId);
     c.set("role", who.role);
-    return asUser(userId, () => next());
+    // with their own credentials opened (P5-07): their AI key, n8n webhook, Gmail
+    return asUser(userId, () => withCredentials(deps.prisma, deps.secrets, () => next()));
   });
   if (config.demo) {
     app.use(async (c, next) => {
@@ -166,7 +171,10 @@ export function createApp(deps: AppDeps) {
     const flags = (await deps.prisma.featureFlag.findMany({ where: { enabled: true }, select: { key: true }, orderBy: { key: "asc" } })).map((f) => f.key);
     const who = await whoIsAsking(deps, c.req.raw.headers);
     const user = who ? { id: who.id, name: who.name, email: who.email, role: who.role } : null;
-    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, google: !!deps.auth && !!config.auth.google }, 200);
+    const aiReady = deps.aiReady ?? (() => !!config.deepseek.apiKey);
+    const connected = !who ? { ai: false, linkedin: false, email: false }
+      : await asUser(who.id, () => withCredentials(deps.prisma, deps.secrets, async () => ({ ai: aiReady(), linkedin: deps.publisher.configured(), email: !deps.mail.unavailable() })));
+    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google }, 200);
   });
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
