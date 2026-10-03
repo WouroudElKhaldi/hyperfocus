@@ -75,3 +75,22 @@ describe("your own credentials", () => {
     expect((await bob.json("GET", "/api/me")).connected.ai).toBe(false);
   });
 });
+
+// the hosted app sends posts to the saved webhook, so it must be a public https address (never one of our machines)
+describe("webhook addresses on the hosted app", () => {
+  let strict, carol;
+  beforeAll(async () => {
+    strict = await startExtraApi("credentials_strict", { ...CLOUD, ALLOW_LOCAL_ADDRESSES: "" });
+    carol = await signUp(strict, "carol-strict@example.com", "Carol");
+  }, 120000);
+  afterAll(async () => { await strict?.stop(); });
+
+  it("refuses this machine and private networks, accepts a public https address", async () => {
+    for (const webhookUrl of ["http://localhost:5678/webhook/x", "https://localhost/webhook/x", "https://127.0.0.1/x", "https://10.0.0.5/x", "https://192.168.1.20/x", "https://172.20.0.1/x", "https://169.254.169.254/latest", "https://n8n.local/x", "http://n8n.example.com/x", "https://[::1]/x", "https://[fd00::1]/x", "https://[::ffff:127.0.0.1]/x", "https://2130706433/x"]) {
+      expect((await carol.call("PUT", "/api/integrations/n8n", { webhookUrl })).status, webhookUrl).toBe(400);
+    }
+    for (const webhookUrl of ["https://n8n.example.com/webhook/abc", "https://fdn8n.example.org/webhook/abc", "https://172.15.0.1/x"]) {
+      expect((await carol.call("PUT", "/api/integrations/n8n", { webhookUrl })).status, webhookUrl).toBe(200);
+    }
+  });
+});

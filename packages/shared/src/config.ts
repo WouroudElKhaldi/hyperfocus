@@ -48,7 +48,7 @@ const schema = z.object({
   VAPID_PUBLIC_KEY: text,
   VAPID_PRIVATE_KEY: text,
   VAPID_SUBJECT: text,
-  PUSH_ALLOW_LOCAL: flag,
+  ALLOW_LOCAL_ADDRESSES: flag,
   LINKEDIN_CLIENT_ID: text,
   LINKEDIN_CLIENT_SECRET: text,
   LINKEDIN_API_VERSION: text,
@@ -119,8 +119,8 @@ export type ApiConfig = {
   gmailSmtp: string;
   /** Web push (P5-11): the app's VAPID keys and a contact (mailto: or https:). Empty in local mode = a key file. */
   vapid: { publicKey: string; privateKey: string; subject: string };
-  /** Tests only: accept a push address on 127.0.0.1 (a stand-in push service). */
-  pushAllowLocal: boolean;
+  /** Tests only: accept addresses on this machine for push and n8n webhooks (stand-ins). Never set it on a real server. */
+  allowLocalAddresses: boolean;
   /** "Connect LinkedIn" (P5-09): the website's LinkedIn app; null = not set up. The URLs replace LinkedIn only in tests. */
   linkedin: { clientId: string; clientSecret: string; version: string; oauthUrl: string; apiUrl: string } | null;
   deepseek: { apiKey: string; url: string; model: string };
@@ -169,7 +169,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       secretsKeys: e.SECRETS_KEYS,
       googleOAuthUrl: e.GOOGLE_OAUTH_URL,
       gmailSmtp: e.GMAIL_SMTP,
-      pushAllowLocal: e.PUSH_ALLOW_LOCAL,
+      allowLocalAddresses: e.ALLOW_LOCAL_ADDRESSES,
       linkedin: e.LINKEDIN_CLIENT_ID ? { clientId: e.LINKEDIN_CLIENT_ID, clientSecret: e.LINKEDIN_CLIENT_SECRET, version: e.LINKEDIN_API_VERSION || "202609", oauthUrl: e.LINKEDIN_OAUTH_URL, apiUrl: e.LINKEDIN_API_URL } : null,
       vapid: { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT || "mailto:hyperfocus@localhost" },
       aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),

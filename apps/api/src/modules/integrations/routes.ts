@@ -23,6 +23,22 @@ const Connected = z
     updatedAt: z.string(),
   })
   .openapi("ConnectedAccount");
+/** A public https address: not this machine, not a private network (10.x, 192.168.x, 172.16–31.x, link-local, .local). */
+function publicHttps(u: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(u);
+    // (the URL parser has already turned tricks like http://2130706433 into 127.0.0.1)
+    const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (protocol !== "https:") return false;
+    if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return false;
+    if (/^(127\.|10\.|0\.|169\.254\.|192\.168\.)/.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return false;
+    // IPv6: this machine, private (fc00::/7) and link-local (fe80::/10) addresses, and IPv4 written inside IPv6
+    if (h.includes(":") && (h === "::1" || h === "::" || /^f[cd]/.test(h) || /^fe[89ab]/.test(h) || h.startsWith("::ffff:"))) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
 const ProviderParam = z.object({ provider: z.string().openapi({ param: { name: "provider", in: "path" }, example: "gmail" }) });
 
 const Usage = z
@@ -142,6 +158,10 @@ export function integrationsRouter({ prisma, secrets, config, log }: AppDeps) {
       const kind = provider as CredentialKind;
       const parsed = CREDENTIALS[kind].safeParse(c.req.valid("json"));
       if (!parsed.success) throw httpError(400, parsed.error.issues[0]?.message ?? "Something is missing.");
+      // the server sends your posts to this address: on the hosted app it must be a public https one, never one of our machines
+      if (kind === "n8n" && config.mode === "cloud" && !config.allowLocalAddresses && !publicHttps((parsed.data as { webhookUrl: string }).webhookUrl)) {
+        throw httpError(400, "On the hosted app the webhook must be a public https address (your n8n on your own computer can't be reached from here: use Connect LinkedIn).");
+      }
       if (!secrets) throw httpError(500, "Saving credentials isn't possible: the app has no key to seal them with.");
       await integrations(prisma, secrets).save(kind, describe(kind, parsed.data), parsed.data);
       const r = await prisma.integration.findFirstOrThrow({ where: { provider }, select: { provider: true, account: true, createdAt: true, updatedAt: true } });

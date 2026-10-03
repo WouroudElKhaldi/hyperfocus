@@ -8,11 +8,11 @@ import { httpError } from "../../types.ts";
 // Web push on your devices (P5-11): the key a browser needs to subscribe, and switching a device on or off.
 
 // Only the browsers' own push services: the server sends to this address, so it must never be one of our own machines.
-const PUSH_HOSTS = [/.googleapis.com$/, /.mozilla.com$/, /.mozaws.net$/, /.notify.windows.com$/, /.push.apple.com$/];
+const PUSH_HOSTS = [/\.googleapis\.com$/, /\.mozilla\.com$/, /\.mozaws\.net$/, /\.notify\.windows\.com$/, /\.push\.apple\.com$/];
 const pushAddressOk = (u: string, allowLocal: boolean) => {
   try {
     const url = new URL(u);
-    if (allowLocal && url.protocol === "http:" && url.hostname === "127.0.0.1") return true; // (tests: PUSH_ALLOW_LOCAL)
+    if (allowLocal && url.protocol === "http:" && url.hostname === "127.0.0.1") return true; // (tests: ALLOW_LOCAL_ADDRESSES)
     return url.protocol === "https:" && PUSH_HOSTS.some((h) => h.test(url.hostname));
   } catch {
     return false;
@@ -43,7 +43,7 @@ export function pushRouter({ prisma, vapid, config }: AppDeps) {
     async (c) => {
       if (!vapid) throw httpError(409, "Notifications on your devices aren't set up for this app yet.");
       const { endpoint, keys } = c.req.valid("json");
-      if (!pushAddressOk(endpoint, config.pushAllowLocal)) throw httpError(400, "That isn't a browser push address.");
+      if (!pushAddressOk(endpoint, config.allowLocalAddresses)) throw httpError(400, "That isn't a browser push address.");
       const data = { p256dh: keys.p256dh, auth: keys.auth, userAgent: (c.req.header("user-agent") ?? "").slice(0, 200) };
       await prisma.pushSubscription.upsert({ where: { userId_endpoint: { userId: c.get("userId"), endpoint } }, create: { endpoint, ...data }, update: data });
       await saveSettings(prisma, { push: true });

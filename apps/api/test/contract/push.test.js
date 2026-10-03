@@ -42,7 +42,7 @@ describe("web push", () => {
   });
 
   it("accepts only a browser push service's address", async () => {
-    for (const endpoint of ["https://evil.example/hook", "http://192.168.1.1/x", "https://localhost/x", "not a url"]) {
+    for (const endpoint of ["https://evil.example/hook", "http://192.168.1.1/x", "https://localhost/x", "not a url", "https://evilgoogleapis.com/fcm/send/x", "https://fcm.googleapis.com.evil.example/x"]) {
       const r = await post("/api/push/subscribe", { ...device("x"), endpoint });
       expect(r.status, endpoint).toBe(400);
     }

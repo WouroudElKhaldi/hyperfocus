@@ -113,15 +113,18 @@ export default function ConnectionsHelp() {
           app, the website's owner hasn't switched it on yet: use n8n below instead.
         </p>
 
-        <h3>Or: through your own n8n</h3>
-        <p className="muted">For people who already use n8n, or when Connect LinkedIn isn't available.</p>
-        <h3>Step A: get n8n</h3>
+        <h3>Or: through your own n8n (free, on your computer)</h3>
+        <p className="muted">
+          For when Connect LinkedIn isn't available. n8n is free when it runs on your own computer, and this works when Hyperfocus runs on the
+          same computer too (the hosted Hyperfocus can't reach a program on your computer: use Connect LinkedIn there). n8n also sells a hosted
+          version; you don't need it.
+        </p>
+        <h3>Step A: run n8n on your computer</h3>
         <Steps>
-          <li>
-            Go to <a href="https://n8n.io" target="_blank" rel="noreferrer">n8n.io</a> and click <b>Get started</b> to make an account (n8n Cloud has a
-            free trial; after that it is a monthly plan. People who are comfortable with servers can also run n8n themselves for free).
-          </li>
-          <li>Once inside, click <b>Create workflow</b> (or <b>+</b> → <b>Workflow</b>). Name it <i>Hyperfocus to LinkedIn</i>.</li>
+          <li>Install Node.js (free) from <a href="https://nodejs.org" target="_blank" rel="noreferrer">nodejs.org</a> if you don't have it.</li>
+          <li>Open a terminal (on Windows: the Start menu → <i>Terminal</i>), type <code>npx n8n</code> and press Enter. The first time it takes a few minutes.</li>
+          <li>When it says it is ready, open <a href="http://localhost:5678" target="_blank" rel="noreferrer">localhost:5678</a> and make your (local) n8n account.</li>
+          <li>Click <b>Create workflow</b> (or <b>+</b> → <b>Workflow</b>). Name it <i>Hyperfocus to LinkedIn</i>.</li>
         </Steps>
 
         <h3>Step B: the part that receives your posts (Webhook)</h3>
@@ -135,8 +138,9 @@ export default function ConnectionsHelp() {
         <Steps>
           <li>Click the <b>+</b> on the right of the Webhook, search for <b>LinkedIn</b>, and choose <b>Create a post</b>.</li>
           <li>
-            Next to <b>Credential to connect with</b>, choose <b>Create new credential</b>. On n8n Cloud, click <b>Connect my account</b>, sign in to
-            LinkedIn and click <b>Allow</b>. (If n8n asks you for a Client ID and Client Secret instead, see "n8n asks for a Client ID" below.)
+            Next to <b>Credential to connect with</b>, choose <b>Create new credential</b>. n8n asks for a <b>Client ID</b> and <b>Client Secret</b>:
+            make them once with the free LinkedIn developer app, see "n8n asks for a Client ID" below. Then click <b>Connect my account</b>, sign in to
+            LinkedIn and click <b>Allow</b>.
           </li>
           <li>Set <b>Post As</b> to <b>Person</b>, and in <b>Person</b> pick your name.</li>
           <li>
@@ -149,7 +153,7 @@ export default function ConnectionsHelp() {
         <h3>Step D: switch it on and copy its address</h3>
         <Steps>
           <li>Click <b>Save</b>, then switch the workflow on (the <b>Inactive / Active</b> switch at the top, or <b>Publish</b>, depending on your n8n version).</li>
-          <li>Open the <b>Webhook</b> box again. Click <b>Production URL</b> (not "Test URL") and copy the address. It looks like <code>https://yourname.app.n8n.cloud/webhook/…</code>.</li>
+          <li>Open the <b>Webhook</b> box again. Click <b>Production URL</b> (not "Test URL") and copy the address. It looks like <code>http://localhost:5678/webhook/…</code>.</li>
           <li>
             In Hyperfocus, <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting</b>: paste it and click{" "}
             <b>Save</b>.
@@ -159,7 +163,7 @@ export default function ConnectionsHelp() {
 
         <details>
           <summary>n8n asks for a Client ID and Client Secret (getting your LinkedIn "id")</summary>
-          <p>This only happens if you run n8n yourself. You make a small "app" on LinkedIn once, and it gives you the two codes:</p>
+          <p>You make a small, free "app" on LinkedIn once, and it gives you the two codes:</p>
           <Steps>
             <li>
               Open <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">linkedin.com/developers/apps</a> and click{" "}
