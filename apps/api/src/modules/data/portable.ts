@@ -13,11 +13,18 @@ import type { Db } from "../../types.ts";
 
 export const FORMAT = "hyperfocus-export";
 export const VERSION = 1;
-// (the sign-in tables hold password hashes and session tokens: never exported; who you are travels with your account, P5-12)
-const SKIP = new Set(["OutboxMessage", "User", "Session", "Account", "Verification", "FeatureFlag", "Integration", "AiUsage", "UserSettings", "Notification", "PushSubscription"]); // (settings travel as settings.json in the zip) // (and never anyone's tokens, P5-07) // (feature flags are for everyone, P5-06)
+// What is exported: only tables that belong to a person (they have an owner), so the shared lists (the taxonomy, feature
+// flags…) never are. Of those, some are left out on purpose:
+const SKIP = new Set([
+  "Session", "Account", // sign-in: password hashes and session tokens (who you are travels with your account, P5-12)
+  "Integration", // your connected accounts' secrets (P5-07)
+  "UserSettings", // travels as settings.json in the zip
+  "OutboxMessage", "Notification", "PushSubscription", "AiUsage", // the app's own bookkeeping
+]);
 
 type Model = (typeof Prisma.dmmf.datamodel.models)[number];
-const models = (): Model[] => Prisma.dmmf.datamodel.models.filter((m) => !SKIP.has(m.name));
+const owned = (m: Model) => m.fields.some((f) => f.name === "userId");
+const models = (): Model[] => Prisma.dmmf.datamodel.models.filter((m) => owned(m) && !SKIP.has(m.name));
 type Delegate = { findMany(a?: object): Promise<Record<string, unknown>[]>; createMany(a: object): Promise<unknown>; count(): Promise<number> };
 const delegate = (prisma: Db, model: string): Delegate => {
   const d = (prisma as unknown as Record<string, Delegate | undefined>)[model.charAt(0).toLowerCase() + model.slice(1)];
