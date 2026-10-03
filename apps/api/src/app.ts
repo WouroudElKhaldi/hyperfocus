@@ -27,6 +27,7 @@ import { jobsRouter } from "./modules/jobs/routes.ts";
 import { adminRouter } from "./modules/admin/routes.ts";
 import { notificationsRouter } from "./modules/notifications/routes.ts";
 import { pushRouter } from "./modules/notifications/push-routes.ts";
+import { accountRouter } from "./modules/account/routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -211,6 +212,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", adminRouter(deps)); // P5-06: admins only
   app.route("/", notificationsRouter(deps)); // P5-11: the bell
   app.route("/", pushRouter(deps)); // P5-11: web push on your devices
+  app.route("/", accountRouter(deps)); // P5-12: delete my account
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

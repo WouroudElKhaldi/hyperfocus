@@ -9,6 +9,7 @@ import { asSystem, forEachUser } from "../tenancy.ts";
 import { withCredentials } from "../credentials.ts";
 import { type Channel, deliverTo } from "../notifications.ts";
 import { DIGEST, digestSender, queueDigest } from "../digest.ts";
+import { applyChatRetention } from "../retention.ts";
 import type { KeyRing } from "../secrets.ts";
 import type { Db } from "../types.ts";
 import type { Job } from "./scheduler.ts";
@@ -38,6 +39,8 @@ export function backgroundJobs({ prisma, publisher, events, secrets, mode = "loc
     // the daily email digest (P5-11): queued per person when it is their time, then sent from the app's Gmail
     { name: "email-digest", everyMs: 60 * SECOND, firstAfterMs: 10 * SECOND, run: () => each(() => queueDigest(prisma)) },
     ...(appMail ? [{ name: "email-digest-send", everyMs: 15 * SECOND, firstAfterMs: 12 * SECOND, run: () => asSystem(() => deliverOutbox(prisma, digestSender(prisma, appMail), { kind: DIGEST })) }] : []),
+    // how long AI chats are kept, as each person chose (P5-12)
+    { name: "chat-retention", everyMs: 6 * HOUR, firstAfterMs: 30 * SECOND, run: () => each(() => applyChatRetention(prisma)) },
     { name: "auto-backup", everyMs: 6 * HOUR, firstAfterMs: 0, run: () => backupIfDue(prisma) }, // when the newest backup is over a day old
   ];
 }

@@ -34,6 +34,7 @@ const JobDetail = lazyRouteComponent(() => import("./features/jobs/pages/JobDeta
 const Chat = lazyRouteComponent(() => import("./features/chat/pages/Chat.tsx"));
 const Pet = lazyRouteComponent(() => import("./features/pet/pages/Pet.tsx"));
 const Profile = lazyRouteComponent(() => import("./features/profile/pages/Profile.tsx"));
+const Privacy = lazyRouteComponent(() => import("./features/settings/pages/Privacy.tsx")); // P5-12
 const ConnectionsHelp = lazyRouteComponent(() => import("./features/settings/pages/ConnectionsHelp.tsx")); // how to get each key
 const Admin = lazyRouteComponent(() => import("./features/admin/pages/Admin.tsx")); // P5-06: admins only
 // the design system page (P3-02): development only, so it never ships in the built app
@@ -86,6 +87,7 @@ const routes = [
   page("/profile", Profile),
   page("/admin", Admin),
   page("/help/connections", ConnectionsHelp),
+  page("/privacy", Privacy),
 ] as const;
 const devRoutes = DevUi && PetGallery && SoundCheck ? [page("/dev/ui", DevUi), page("/dev/pet", PetGallery), page("/dev/sound", SoundCheck)] : [];
 

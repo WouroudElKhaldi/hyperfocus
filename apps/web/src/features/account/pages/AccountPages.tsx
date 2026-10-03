@@ -85,6 +85,7 @@ export default function AccountPages({ google, onSignedIn }: { google: boolean; 
             <Field id="su-phone" label="Phone number" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" placeholder="+961 70 123 456" required />
             <Field id="su-pass" label="Password (8 or more characters)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
             {error && <Note kind="error">{error}</Note>}
+            <p className="muted tiny">By making an account you agree to how we handle your data: <a href="/privacy" target="_blank" rel="noreferrer">privacy</a>.</p>
             <Button type="submit" disabled={busy}>{busy ? "Making it…" : "Make my account"}</Button>
           </form>
         )}

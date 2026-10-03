@@ -108,6 +108,7 @@ describe("the background jobs", () => {
       ["nudges", 60000, 15000],
       ["outbox", 5000, 2000], // P4-06: sends queued notifications
       ["email-digest", 60000, 10000], // P5-11: queues each person's daily email when it is time (sent only when the app has a mailer)
+      ["chat-retention", 6 * 3600000, 30000], // P5-12: deletes AI chats older than each person chose
       ["auto-backup", 6 * 3600000, 0],
     ]);
     expect(typeof jobs[0].init).toBe("function"); // posts left "posting" by a crash are failed first, never re-sent

@@ -83,3 +83,46 @@ test.describe("accounts @cloud", () => {
     await expect(page.locator(".sidebar")).toBeVisible();
   });
 });
+
+// P5-12: the privacy policy can be read before signing up; deleting your account signs you out for good
+test.describe("privacy @cloud", () => {
+  test("the privacy page opens signed out, and is linked from sign-up", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: "Make an account" }).click();
+    await expect(page.getByRole("link", { name: "privacy" })).toHaveAttribute("href", "/privacy");
+    await page.goto("/privacy");
+    await expect(page.getByRole("heading", { name: "Privacy", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Who sees it" })).toBeVisible();
+    await expect(page.locator(".sidebar")).toHaveCount(0);
+  });
+
+  test("delete my account: asks for DELETE and the password, then it's gone", async ({ page }) => {
+    const email = `e2e-delete-${Date.now()}@example.com`;
+    await page.goto("/");
+    await page.getByRole("link", { name: "Make an account" }).click();
+    await page.getByLabel("Full name").fill("Dee Leet");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Phone number").fill("+961 70 123 456");
+    await page.getByLabel(/^Password/).fill("delete-me-123");
+    await page.getByRole("button", { name: "Make my account" }).click();
+    await page.goto(await emailedLink(email, "Confirm your email"));
+    await expect(page.locator(".sidebar")).toBeVisible();
+
+    await page.goto("/backup");
+    await page.getByRole("button", { name: "Delete my account" }).click();
+    const form = page.getByRole("form", { name: "Delete my account" });
+    await form.getByLabel("Type DELETE to confirm").fill("DELETE");
+    await form.getByLabel("Your password").fill("wrong-password");
+    await form.getByRole("button", { name: "Delete everything" }).click();
+    await expect(form.getByRole("alert")).toHaveText("That password isn't right.");
+    await form.getByLabel("Your password").fill("delete-me-123");
+    await form.getByRole("button", { name: "Delete everything" }).click();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+
+    // the account no longer exists
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password").fill("delete-me-123");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByRole("alert")).toBeVisible();
+  });
+});

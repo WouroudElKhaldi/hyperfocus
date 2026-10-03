@@ -11,6 +11,7 @@ import { useBackupNow, useBackups, useSaveSettings, useSettings } from "../api.t
 import type { A11y } from "../a11y.ts";
 import Connections from "../components/Connections.tsx";
 import DevicePush from "../components/DevicePush.tsx";
+import YourData from "../components/YourData.tsx";
 
 // the choices for each accessibility setting, in the order they are shown (P3-18)
 const A11Y_OPTIONS: { key: Exclude<keyof A11y, "focusMode">; label: string; hint: string; choices: [string, string][] }[] = [
@@ -73,6 +74,8 @@ export default function Backup() {
       )}
 
       <Connections />
+
+      <YourData />
 
       {me?.user?.role === "admin" && (
         <div className="card">
@@ -230,15 +233,6 @@ export default function Backup() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <div>
-            <b>Export my data</b>
-            <div className="muted">Everything you saved, as one zip you can open: each list as readable JSON, plus your email files. Yours to keep or take elsewhere.</div>
-          </div>
-          <a className="btn" href="/api/export" download>⬇ Export my data</a>
-        </div>
-      </div>
 
       <div className="card plain-more">
         <More label={`All my backups (${data.backups.length})`}>

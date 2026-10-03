@@ -3,6 +3,76 @@
 /* biome-ignore-all lint: generated */
 
 export interface paths {
+    "/api/account/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete my account and everything in it (cannot be undone) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        confirm: string;
+                        password?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Deleted; you are signed out */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                        };
+                    };
+                };
+                /** @description Not confirmed, wrong password, or sign in again first */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description There are no accounts in local mode */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/flags": {
         parameters: {
             query?: never;
@@ -7131,6 +7201,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             breakEveryMin: number;
+                            chatKeepDays: number;
                             desktop: boolean;
                             digestAt: string;
                             emailDigest: boolean;
@@ -7169,6 +7240,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         breakEveryMin?: number | null;
+                        chatKeepDays?: number | null;
                         desktop?: boolean | null;
                         digestAt?: string | null;
                         emailDigest?: boolean | null;
@@ -7197,6 +7269,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             breakEveryMin: number;
+                            chatKeepDays: number;
                             desktop: boolean;
                             digestAt: string;
                             emailDigest: boolean;

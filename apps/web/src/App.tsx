@@ -10,6 +10,7 @@ import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import { PetCelebration, PetWidget } from "./features/pet/index.ts";
 import { useA11y } from "./features/settings/index.ts";
 import { AccountPages, useMe } from "./features/account/index.ts";
+import { Privacy } from "./features/settings/index.ts";
 import Quotes from "./components/Quotes.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
@@ -78,7 +79,11 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 export default function App() {
   const me = useMe();
   if (me.isPending) return <div className="empty" role="status">Loading…</div>;
-  if (me.data?.mode === "cloud" && !me.data.user) return <AccountPages google={me.data.google} onSignedIn={() => void me.refetch()} />;
+  if (me.data?.mode === "cloud" && !me.data.user) {
+    // the privacy policy can be read before making an account (P5-12)
+    if (window.location.pathname === "/privacy") return <main className="main signed-out-page"><Privacy signedOut /></main>;
+    return <AccountPages google={me.data.google} onSignedIn={() => void me.refetch()} />;
+  }
   return <Shell />;
 }
 

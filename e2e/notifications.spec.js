@@ -75,3 +75,18 @@ test("the daily email can be switched on, with its time", async ({ page }) => {
   await box.click();
   await expect(box).not.toBeChecked();
 });
+
+// P5-12: how long AI chats are kept; local mode has no account to delete
+test("your data: choose how long AI chats are kept; no account deletion in local mode", async ({ page }) => {
+  await page.goto("/backup");
+  const card = page.locator(".card", { has: page.getByRole("heading", { name: "Your data and privacy" }) });
+  await card.getByRole("radio", { name: "90 days" }).click();
+  await expect(card.getByRole("radio", { name: "90 days" })).toHaveAttribute("aria-checked", "true");
+  await page.reload();
+  await expect(card.getByRole("radio", { name: "90 days" })).toHaveAttribute("aria-checked", "true");
+  await card.getByRole("radio", { name: "Keep them" }).click();
+  await expect(card.getByRole("radio", { name: "Keep them" })).toHaveAttribute("aria-checked", "true");
+  await expect(card.getByRole("button", { name: "Delete my account" })).toHaveCount(0);
+  await card.getByRole("link", { name: "Read what we keep and why" }).click();
+  await expect(page.getByRole("heading", { name: "Privacy", exact: true })).toBeVisible();
+});

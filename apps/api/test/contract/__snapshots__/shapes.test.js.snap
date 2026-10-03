@@ -742,6 +742,7 @@ exports[`response shapes of read endpoints > GET /api/reviews (item) 1`] = `
 exports[`response shapes of read endpoints > GET /api/settings 1`] = `
 {
   "breakEveryMin": "number",
+  "chatKeepDays": "number",
   "desktop": "boolean",
   "digestAt": "string",
   "emailDigest": "boolean",

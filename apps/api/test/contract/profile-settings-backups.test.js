@@ -36,7 +36,7 @@ describe("settings & notifications", () => {
     const u = await ok(patch("/api/settings", { reminders: false, breakEveryMin: 5, morningAt: "07:30", sent: { hack: 1 } }));
     // (other tests in this run change the notification settings, so those are only checked for being there)
     expect(u).toEqual({ reminders: false, breakEveryMin: 15, morningAt: "07:30", motion: "auto", font: "default", textSize: "normal", focusMode: false,
-      desktop: expect.any(Boolean), push: expect.any(Boolean), emailDigest: expect.any(Boolean), digestAt: expect.any(String), quietFrom: expect.any(String), quietTo: expect.any(String), timeZone: expect.any(String) });
+      desktop: expect.any(Boolean), push: expect.any(Boolean), emailDigest: expect.any(Boolean), digestAt: expect.any(String), quietFrom: expect.any(String), quietTo: expect.any(String), timeZone: expect.any(String), chatKeepDays: expect.any(Number) });
     expect((await ok(patch("/api/settings", { breakEveryMin: 999, morningAt: "25:00" })))).toMatchObject({ breakEveryMin: 180, morningAt: "07:30" });
   });
 

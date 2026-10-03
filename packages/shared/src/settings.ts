@@ -31,6 +31,8 @@ export const Settings = z.object({
   quietTo: z.string(),
   /** Your time zone, like "Asia/Beirut" (empty = the server's). Set by the website from your device. */
   timeZone: z.string(),
+  /** Delete AI chats (Talk, book questions) older than this many days (P5-12); 0 = keep them. */
+  chatKeepDays: z.number().int(),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -65,5 +67,6 @@ export const UpdateSettingsInput = z.object({
   quietFrom: z.preprocess(only((v): v is string => typeof v === "string" && (v === "" || TIME.test(v))), z.string().optional()),
   quietTo: z.preprocess(only((v): v is string => typeof v === "string" && (v === "" || TIME.test(v))), z.string().optional()),
   timeZone: z.preprocess(only((v): v is string => typeof v === "string" && (v === "" || knownTimeZone(v))), z.string().optional()),
+  chatKeepDays: z.preprocess(only((v): v is number => v === 0 || v === 30 || v === 90 || v === 365), z.number().int().optional()),
 });
 export type UpdateSettingsInput = z.input<typeof UpdateSettingsInput>;
