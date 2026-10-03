@@ -12,6 +12,7 @@ import { authMailer, createAuth } from "./auth.ts";
 import { fileStorageFrom } from "./storage/files.ts";
 import { keyRing, localKeyRing } from "./secrets.ts";
 import { tokenUrl } from "./google-oauth.ts";
+import { pushChannel, vapidFrom } from "./push.ts";
 import { n8nPublisher, personalPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
@@ -49,7 +50,10 @@ const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: authMa
 const secrets = config.secretsKeys ? keyRing(config.secretsKeys) : localKeyRing(fileURLToPath(new URL("../secrets.key", import.meta.url)));
 // AI daily limits on the app's own key (P5-10)
 const ai = limitedAi(sharedAi, prisma, config.aiDailyLimit);
-const server = createServer(createApp({ config, prisma, log, events, ai, aiReady, publisher, mail, files, auth, secrets }), {
+// Web push keys (P5-11): from the settings, or in local mode a pair made once next to the API
+const vapid = DEMO ? null : vapidFrom(config.vapid, config.mode === "local" ? fileURLToPath(new URL("../vapid.json", import.meta.url)) : null);
+const push = vapid ? pushChannel(prisma, vapid) : null;
+const server = createServer(createApp({ config, prisma, log, events, ai, aiReady, publisher, mail, files, auth, secrets, vapid, push }), {
   demo: DEMO,
   corsOrigins: config.corsOrigins,
   webDist: fileURLToPath(new URL("../../web/dist/", import.meta.url)),
@@ -62,6 +66,6 @@ serve({ fetch: server.fetch, port, hostname: "127.0.0.1" }, () => {
   if (config.noBackgroundJobs) return; // NO_BACKGROUND_JOBS: this copy only answers requests
   // a queue in PostgreSQL (P4-05), so the jobs run once even with several copies of the API
   const scheduler = pgBossScheduler({ databaseUrl: config.databaseUrl, log });
-  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode })) scheduler.add(job);
+  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push })) scheduler.add(job);
   scheduler.start();
 });

@@ -26,6 +26,9 @@ import { goalsRouter } from "./modules/goals/routes.ts";
 import { jobsRouter } from "./modules/jobs/routes.ts";
 import { adminRouter } from "./modules/admin/routes.ts";
 import { notificationsRouter } from "./modules/notifications/routes.ts";
+import { pushRouter } from "./modules/notifications/push-routes.ts";
+import type { Vapid } from "./push.ts";
+import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
 import type { KeyRing } from "./secrets.ts";
 import { withCredentials } from "./credentials.ts";
@@ -59,6 +62,10 @@ export type AppDeps = {
   secrets?: KeyRing | null;
   /** Is the AI usable for the person asking (P5-07); left out = when the app has a DeepSeek key. */
   aiReady?: () => boolean;
+  /** Web push keys (P5-11); left out = push is off. */
+  vapid?: Vapid | null;
+  /** The push channel built from those keys (P5-11). */
+  push?: Channel | null;
   /** Accounts and sign-in (P5-01): only in cloud mode; left out = local mode (nobody signs in). */
   auth?: Auth | null;
 };
@@ -203,6 +210,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", jobsRouter(deps));
   app.route("/", adminRouter(deps)); // P5-06: admins only
   app.route("/", notificationsRouter(deps)); // P5-11: the bell
+  app.route("/", pushRouter(deps)); // P5-11: web push on your devices
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

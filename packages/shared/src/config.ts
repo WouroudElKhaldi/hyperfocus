@@ -45,6 +45,10 @@ const schema = z.object({
   SECRETS_KEYS: text,
   GOOGLE_OAUTH_URL: url("GOOGLE_OAUTH_URL"),
   GMAIL_SMTP: text,
+  VAPID_PUBLIC_KEY: text,
+  VAPID_PRIVATE_KEY: text,
+  VAPID_SUBJECT: text,
+  PUSH_ALLOW_LOCAL: flag,
   AI_DAILY_LIMIT: text.refine((v) => v === "" || /^\d+$/.test(v), { message: "AI_DAILY_LIMIT must be a whole number (0 = no limit)" }),
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
@@ -105,6 +109,10 @@ export type ApiConfig = {
   /** Tests only: an address standing in for Google's OAuth (…/auth, …/token), and a plain SMTP host:port for Gmail. */
   googleOAuthUrl: string;
   gmailSmtp: string;
+  /** Web push (P5-11): the app's VAPID keys and a contact (mailto: or https:). Empty in local mode = a key file. */
+  vapid: { publicKey: string; privateKey: string; subject: string };
+  /** Tests only: accept a push address on 127.0.0.1 (a stand-in push service). */
+  pushAllowLocal: boolean;
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -151,6 +159,8 @@ export function parseApiConfig(env: Env): ConfigResult {
       secretsKeys: e.SECRETS_KEYS,
       googleOAuthUrl: e.GOOGLE_OAUTH_URL,
       gmailSmtp: e.GMAIL_SMTP,
+      pushAllowLocal: e.PUSH_ALLOW_LOCAL,
+      vapid: { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT || "mailto:hyperfocus@localhost" },
       aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),
       adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them

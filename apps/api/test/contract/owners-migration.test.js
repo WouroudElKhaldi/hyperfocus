@@ -19,7 +19,7 @@ const TABLES = ["Note", "Task", "Step", "Goal", "GoalAction", "Win", "Pet", "Pet
 let db;
 const counts = async () => Object.fromEntries(await Promise.all(TABLES.map(async (t) => [t, (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM "${t}"`))[0].n])));
 // (Integration P5-07, AiUsage P5-10, UserSettings, OutboxMessage and Notification P5-11 got their owner after this migration)
-const ownerColumns = async () => (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'userId' AND table_name NOT IN ('Session', 'Account', 'Integration', 'AiUsage', 'UserSettings', 'OutboxMessage', 'Notification')`, url.searchParams.get("schema")))[0].n;
+const ownerColumns = async () => (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'userId' AND table_name NOT IN ('Session', 'Account', 'Integration', 'AiUsage', 'UserSettings', 'OutboxMessage', 'Notification', 'PushSubscription')`, url.searchParams.get("schema")))[0].n;
 
 beforeAll(async () => {
   prismaCli("migrate", "deploy");

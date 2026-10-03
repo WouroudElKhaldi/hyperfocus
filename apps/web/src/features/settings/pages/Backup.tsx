@@ -10,6 +10,7 @@ import { type ThemeMode, getTheme, setTheme } from "../../../theme.ts";
 import { useBackupNow, useBackups, useSaveSettings, useSettings } from "../api.ts";
 import type { A11y } from "../a11y.ts";
 import Connections from "../components/Connections.tsx";
+import DevicePush from "../components/DevicePush.tsx";
 
 // the choices for each accessibility setting, in the order they are shown (P3-18)
 const A11Y_OPTIONS: { key: Exclude<keyof A11y, "focusMode">; label: string; hint: string; choices: [string, string][] }[] = [
@@ -190,6 +191,7 @@ export default function Backup() {
               Pop-ups on this computer
             </label>
           )}
+          <DevicePush />
           <div className="row" style={{ marginTop: "var(--s-2)" }}>
             <label className="muted">Quiet from
               <input type="time" aria-label="Quiet hours start" style={{ width: "auto", margin: "0 var(--s-1)" }} value={prefs.quietFrom} onChange={(e) => savePrefs({ quietFrom: e.target.value })} />

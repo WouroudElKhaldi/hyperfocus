@@ -1,4 +1,5 @@
 import { spawn, execFileSync } from "node:child_process";
+import webpush from "web-push";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -17,6 +18,9 @@ const DB_DIR = fileURLToPath(new URL("../../../../packages/db/", import.meta.url
 const TEST_DB = process.env.TEST_DATABASE_URL || "postgresql://hyperfocus:hyperfocus-local@localhost:5432/hyperfocus_test";
 const prismaCli = (args, env, input) =>
   execFileSync(process.execPath, [path.join(DB_DIR, "node_modules/prisma/build/index.js"), ...args], { cwd: DB_DIR, env, stdio: "pipe", ...(input ? { input } : {}) });
+
+// web push keys for the tests (P5-11), so no key file is made in the project
+export const TEST_VAPID = webpush.generateVAPIDKeys();
 
 export const TEST_SECRETS_KEYS = `test:${Buffer.alloc(32, 7).toString("base64")}`;
 
@@ -67,6 +71,7 @@ export async function startTestStack({ port, env: extraEnv = {} } = {}) {
     GOOGLE_BOOKS_API_KEY: " ",
     // the key that seals tokens (P5-07): fixed, so the tests can seal and open them too
     SECRETS_KEYS: TEST_SECRETS_KEYS,
+    VAPID_PUBLIC_KEY: TEST_VAPID.publicKey, VAPID_PRIVATE_KEY: TEST_VAPID.privateKey, PUSH_ALLOW_LOCAL: "1",
   };
   delete env.DEMO_MODE;
   Object.assign(env, extraEnv); // (the cloud-mode stack for the browser tests, P5-04)

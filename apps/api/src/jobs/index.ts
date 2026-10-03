@@ -7,7 +7,7 @@ import { deliverOutbox } from "../outbox.ts";
 import { checkMyReminders, checkReminders } from "../reminders.ts";
 import { asSystem, forEachUser } from "../tenancy.ts";
 import { withCredentials } from "../credentials.ts";
-import { deliverTo } from "../notifications.ts";
+import { type Channel, deliverTo } from "../notifications.ts";
 import type { KeyRing } from "../secrets.ts";
 import type { Db } from "../types.ts";
 import type { Job } from "./scheduler.ts";
@@ -18,10 +18,10 @@ import type { Job } from "./scheduler.ts";
 const SECOND = 1000;
 const HOUR = 3600 * SECOND;
 
-export function backgroundJobs({ prisma, publisher, events, secrets, mode = "local" }: { prisma: Db; publisher: SocialPublisher; events: EventBus; secrets?: KeyRing | null; mode?: "local" | "cloud" }): Job[] {
+export function backgroundJobs({ prisma, publisher, events, secrets, mode = "local", push = null }: { prisma: Db; publisher: SocialPublisher; events: EventBus; secrets?: KeyRing | null; mode?: "local" | "cloud"; push?: Channel | null }): Job[] {
   // once per person, as that person, with their own credentials (their n8n webhook for their scheduled posts)
   // notifications: the bell always, and a desktop pop-up in local mode (P5-11)
-  const send = deliverTo(prisma, { desktop: mode === "local" ? (note) => notify(note.title, note.body) : null });
+  const send = deliverTo(prisma, { desktop: mode === "local" ? (note) => notify(note.title, note.body) : null, push });
   const each = (fn: () => Promise<unknown>) => forEachUser(prisma, () => withCredentials(prisma, secrets, fn));
   return [
     {

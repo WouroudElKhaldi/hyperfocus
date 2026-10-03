@@ -598,6 +598,20 @@ model Notification {
   @@index([userId, readAt])
 }
 
+// A device a person switched web push on for (P5-11): where the browser's push service receives the notification.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String   @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, endpoint])
+}
+
 model FeatureFlag {
   key       String   @id
   enabled   Boolean  @default(false)
@@ -668,6 +682,7 @@ model User {
   settings        UserSettings?
   outbox          OutboxMessage[]
   notifications   Notification[]
+  pushDevices     PushSubscription[]
 }
 
 model Session {
