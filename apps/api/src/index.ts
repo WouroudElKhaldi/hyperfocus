@@ -11,6 +11,7 @@ import type { Db } from "./types.ts";
 import { authMailer, createAuth } from "./auth.ts";
 import { fileStorageFrom } from "./storage/files.ts";
 import { keyRing, localKeyRing } from "./secrets.ts";
+import { tokenUrl } from "./google-oauth.ts";
 import { n8nPublisher, personalPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
@@ -33,7 +34,8 @@ const publisher = DEMO ? n8nPublisher("") : personalPublisher(config.mode === "l
 // (each person's own Gmail from Settings → Connections; the .env one only in local mode, P5-07). The account emails
 // (confirm, reset) are the app's own: always the .env Gmail.
 const appMail = gmailAppPassword(config.gmail, { demo: DEMO });
-const mail = personalMail(config.mode === "local" ? config.gmail : { user: "", appKey: "" }, { demo: DEMO });
+const google = config.auth.google ? { ...config.auth.google, tokenUrl: tokenUrl({ baseUrl: config.googleOAuthUrl }) } : null; // P5-08
+const mail = personalMail(config.mode === "local" ? config.gmail : { user: "", appKey: "" }, { demo: DEMO, google, smtp: config.gmailSmtp });
 // Domain events (P2-04): routes say what happened, subscribers react. The pet earns its XP this way.
 const events = new EventBus((event, err) => log.error({ err, event }, "an event subscriber failed"));
 petEarnsXp(events, prisma);

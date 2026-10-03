@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../../../api.ts";
 import { useApi } from "../../../api/hooks.ts";
 import { keyOf } from "../../../api/query.ts";
@@ -38,6 +38,21 @@ export default function Connections() {
   const remove = useMutation({ mutationFn: (id: string) => api.del(`/integrations/${id}`), onSuccess: refresh });
   const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; message: string } | null>(null);
+  // back from Google (P5-08): ?connected=gmail or ?connect-error=…, said once, then taken out of the address
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("connected") === "gmail") setNotice("✅ Gmail connected with Google. Your emails now go from your Gmail.");
+    const failed = q.get("connect-error");
+    if (failed) setError({ id: "gmail", message: failed });
+    if (q.has("connected") || failed) window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+  const googleGmail = saved.find((s) => s.provider === "gmail-oauth");
+  const connectGoogle = () =>
+    api.get("/integrations/gmail-oauth/start").then(
+      ({ url }) => window.location.assign(url),
+      (err) => setError({ id: "gmail", message: err instanceof Error ? err.message : "That didn't work." }),
+    );
 
   const submit = (id: string) => (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,17 +68,21 @@ export default function Connections() {
     <div className="card">
       <h2>Your connections</h2>
       <p className="muted">Your own keys for the AI, LinkedIn and email. They are locked (encrypted) when saved and never shown again.</p>
+      {notice && <p role="status">{notice}</p>}
       {KINDS.map((k) => {
-        const have = saved.find((s) => s.provider === k.id);
-        const open = editing === k.id || !have;
+        // Gmail connected with Google (P5-08) takes the place of the App Password form
+        const viaGoogle = k.id === "gmail" ? googleGmail : undefined;
+        const have = viaGoogle ?? saved.find((s) => s.provider === k.id);
+        const open = !viaGoogle && (editing === k.id || !have);
         return (
           <section key={k.id} className="connection" aria-label={k.title}>
             <div className="row" style={{ justifyContent: "space-between" }}>
               <div>
                 <b>{k.title}</b>
-                <div className="muted">{have ? <>✅ Connected: {have.account}</> : k.what}</div>
+                <div className="muted">{viaGoogle ? <>✅ Connected with Google: {viaGoogle.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
               </div>
-              {have && editing !== k.id && (
+              {viaGoogle && <button onClick={() => remove.mutate("gmail-oauth")}>Disconnect</button>}
+              {!viaGoogle && have && editing !== k.id && (
                 <div className="row">
                   <button onClick={() => setEditing(k.id)}>Change</button>
                   <button onClick={() => remove.mutate(k.id)}>Disconnect</button>
@@ -72,6 +91,9 @@ export default function Connections() {
             </div>
             {k.id === "deepseek" && usage && usage.limit > 0 && !usage.ownKey && (
               <p className="muted tiny" data-testid="ai-usage">Today: {usage.used} of {usage.limit} AI requests on the app's key. Add your own key above for no limit.</p>
+            )}
+            {k.id === "gmail" && !viaGoogle && (
+              <p><button type="button" onClick={() => void connectGoogle()}>Connect with Google</button> <span className="muted tiny">No App Password needed: Google asks you to allow sending only.</span></p>
             )}
             {open && (
               <form className="form-grid" onSubmit={submit(k.id)}>

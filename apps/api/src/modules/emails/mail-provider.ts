@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { own } from "../../credentials.ts";
+import type { GmailOAuthTokens } from "../../google-oauth.ts";
 import { errorInfo, httpError } from "../../types.ts";
 
 // Sending email (P2-16) behind a port: her Gmail with an App Password today (local mode), Gmail OAuth per user later
@@ -20,8 +21,12 @@ export type MailProvider = {
 };
 
 /** Gmail with the person's own address and App Password (Settings → Connections), otherwise `fallback` (local mode: the .env). */
-export function personalMail(fallback: { user: string; appKey: string }, { demo = false } = {}): MailProvider {
-  const current = () => gmailAppPassword(own("gmail") ?? fallback, { demo });
+export function personalMail(fallback: { user: string; appKey: string }, { demo = false, google = null as GmailOAuthClient | null, smtp = "" } = {}): MailProvider {
+  // "Connect with Google" (P5-08) first, then an App Password, then the .env (local mode)
+  const current = () => {
+    const oauth = own("gmail-oauth");
+    return oauth && google ? gmailOAuth(oauth, google, { demo, smtp }) : gmailAppPassword(own("gmail") ?? fallback, { demo });
+  };
   return {
     status: () => current().status(),
     unavailable: () => {
@@ -29,6 +34,34 @@ export function personalMail(fallback: { user: string; appKey: string }, { demo 
       return why && why.status === 400 ? { status: 400, message: "Gmail isn't set up: add your Gmail address and App Password in Settings → Connections." } : why;
     },
     send: (mail) => current().send(mail),
+  };
+}
+
+export type GmailOAuthClient = { clientId: string; clientSecret: string; tokenUrl: string };
+
+/** Gmail through SMTP signed in with Google (P5-08): the person's refresh token, renewed by nodemailer when it expires. */
+export function gmailOAuth(t: GmailOAuthTokens, client: GmailOAuthClient, { demo = false, smtp = "" } = {}): MailProvider {
+  // GMAIL_SMTP (tests only): a plain SMTP server instead of Gmail's
+  const [host, port] = smtp ? [smtp.split(":")[0], Number(smtp.split(":")[1])] : ["smtp.gmail.com", 465];
+  return {
+    status: () => ({ ready: !demo, user: t.user, hasKey: true, hasUser: true }),
+    unavailable: () => (demo ? { status: 403, message: "Sending is switched off in the demo." } : null),
+    async send(mail) {
+      const transport = nodemailer.createTransport({
+        host, port, secure: !smtp, ...(smtp ? { ignoreTLS: true } : {}),
+        auth: { type: "OAuth2", user: t.user, clientId: client.clientId, clientSecret: client.clientSecret, refreshToken: t.refreshToken, accessToken: t.accessToken, expires: t.expires, accessUrl: client.tokenUrl },
+      });
+      try {
+        const info = await transport.sendMail({
+          from: t.user, to: mail.to, cc: mail.cc.length ? mail.cc : undefined, bcc: mail.bcc.length ? mail.bcc : undefined,
+          subject: mail.subject, text: mail.text, html: mail.html, attachments: mail.attachments,
+        });
+        return { from: t.user, messageId: String(info.messageId || "") };
+      } catch (e) {
+        if (errorInfo(e).code === "EAUTH") throw httpError(502, "Google refused to send from your Gmail. Connect it again in Settings → Connections.");
+        throw e;
+      }
+    },
   };
 }
 

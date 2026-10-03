@@ -43,6 +43,8 @@ const schema = z.object({
   MAIL_DRY_RUN: flag,
   ADMIN_EMAILS: text,
   SECRETS_KEYS: text,
+  GOOGLE_OAUTH_URL: url("GOOGLE_OAUTH_URL"),
+  GMAIL_SMTP: text,
   AI_DAILY_LIMIT: text.refine((v) => v === "" || /^\d+$/.test(v), { message: "AI_DAILY_LIMIT must be a whole number (0 = no limit)" }),
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
@@ -100,6 +102,9 @@ export type ApiConfig = {
   secretsKeys: string;
   /** AI requests a day per person on the app's own key (P5-10); 0 = no limit. Default: 30 in cloud mode, none in local mode. */
   aiDailyLimit: number;
+  /** Tests only: an address standing in for Google's OAuth (…/auth, …/token), and a plain SMTP host:port for Gmail. */
+  googleOAuthUrl: string;
+  gmailSmtp: string;
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -144,6 +149,8 @@ export function parseApiConfig(env: Env): ConfigResult {
       },
       mailDryRun: e.MAIL_DRY_RUN,
       secretsKeys: e.SECRETS_KEYS,
+      googleOAuthUrl: e.GOOGLE_OAUTH_URL,
+      gmailSmtp: e.GMAIL_SMTP,
       aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),
       adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them

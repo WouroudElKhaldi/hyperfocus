@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "@hono/zod-openapi";
 import { type KeyRing, unseal } from "./secrets.ts";
 import type { Db } from "./types.ts";
+import type { GmailOAuthTokens } from "./google-oauth.ts";
 
 // Your own credentials (P5-07, at your request): each person saves their DeepSeek key, their n8n LinkedIn webhook and
 // their Gmail App Password in Settings → Connections. They are sealed in the Integration table (src/secrets.ts) and
@@ -26,7 +27,12 @@ export const CREDENTIALS = {
 };
 export type CredentialKind = keyof typeof CREDENTIALS;
 export const CREDENTIAL_KINDS = Object.keys(CREDENTIALS) as CredentialKind[];
-export type Credentials = { [K in CredentialKind]?: z.infer<(typeof CREDENTIALS)[K]> };
+export type Credentials = { [K in CredentialKind]?: z.infer<(typeof CREDENTIALS)[K]> } & {
+  /** "Connect with Google" for Gmail (P5-08) */
+  "gmail-oauth"?: GmailOAuthTokens;
+};
+/** Everything opened per request: what people paste, and what the Google sign-in flow saves. */
+const LOADED = [...CREDENTIAL_KINDS, "gmail-oauth"];
 
 /** What the list shows for each (never the secret itself). */
 export function describe(kind: CredentialKind, c: Credentials[CredentialKind]): string {
@@ -43,7 +49,7 @@ const store = new AsyncLocalStorage<Credentials>();
 export async function withCredentials<T>(db: Db, ring: KeyRing | null | undefined, fn: () => Promise<T>): Promise<T> {
   const found: Credentials = {};
   if (ring) {
-    const rows = await db.integration.findMany({ where: { provider: { in: CREDENTIAL_KINDS } }, select: { provider: true, secret: true } });
+    const rows = await db.integration.findMany({ where: { provider: { in: LOADED } }, select: { provider: true, secret: true } });
     for (const r of rows) {
       try {
         (found as Record<string, unknown>)[r.provider] = JSON.parse(unseal(ring, r.secret, sealContext(r.provider)));
@@ -56,4 +62,4 @@ export async function withCredentials<T>(db: Db, ring: KeyRing | null | undefine
 }
 
 /** The person's own credentials for this kind, if they saved them. */
-export const own = <K extends CredentialKind>(kind: K): Credentials[K] | undefined => store.getStore()?.[kind];
+export const own = <K extends keyof Credentials>(kind: K): Credentials[K] | undefined => store.getStore()?.[kind];

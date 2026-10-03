@@ -37,3 +37,18 @@ test("save, see, change and disconnect your own DeepSeek key and Gmail", async (
   await gmail.getByRole("button", { name: "Disconnect" }).click();
   await expect(gmail.getByLabel("Gmail address")).toBeVisible();
 });
+
+// P5-08: "Connect with Google" for Gmail. This test copy has no Google client, so it says how to do without; coming back
+// from Google says whether it worked (the full flow with a stand-in Google is tested in the API suite).
+test("Connect with Google: explains when it isn't set up, and reports how coming back from Google went", async ({ page }) => {
+  await page.goto("/backup");
+  const gmail = page.getByRole("region", { name: "Email (Gmail)" });
+  await gmail.getByRole("button", { name: "Connect with Google" }).click();
+  await expect(gmail.getByRole("alert")).toContainText("Connecting with Google isn't set up for this app");
+
+  await page.goto(`/backup?connect-error=${encodeURIComponent("You didn't allow it, so nothing changed.")}`);
+  await expect(gmail.getByRole("alert")).toHaveText("You didn't allow it, so nothing changed.");
+  await expect(page).toHaveURL(/\/backup$/);
+  await page.goto("/backup?connected=gmail");
+  await expect(page.getByRole("status").filter({ hasText: "Gmail connected with Google" })).toBeVisible();
+});
