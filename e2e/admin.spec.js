@@ -20,3 +20,17 @@ test("the owner opens the admin area from Settings and switches a feature on", a
   await page.reload();
   await expect(page.getByRole("checkbox", { name: key })).not.toBeChecked();
 });
+
+test("job sources: see how each one is doing, add a job board, switch it off", async ({ page }) => {
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Job sources" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /Arbeitnow/ }).first()).toBeVisible();
+  const board = `e2eboard${Date.now()}`;
+  await page.getByLabel("Board name").fill(board);
+  await page.getByRole("button", { name: "Add job board" }).click();
+  const row = page.getByRole("row", { name: new RegExp(board) });
+  await expect(row.getByText("not checked yet")).toBeVisible();
+  await row.getByRole("button", { name: "Switch off" }).click();
+  await expect(row.getByText("off")).toBeVisible();
+  await expect(row.getByRole("button", { name: "Switch on" })).toBeVisible();
+});

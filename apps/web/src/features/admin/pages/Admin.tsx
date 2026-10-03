@@ -5,9 +5,10 @@ import { api } from "../../../api.ts";
 import { useApi } from "../../../api/hooks.ts";
 import { keyOf } from "../../../api/query.ts";
 import { useMe } from "../../account/index.ts";
+import JobSources from "../components/JobSources.tsx";
 
 // The admin area (P5-06): which outside services are connected, the people with accounts (make someone an admin), and
-// feature flags switched on or off for everyone. Only admins see the link; the API says 403 to anyone else anyway.
+// feature flags switched on or off for everyone, and the job sources (P6-18). Only admins see the link; the API says 403 to anyone else anyway.
 
 const yes = (on: boolean) => (on ? "✅ connected" : "— not set up");
 
@@ -108,6 +109,8 @@ export default function Admin() {
           <button type="submit">Add and switch on</button>
         </form>
       </div>
+
+      <JobSources />
     </>
   );
 }

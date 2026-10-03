@@ -178,6 +178,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/job-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every job source and how it is doing */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The sources */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobSourceHealth"][];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add a company's Greenhouse or Lever job board */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        board: string;
+                        /** @enum {string} */
+                        kind: "greenhouse" | "lever";
+                        name?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Added; it is checked within the next few minutes */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobSourceHealth"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Already there */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/job-sources/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Switch a source on or off, rename it, or check it soon */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        checkSoon?: boolean;
+                        enabled?: boolean;
+                        name?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The source */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobSourceHealth"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such job source. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/admin/providers": {
         parameters: {
             query?: never;
@@ -10363,6 +10534,33 @@ export interface components {
                 workModes: ("onsite" | "hybrid" | "remote")[];
             };
             summary: string;
+        };
+        JobSourceHealth: {
+            enabled: boolean;
+            id: number;
+            key: string;
+            kind: string;
+            lastBatch: {
+                at: string;
+                created: number;
+                duplicates: number;
+                failed: number;
+                received: number;
+                status: string;
+            } | null;
+            lastError: string;
+            lastItems: number;
+            lastOkAt: string | null;
+            lastRunAt: string | null;
+            name: string;
+            newThisWeek: number;
+            /** @description Postings from it that are still shown */
+            postings: number;
+            /**
+             * @description ok: its last check worked · failing: its last check failed · waiting: not checked yet · off: switched off
+             * @enum {string}
+             */
+            status: "ok" | "failing" | "waiting" | "off";
         };
         Major: {
             code: string;

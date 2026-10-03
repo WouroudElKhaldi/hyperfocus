@@ -6,7 +6,7 @@ import { CLOUD, browser, signUp } from "../support/people.js";
 // P5-06: roles. Everyone is a `user`; admins (the owner in local mode, ADMIN_EMAILS or someone an admin promoted in
 // cloud mode) see the admin area: people, feature flags, connected services. Everyone else gets 403 there.
 
-const ADMIN_ROUTES = [["GET", "/api/admin/providers"], ["GET", "/api/admin/users"], ["GET", "/api/admin/flags"], ["PUT", "/api/admin/flags/x", { enabled: true }], ["PATCH", "/api/admin/users/owner", { role: "user" }]];
+const ADMIN_ROUTES = [["GET", "/api/admin/providers"], ["GET", "/api/admin/users"], ["GET", "/api/admin/flags"], ["PUT", "/api/admin/flags/x", { enabled: true }], ["PATCH", "/api/admin/users/owner", { role: "user" }], ["GET", "/api/admin/job-sources"], ["POST", "/api/admin/job-sources", { kind: "lever", board: "x" }], ["PATCH", "/api/admin/job-sources/1", { enabled: false }]];
 
 describe("roles in local mode", () => {
   it("the owner is the admin and sees the admin area", async () => {
