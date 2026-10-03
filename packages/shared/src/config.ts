@@ -43,8 +43,6 @@ const schema = z.object({
   MAIL_DRY_RUN: flag,
   ADMIN_EMAILS: text,
   SECRETS_KEYS: text,
-  GOOGLE_OAUTH_URL: url("GOOGLE_OAUTH_URL"),
-  GMAIL_SMTP: text,
   VAPID_PUBLIC_KEY: text,
   VAPID_PRIVATE_KEY: text,
   VAPID_SUBJECT: text,
@@ -110,9 +108,6 @@ export type ApiConfig = {
   aiDailyLimit: number;
   /** Cloud mode: let everyone without their own key use the app's DeepSeek key (with aiDailyLimit). Off: only the owner (ADMIN_EMAILS). */
   shareAiKey: boolean;
-  /** Tests only: an address standing in for Google's OAuth (…/auth, …/token), and a plain SMTP host:port for Gmail. */
-  googleOAuthUrl: string;
-  gmailSmtp: string;
   /** Web push (P5-11): the app's VAPID keys and a contact (mailto: or https:). Empty in local mode = a key file. */
   vapid: { publicKey: string; privateKey: string; subject: string };
   /** Tests only: accept addresses on this machine for push and n8n webhooks (stand-ins). Never set it on a real server. */
@@ -163,8 +158,6 @@ export function parseApiConfig(env: Env): ConfigResult {
       },
       mailDryRun: e.MAIL_DRY_RUN,
       secretsKeys: e.SECRETS_KEYS,
-      googleOAuthUrl: e.GOOGLE_OAUTH_URL,
-      gmailSmtp: e.GMAIL_SMTP,
       allowLocalAddresses: e.ALLOW_LOCAL_ADDRESSES,
       linkedin: e.LINKEDIN_CLIENT_ID ? { clientId: e.LINKEDIN_CLIENT_ID, clientSecret: e.LINKEDIN_CLIENT_SECRET, version: e.LINKEDIN_API_VERSION || "202609", oauthUrl: e.LINKEDIN_OAUTH_URL, apiUrl: e.LINKEDIN_API_URL } : null,
       vapid: { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT || "mailto:hyperfocus@localhost" },

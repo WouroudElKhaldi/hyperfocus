@@ -257,15 +257,9 @@ importers:
       '@types/sanitize-html':
         specifier: ^2.16.2
         version: 2.16.2
-      '@types/smtp-server':
-        specifier: ^3.5.13
-        version: 3.5.13
       '@types/web-push':
         specifier: ^3.6.4
         version: 3.6.4
-      smtp-server:
-        specifier: ^3.19.16
-        version: 3.19.16
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -2180,9 +2174,6 @@ packages:
   '@types/sanitize-html@2.16.2':
     resolution: {integrity: sha512-kuAbgDCFv418flrp3z4o/4ufLA/5ovmXRH0L419iZCPGO7w00znjeDI5Wy/KZWNIBpDQc7hucCK+J5almB6FyA==}
 
-  '@types/smtp-server@3.5.13':
-    resolution: {integrity: sha512-S3rGl2KbViH+98/CgHipPIWgtAFnjxLsppxIRbgJHNuZL7Y+py+7kZjT7xS+wOmCxYTn4O7IqLqkvekg99MDVQ==}
-
   '@types/web-push@3.6.4':
     resolution: {integrity: sha512-GnJmSr40H3RAnj0s34FNTcJi1hmWFV5KXugE0mYWnYhgTAHLJ/dJKAwDmvPJYMke0RplY2XE9LnM4hqSqKIjhQ==}
 
@@ -2679,9 +2670,6 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
-  ipv6-normalize@1.0.1:
-    resolution: {integrity: sha512-Bm6H79i01DjgGTCWjUuCjJ6QDo1HB96PT/xCYuyJUP9WFbVDrLSbG4EZCvOCun2rNswZb0c3e4Jt/ws795esHA==}
-
   is-plain-object@5.1.0:
     resolution: {integrity: sha512-bUi/yjmtKYcRVUtWRGr0UA6xEFh2I6zWUwMrUXB3s7bmYCaZ8a+0ZsTRkrawh/mzlSD1Y0Ph8bp/U+TvBpWDNw==}
     engines: {node: '>=0.10.0'}
@@ -3144,10 +3132,6 @@ packages:
   process-warning@5.1.0:
     resolution: {integrity: sha512-jQSaVHsPgtyw60e1rQ/A+/ArPEj/S8pS/vFnyGa/gYFXrKk/6RuDkoqVDQ5NI5MmS01698ltlAk0NoDBNLujRw==}
 
-  punycode.js@2.3.1:
-    resolution: {integrity: sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA==}
-    engines: {node: '>=6'}
-
   pure-rand@6.1.0:
     resolution: {integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==}
 
@@ -3307,10 +3291,6 @@ packages:
 
   set-cookie-parser@3.1.2:
     resolution: {integrity: sha512-5/r/lTwbJ3zQ+qwdUFZYeRNqda7P5HD8zQKqlSjdGt1/S0cjLAphHusj4Y58ahDtWn/g32xrIS58/ikOvwl0Lw==}
-
-  smtp-server@3.19.16:
-    resolution: {integrity: sha512-EAO7FiexdU+s/IiW92MIRDSOaVTGF2skmXEpSvl+A+NDMDLnv+NnoYpmEh+7kmARU1F1NTTe3am35IBMEEnN1w==}
-    engines: {node: '>=20.0.0'}
 
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
@@ -5107,11 +5087,6 @@ snapshots:
     dependencies:
       htmlparser2: 12.0.0
 
-  '@types/smtp-server@3.5.13':
-    dependencies:
-      '@types/node': 24.19.0
-      '@types/nodemailer': 8.0.2
-
   '@types/web-push@3.6.4':
     dependencies:
       '@types/node': 24.19.0
@@ -5515,8 +5490,6 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  ipv6-normalize@1.0.1: {}
-
   is-plain-object@5.1.0: {}
 
   isbot@5.2.2: {}
@@ -5888,8 +5861,6 @@ snapshots:
 
   process-warning@5.1.0: {}
 
-  punycode.js@2.3.1: {}
-
   pure-rand@6.1.0: {}
 
   quick-format-unescaped@4.0.4: {}
@@ -6114,12 +6085,6 @@ snapshots:
   seroval@1.6.8: {}
 
   set-cookie-parser@3.1.2: {}
-
-  smtp-server@3.19.16:
-    dependencies:
-      ipv6-normalize: 1.0.1
-      nodemailer: 10.0.13
-      punycode.js: 2.3.1
 
   sonic-boom@4.2.1:
     dependencies:

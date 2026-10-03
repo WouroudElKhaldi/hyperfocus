@@ -7,7 +7,6 @@ import { CREDENTIALS, type CredentialKind, describe } from "../../credentials.ts
 import { integrations } from "../../integrations.ts";
 import { aiUsage } from "../../ai-quota.ts";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
-import { checkState, exchangeCode, startUrl } from "../../google-oauth.ts";
 import { checkState as checkSigned } from "../../oauth-state.ts";
 import { linkedinExchange, linkedinStart } from "../../linkedin.ts";
 
@@ -53,9 +52,6 @@ const Usage = z
 
 export function integrationsRouter({ prisma, secrets, config, log }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
-  // "Connect with Google" for Gmail (P5-08)
-  const google = config.auth?.google ? { ...config.auth.google, publicUrl: config.auth.publicUrl, secret: config.auth.secret, baseUrl: config.googleOAuthUrl } : null;
-  const NONCE = "hf_gmail_oauth";
   // "Connect LinkedIn" (P5-09)
   const linkedin = config.linkedin ? { ...config.linkedin, publicUrl: config.auth.publicUrl, secret: config.auth.secret } : null;
   const LI_NONCE = "hf_linkedin_oauth";
@@ -94,43 +90,6 @@ export function integrationsRouter({ prisma, secrets, config, log }: AppDeps) {
       } catch (e) {
         log.warn({ err: (e as Error).message }, "Connect LinkedIn failed");
         return fail((e as Error).message);
-      }
-    },
-  );
-  app.openapi(
-    createRoute({
-      method: "get", path: "/api/integrations/gmail-oauth/start", tags: ["Integrations"], summary: "Start \"Connect with Google\" for Gmail: where to send the browser",
-      responses: { 200: json(z.object({ url: z.string() }), "Google's consent page"), 409: problem("Google isn't set up for this app") },
-    }),
-    (c) => {
-      if (!google) throw httpError(409, "Connecting with Google isn't set up for this app (GOOGLE_CLIENT_ID). Use an App Password instead.");
-      const { url, nonce } = startUrl(google, c.get("userId"));
-      setCookie(c, NONCE, nonce, { httpOnly: true, sameSite: "Lax", path: "/api/integrations/gmail-oauth", maxAge: 600, secure: google.publicUrl.startsWith("https://") });
-      return c.json({ url }, 200);
-    },
-  );
-  app.openapi(
-    createRoute({
-      method: "get", path: "/api/integrations/gmail-oauth/callback", tags: ["Integrations"], summary: "Where Google sends you back: saves the permission, then back to Settings",
-      request: { query: z.object({ code: z.string().optional(), state: z.string().optional(), error: z.string().optional() }) },
-      responses: { 302: { description: "Back to Settings, with ?connected=gmail or ?connect-error=…" } },
-    }),
-    async (c) => {
-      const back = (q: string) => c.redirect(`/backup?${q}`, 302);
-      const { code, state, error } = c.req.valid("query");
-      const nonce = getCookie(c, NONCE);
-      deleteCookie(c, NONCE, { path: "/api/integrations/gmail-oauth" });
-      if (!google || !secrets) return back(`connect-error=${encodeURIComponent("Connecting with Google isn't set up for this app.")}`);
-      if (error || !code || !state) return back(`connect-error=${encodeURIComponent(error === "access_denied" ? "You didn't allow it, so nothing changed." : "Google didn't finish connecting.")}`);
-      const wrong = checkState(google, state, c.get("userId"), nonce);
-      if (wrong) return back(`connect-error=${encodeURIComponent(wrong)}`);
-      try {
-        const tokens = await exchangeCode(google, code);
-        await integrations(prisma, secrets).save("gmail-oauth", tokens.user, tokens);
-        return back("connected=gmail");
-      } catch (e) {
-        log.warn({ err: (e as Error).message }, "Connect with Google failed");
-        return back(`connect-error=${encodeURIComponent((e as Error).message)}`);
       }
     },
   );

@@ -53,19 +53,10 @@ export default function ConnectionsHelp() {
         <h2 id="gmail-title">2. Email: send from your own Gmail</h2>
         <p>
           So the emails you write in Hyperfocus (job applications, follow-ups) are sent from your own Gmail address, and appear in your Gmail's
-          "Sent" folder. There are two ways; you only need one.
+          "Sent" folder.
         </p>
 
-        <h3>The easy way: Connect with Google (1 minute)</h3>
-        <Steps>
-          <li>In <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>Email (Gmail)</b>, click <b>Connect with Google</b>.</li>
-          <li>Google opens. Choose your Gmail account.</li>
-          <li>Google asks if Hyperfocus may <b>send email on your behalf</b>. Click <b>Continue</b> / <b>Allow</b>. (It can only send; it can never read your emails.)</li>
-          <li>You come back to Settings, and it says <i>Gmail connected with Google</i>. That's it.</li>
-        </Steps>
-        <p className="muted">If the button says it isn't set up for this app, the website's owner hasn't switched it on yet: use the other way below.</p>
-
-        <h3>The other way: an App Password (5 minutes)</h3>
+        <h3>With an App Password (5 minutes)</h3>
         <p>An App Password is a special 16-letter password Google makes for one app. Your real Gmail password is never shared.</p>
         <Steps>
           <li>
@@ -85,7 +76,7 @@ export default function ConnectionsHelp() {
           <summary>The App passwords page says "The setting you are looking for is not available for your account"</summary>
           <p>
             This happens when 2-Step Verification is off, or with some work or school accounts (their administrator blocks it). Turn on 2-Step
-            Verification first; with a work account, use <b>Connect with Google</b> or a personal Gmail instead.
+            Verification first; with a work account, use a personal Gmail instead.
           </p>
         </details>
         <p className="muted">To stop: click <b>Disconnect</b> in Hyperfocus, and you can also remove the App Password on the same Google page.</p>

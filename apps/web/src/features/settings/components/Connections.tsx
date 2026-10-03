@@ -46,17 +46,15 @@ export default function Connections() {
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (q.get("connected") === "gmail") setNotice("✅ Gmail connected with Google. Your emails now go from your Gmail.");
     if (q.get("connected") === "linkedin") setNotice("✅ LinkedIn connected. Your posts now go straight to your LinkedIn.");
     const failed = q.get("connect-error");
-    if (failed) setError({ id: q.get("for") === "linkedin" ? "n8n" : "gmail", message: failed });
+    if (failed) setError({ id: "n8n", message: failed });
     if (q.has("connected") || failed) window.history.replaceState(null, "", window.location.pathname);
   }, []);
-  const googleGmail = saved.find((s) => s.provider === "gmail-oauth");
   const directLinkedIn = saved.find((s) => s.provider === "linkedin"); // P5-09
-  /** Off to Google or LinkedIn to allow it; back in Settings afterwards. */
-  const connectVia = (to: "google" | "linkedin", id: string) =>
-    (to === "google" ? api.get("/integrations/gmail-oauth/start") : api.get("/integrations/linkedin/start")).then(
+  /** Off to LinkedIn to allow it; back in Settings afterwards. */
+  const connectLinkedIn = (id: string) =>
+    api.get("/integrations/linkedin/start").then(
       ({ url }) => window.location.assign(url),
       (err) => setError({ id, message: err instanceof Error ? err.message : "That didn't work." }),
     );
@@ -77,20 +75,20 @@ export default function Connections() {
       <p className="muted">Your own keys for the AI, LinkedIn and email. They are locked (encrypted) when saved and never shown again. Not sure how? <Link to="/help/connections">Step-by-step guides</Link>.</p>
       {notice && <p role="status">{notice}</p>}
       {KINDS.map((k) => {
-        // Gmail connected with Google (P5-08) takes the place of the App Password form
-        const viaGoogle = k.id === "gmail" ? googleGmail : k.id === "n8n" ? directLinkedIn : undefined;
-        const have = viaGoogle ?? saved.find((s) => s.provider === k.id);
-        const open = !viaGoogle && (editing === k.id || !have);
+        // LinkedIn connected directly (P5-09) takes the place of the n8n form
+        const viaLinkedIn = k.id === "n8n" ? directLinkedIn : undefined;
+        const have = viaLinkedIn ?? saved.find((s) => s.provider === k.id);
+        const open = !viaLinkedIn && (editing === k.id || !have);
         return (
           <section key={k.id} className="connection" aria-label={k.title}>
             <div className="row" style={{ justifyContent: "space-between" }}>
               <div>
                 <b>{k.title}</b>
                 <Link className="tiny" to="/help/connections" hash={GUIDE[k.id]}>How do I get this?</Link>
-                <div className="muted">{viaGoogle ? <>✅ {k.id === "n8n" ? "Connected to LinkedIn as" : "Connected with Google:"} {viaGoogle.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
+                <div className="muted">{viaLinkedIn ? <>✅ Connected to LinkedIn as {viaLinkedIn.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
               </div>
-              {viaGoogle && <button onClick={() => remove.mutate(viaGoogle.provider)}>Disconnect</button>}
-              {!viaGoogle && have && editing !== k.id && (
+              {viaLinkedIn && <button onClick={() => remove.mutate(viaLinkedIn.provider)}>Disconnect</button>}
+              {!viaLinkedIn && have && editing !== k.id && (
                 <div className="row">
                   <button onClick={() => setEditing(k.id)}>Change</button>
                   <button onClick={() => remove.mutate(k.id)}>Disconnect</button>
@@ -100,11 +98,8 @@ export default function Connections() {
             {k.id === "deepseek" && usage && usage.shared && usage.limit > 0 && !usage.ownKey && (
               <p className="muted tiny" data-testid="ai-usage">Today: {usage.used} of {usage.limit} AI requests on the app's key. Add your own key above for no limit.</p>
             )}
-            {k.id === "gmail" && !viaGoogle && (
-              <p><button type="button" onClick={() => void connectVia("google", "gmail")}>Connect with Google</button> <span className="muted tiny">No App Password needed: Google asks you to allow sending only.</span></p>
-            )}
-            {k.id === "n8n" && !viaGoogle && (
-              <p><button type="button" onClick={() => void connectVia("linkedin", "n8n")}>Connect LinkedIn</button> <span className="muted tiny">The easy way: no n8n needed. Or use your own n8n webhook below.</span></p>
+            {k.id === "n8n" && !viaLinkedIn && (
+              <p><button type="button" onClick={() => void connectLinkedIn("n8n")}>Connect LinkedIn</button> <span className="muted tiny">The easy way: no n8n needed. Or use your own n8n webhook below.</span></p>
             )}
             {open && (
               <form className="form-grid" onSubmit={submit(k.id)}>

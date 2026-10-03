@@ -7,7 +7,7 @@ import type { Db } from "./types.ts";
 // no route sends them out.
 
 // the credentials people paste in Settings (src/credentials.ts: deepseek, n8n, gmail) and the sign-in flows (P5-08, P5-09)
-export const PROVIDERS = ["deepseek", "n8n", "gmail", "gmail-oauth", "linkedin"] as const;
+export const PROVIDERS = ["deepseek", "n8n", "gmail", "linkedin"] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 const context = (provider: string) => `integration:${provider}`;
