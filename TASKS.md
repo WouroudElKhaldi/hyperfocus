@@ -1,4 +1,4 @@
-| ✅ P6-26 || ✅ P6-25 || ✅ P6-23 || ✅ P6-22 || ✅ P6-21 |# Hyperfocus: Engineering Plan & Task Breakdown
+# Hyperfocus: Engineering Plan & Task Breakdown
 
 > Owner: Lead Engineer · Status: **Draft v1 (2026-10-02)** · Applies to: whole repository
 >
@@ -492,12 +492,12 @@ Filter options (all user settings, all optional, with presets prefilled):
 | ID | Task | Size | Depends | Acceptance |
 |---|---|---|---|---|
 | ✅ P6-20 | Models: `JobFilter` (per user, many allowed, name, enabled, JSON spec validated by a Zod schema in `packages/shared`), `JobMatch` (filter, posting, score, reasons, status: new / seen / saved / dismissed / applied) | M | P6-10, P5-02 | – |
-| P6-21 | **Specification engine**: filter spec → composable specs → Prisma `where` (hard filters pushed to SQL) + in-memory specs for the rest | L | P6-20 | Unit-tested per filter type |
-| P6-22 | **Scoring Strategy**: weighted skill overlap (essential > optional), title similarity to occupation alt titles, keyword hits, recency. Returns **explainable reasons** ("Matches: Python, internship, remote"). | L | P6-21 | Reasons shown for every match |
-| P6-23 | Matching jobs: new posting → match against active filters (batched). New/edited filter → backfill the last N days. | M | P6-21, P4-05 | Handles 10k postings × 10k filters in a load test |
+| ✅ P6-21 | **Specification engine**: filter spec → composable specs → Prisma `where` (hard filters pushed to SQL) + in-memory specs for the rest | L | P6-20 | Unit-tested per filter type |
+| ✅ P6-22 | **Scoring Strategy**: weighted skill overlap (essential > optional), title similarity to occupation alt titles, keyword hits, recency. Returns **explainable reasons** ("Matches: Python, internship, remote"). | L | P6-21 | Reasons shown for every match |
+| ✅ P6-23 | Matching jobs: new posting → match against active filters (batched). New/edited filter → backfill the last N days. | M | P6-21, P4-05 | Handles 10k postings × 10k filters in a load test |
 | P6-24 | **Digest**: daily or weekly "Top 5 for you" (in-app + email), real-time opt-in, quiet hours, max N per day | M | P6-23, P5-11 | – |
-| P6-25 | "Save → Apply" bridge: a matched job becomes a **Job application** (existing Jobs feature) with one click, and email templates are suggested | S | P6-20, P2-17 | – |
-| P6-26 | Feedback loop: 👍/👎 per match adjusts that user's weights | M | P6-22 | – |
+| ✅ P6-25 | "Save → Apply" bridge: a matched job becomes a **Job application** (existing Jobs feature) with one click, and email templates are suggested | S | P6-20, P2-17 | – |
+| ✅ P6-26 | Feedback loop: 👍/👎 per match adjusts that user's weights | M | P6-22 | – |
 
 ### 6E. Job Radar UI (ADHD-first)
 | ID | Task | Size | Depends | Acceptance |
