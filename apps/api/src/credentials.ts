@@ -77,3 +77,5 @@ export async function withCredentials<T>(db: Db, ring: KeyRing | null | undefine
 export const own = <K extends keyof Credentials>(kind: K): Credentials[K] | undefined => store.getStore()?.creds[kind];
 /** Whether the person asking may use the app's own AI key, and how (see AppAi). */
 export const appAi = (): AppAi => store.getStore()?.appAi ?? "none";
+/** Is the website's owner the one asking (local mode, or an ADMIN_EMAILS address)? Their .env services are theirs alone. */
+export const ownerAsking = (): boolean => appAi() === "owner";

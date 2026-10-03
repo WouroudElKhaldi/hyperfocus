@@ -1,4 +1,4 @@
-import { own } from "../../credentials.ts";
+import { own, ownerAsking } from "../../credentials.ts";
 import { errorInfo } from "../../types.ts";
 
 // Where a finished post goes (P2-15): an outbound port, so LinkedIn through n8n today and the official "Share on LinkedIn"
@@ -13,10 +13,21 @@ export type SocialPublisher = {
   publish(post: { id: number; draft: string }): Promise<PublishResult>;
 };
 
-/** n8n with the person's own webhook (Settings → Connections), otherwise `fallbackUrl` (local mode: N8N_WEBHOOK_URL). */
-export function personalPublisher(fallbackUrl: string, fetchImpl: typeof fetch = fetch): SocialPublisher {
-  const url = () => own("n8n")?.webhookUrl ?? fallbackUrl;
-  return { configured: () => !!url(), publish: (post) => n8nPublisher(url(), fetchImpl).publish(post) };
+/**
+ * n8n with the person's own webhook (Settings → Connections). Otherwise the website's N8N_WEBHOOK_URL, for the owner
+ * only (it may be their n8n on the same server, 127.0.0.1: set by them in .env, never by anyone else).
+ * `checkOwn` (the hosted app): a person's own address is checked again right before sending (where its name points now).
+ */
+export function personalPublisher(fallbackUrl: string, { fetchImpl = fetch, checkOwn }: { fetchImpl?: typeof fetch; checkOwn?: (url: string) => Promise<boolean> } = {}): SocialPublisher {
+  const url = () => own("n8n")?.webhookUrl ?? (ownerAsking() ? fallbackUrl : "");
+  return {
+    configured: () => !!url(),
+    async publish(post) {
+      const mine = own("n8n")?.webhookUrl;
+      if (mine && checkOwn && !(await checkOwn(mine))) return { ok: false, retry: false, error: "Your n8n webhook address isn't a public https address any more. Change it in Settings → Your connections." };
+      return n8nPublisher(url(), fetchImpl).publish(post);
+    },
+  };
 }
 
 /** Publishing through an n8n workflow (the webhook in N8N_WEBHOOK_URL), which posts to LinkedIn. */

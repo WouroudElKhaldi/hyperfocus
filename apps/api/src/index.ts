@@ -13,6 +13,7 @@ import { fileStorageFrom } from "./storage/files.ts";
 import { keyRing, localKeyRing } from "./secrets.ts";
 import { pushChannel, vapidFrom } from "./push.ts";
 import { linkedinFirst } from "./linkedin.ts";
+import { reachesPublic } from "./http/public-address.ts";
 import { n8nPublisher, personalPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
@@ -31,7 +32,8 @@ if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_
 // Where finished posts go: LinkedIn through the n8n webhook (empty in the demo, so nothing can be posted).
 // (each person's own webhook from Settings → Connections; the .env one only in local mode, P5-07)
 // (and before that, P5-09: their own LinkedIn connected directly, when the website has a LinkedIn app)
-const n8nOrFallback = personalPublisher(config.mode === "local" ? config.n8nWebhookUrl : "");
+// (the .env webhook is the owner's alone: local mode, or the ADMIN_EMAILS people in cloud mode; e.g. their n8n on this server)
+const n8nOrFallback = personalPublisher(config.n8nWebhookUrl, { ...(config.mode === "cloud" && !config.allowLocalAddresses ? { checkOwn: (u: string) => reachesPublic(u) } : {}) });
 const publisher = DEMO ? n8nPublisher("") : linkedinFirst(config.linkedin, n8nOrFallback);
 // Sending email: her Gmail with an App Password (switched off in the demo).
 // (each person's own Gmail from Settings → Connections; the .env one only in local mode, P5-07). The account emails
@@ -69,6 +71,6 @@ serve({ fetch: server.fetch, port, hostname: "127.0.0.1" }, () => {
   if (config.noBackgroundJobs) return; // NO_BACKGROUND_JOBS: this copy only answers requests
   // a queue in PostgreSQL (P4-05), so the jobs run once even with several copies of the API
   const scheduler = pgBossScheduler({ databaseUrl: config.databaseUrl, log });
-  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push, appMail: accountMail })) scheduler.add(job);
+  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push, appMail: accountMail, owners: config.adminEmails })) scheduler.add(job);
   scheduler.start();
 });

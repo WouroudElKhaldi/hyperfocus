@@ -89,8 +89,29 @@ describe("webhook addresses on the hosted app", () => {
     for (const webhookUrl of ["http://localhost:5678/webhook/x", "https://localhost/webhook/x", "https://127.0.0.1/x", "https://10.0.0.5/x", "https://192.168.1.20/x", "https://172.20.0.1/x", "https://169.254.169.254/latest", "https://n8n.local/x", "http://n8n.example.com/x", "https://[::1]/x", "https://[fd00::1]/x", "https://[::ffff:127.0.0.1]/x", "https://2130706433/x"]) {
       expect((await carol.call("PUT", "/api/integrations/n8n", { webhookUrl })).status, webhookUrl).toBe(400);
     }
-    for (const webhookUrl of ["https://n8n.example.com/webhook/abc", "https://fdn8n.example.org/webhook/abc", "https://172.15.0.1/x"]) {
+    // (real public names: the name is looked up now; one starts with "fd" like a private IPv6 address does)
+    for (const webhookUrl of ["https://example.com/webhook/abc", "https://fdic.gov/webhook/abc", "https://172.15.0.1/x"]) {
       expect((await carol.call("PUT", "/api/integrations/n8n", { webhookUrl })).status, webhookUrl).toBe(200);
     }
+  });
+});
+
+// the website owner's N8N_WEBHOOK_URL (e.g. their n8n on the same server) is theirs alone
+describe("the owner's own n8n webhook", () => {
+  let site, owner, guest;
+  beforeAll(async () => {
+    site = await startExtraApi("credentials_owner_n8n", { ...CLOUD, ADMIN_EMAILS: "owner-n8n@example.com", N8N_WEBHOOK_URL: `${n8n}/owners-own-n8n` });
+    [owner, guest] = await Promise.all([signUp(site, "owner-n8n@example.com", "Owner"), signUp(site, "guest-n8n@example.com", "Guest")]);
+  }, 120000);
+  afterAll(async () => { await site?.stop(); });
+
+  it("is used for the owner's posts, and never for anyone else's", async () => {
+    const mine = await owner.json("POST", "/api/posts", { thought: "t", draft: "OWNER-VIA-OWN-N8N" });
+    expect((await owner.call("POST", `/api/posts/${mine.id}/publish`)).status).toBe(200);
+    expect((await n8nCalls()).filter((c) => JSON.stringify(c.body).includes("OWNER-VIA-OWN-N8N")).map((c) => c.url)).toEqual(["/owners-own-n8n"]);
+    expect((await guest.json("GET", "/api/me")).connected.linkedin).toBe(false);
+    const theirs = await guest.json("POST", "/api/posts", { thought: "t", draft: "GUEST-NO-N8N" });
+    expect((await guest.call("POST", `/api/posts/${theirs.id}/publish`)).status).toBe(409);
+    expect(JSON.stringify(await n8nCalls())).not.toContain("GUEST-NO-N8N");
   });
 });

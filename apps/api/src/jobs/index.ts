@@ -5,8 +5,8 @@ import { failInterrupted, postScheduler } from "../modules/posts/scheduler.ts";
 import { notify } from "../notify.ts";
 import { deliverOutbox } from "../outbox.ts";
 import { checkMyReminders, checkReminders } from "../reminders.ts";
-import { asSystem, forEachUser } from "../tenancy.ts";
-import { withCredentials } from "../credentials.ts";
+import { asSystem, currentUserId, forEachUser } from "../tenancy.ts";
+import { type AppAi, withCredentials } from "../credentials.ts";
 import { type Channel, deliverTo } from "../notifications.ts";
 import { DIGEST, digestSender, queueDigest } from "../digest.ts";
 import { applyChatRetention } from "../retention.ts";
@@ -20,12 +20,18 @@ import type { Job } from "./scheduler.ts";
 const SECOND = 1000;
 const HOUR = 3600 * SECOND;
 
-export function backgroundJobs({ prisma, publisher, events, secrets, mode = "local", push = null, appMail = null }: { prisma: Db; publisher: SocialPublisher; events: EventBus; secrets?: KeyRing | null; mode?: "local" | "cloud"; push?: Channel | null; appMail?: ((to: string, subject: string, text: string) => Promise<void>) | null }): Job[] {
+export function backgroundJobs({ prisma, publisher, events, secrets, mode = "local", push = null, appMail = null, owners = [] }: { prisma: Db; publisher: SocialPublisher; events: EventBus; secrets?: KeyRing | null; mode?: "local" | "cloud"; push?: Channel | null; appMail?: ((to: string, subject: string, text: string) => Promise<void>) | null; owners?: string[] }): Job[] {
   // once per person, as that person, with their own credentials (their n8n webhook for their scheduled posts)
   // notifications: the bell always, and a desktop pop-up in local mode (P5-11)
   const send = deliverTo(prisma, { desktop: mode === "local" ? (note) => notify(note.title, note.body) : null, push });
-  // (the app's AI key in jobs: only in local mode, where it is the owner's)
-  const each = (fn: () => Promise<unknown>) => forEachUser(prisma, () => withCredentials(prisma, secrets, fn, mode === "local" ? "owner" : "none"));
+  // (the owner's own .env services, like their AI key or their n8n, only in the owner's turn: local mode, or an
+  // ADMIN_EMAILS address in cloud mode)
+  const ownerOrNone = async (): Promise<AppAi> => {
+    if (mode === "local") return "owner";
+    const me = await prisma.user.findUnique({ where: { id: currentUserId() ?? "" }, select: { email: true } });
+    return me && owners.includes(me.email.toLowerCase()) ? "owner" : "none";
+  };
+  const each = (fn: () => Promise<unknown>) => forEachUser(prisma, async () => withCredentials(prisma, secrets, fn, await ownerOrNone()));
   return [
     {
       name: "post-scheduler", // sends scheduled LinkedIn posts
