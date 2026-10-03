@@ -7,6 +7,7 @@
     "bootstrap": "pnpm install && pnpm db:setup && pnpm --filter @hyperfocus/db db:migrate",
     "api:types": "node apps/api/scripts/api-types.mjs",
     "secrets:new-key": "pnpm --filter @hyperfocus/api secrets:new-key",
+    "taxonomy:import": "pnpm --filter @hyperfocus/api taxonomy:import",
     "push:keys": "pnpm --filter @hyperfocus/api push:keys",
     "secrets:rotate": "pnpm --filter @hyperfocus/api secrets:rotate",
     "dev": "turbo run dev",
