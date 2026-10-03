@@ -35,6 +35,7 @@ import { radarFiltersRouter } from "./modules/radar/filters-routes.ts";
 import { ingestRouter } from "./modules/radar/ingest-routes.ts";
 import { radarMatchesRouter } from "./modules/radar/matches-routes.ts";
 import { sourcesAdminRouter } from "./modules/radar/sources-admin-routes.ts";
+import { taxonomyAdminRouter } from "./modules/taxonomy/admin-routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -229,6 +230,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", ingestRouter(deps)); // P6-11: signed batches of postings
   app.route("/", radarMatchesRouter(deps)); // P6-25/26/27: your matches
   app.route("/", sourcesAdminRouter(deps)); // P6-18: job sources (admins only)
+  app.route("/", taxonomyAdminRouter(deps)); // P6-09: the job list (admins only)
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

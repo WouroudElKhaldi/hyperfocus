@@ -397,6 +397,394 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/taxonomy/occupations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find occupations by name, any of their titles, or code */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number | null;
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A page of them */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["TaxonomyOccupationBrief"][];
+                            total: number;
+                        };
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add an occupation the datasets don't have (kept by every import) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @default  */
+                        description?: string;
+                        title: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Added */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TaxonomyOccupation"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Already there */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/taxonomy/occupations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One occupation with all its names */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description It */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TaxonomyOccupation"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such occupation. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change its name or description, or merge it into another (null: unmerge) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        description?: string;
+                        sameAsId?: number | null;
+                        title?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description It */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TaxonomyOccupation"];
+                    };
+                };
+                /** @description Can't merge it like that */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such occupation. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/admin/taxonomy/occupations/{id}/titles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a local name it goes by (found by the typeahead and the matching) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @default en */
+                        lang?: string;
+                        title: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description It, with the new name */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TaxonomyOccupation"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such occupation. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description It already has that name */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/taxonomy/titles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a local name (names from the datasets stay) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Removed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not a local name */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such name */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users": {
         parameters: {
             query?: never;
@@ -10700,6 +11088,39 @@ export interface components {
             id: number | string;
             /** @example Software Developers */
             label: string;
+        };
+        TaxonomyOccupation: {
+            code: string;
+            description: string;
+            id: number;
+            mergedHere: {
+                code: string;
+                id: number;
+                title: string;
+            }[];
+            sameAs: {
+                id: number;
+                title: string;
+            } | null;
+            source: string;
+            title: string;
+            titles: {
+                id: number;
+                kind: string;
+                lang: string;
+                title: string;
+            }[];
+        };
+        TaxonomyOccupationBrief: {
+            code: string;
+            id: number;
+            sameAs: {
+                id: number;
+                title: string;
+            } | null;
+            source: string;
+            title: string;
+            titles: number;
         };
     };
     responses: never;

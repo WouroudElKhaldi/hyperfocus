@@ -34,3 +34,18 @@ test("job sources: see how each one is doing, add a job board, switch it off", a
   await expect(row.getByText("off")).toBeVisible();
   await expect(row.getByRole("button", { name: "Switch on" })).toBeVisible();
 });
+
+test("job list: find an occupation, add a local name, remove it", async ({ page }) => {
+  await page.goto("/admin");
+  await page.getByLabel("Find an occupation").fill("software dev");
+  await page.getByRole("list", { name: "Occupations found" }).getByRole("button", { name: "Software Developers" }).click();
+  const box = page.getByRole("region", { name: "Occupation Software Developers" });
+  await expect(box.getByText("Software Engineer").first()).toBeVisible();
+  const name = `Mohandes ${Date.now()}`;
+  await box.getByLabel("Local name").fill(name);
+  await box.getByLabel("Language").selectOption("ar");
+  await box.getByRole("button", { name: "Add the name" }).click();
+  await expect(box.getByText(`${name} (ar, local)`)).toBeVisible();
+  await box.getByRole("button", { name: `Remove ${name}` }).click();
+  await expect(box.getByText(name)).toHaveCount(0);
+});
