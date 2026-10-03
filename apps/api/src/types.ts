@@ -1,9 +1,9 @@
-import type { PrismaClient } from "@hyperfocus/db";
+import type { OWNER_OMIT, PrismaClient } from "@hyperfocus/db";
 
 // Types shared by the API's modules.
 
-/** The database client every module receives. */
-export type Db = PrismaClient;
+/** The database client every module receives: rows come back without their owner id (P5-02, see OWNER_OMIT). */
+export type Db = PrismaClient<{ omit: typeof OWNER_OMIT }>;
 
 
 // TODO(types): JSON from outside services (the AI in P2-05, the book search sites in P2-11) gets checked with Zod schemas.

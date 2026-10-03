@@ -1,5 +1,7 @@
 import type { Pet } from "@hyperfocus/db";
 import { PET_GENDERS, PET_SPECIES, TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+// P5-02: pet points are unique per person; until P5-03 passes in who is asking, everything is the owner's
+import { OWNER_ID } from "./owner.ts";
 import { activeMs, type Db, errorInfo, type UncheckedJson } from "./types.ts";
 
 // The companion pet. All growth comes from things she really completed or added (see award()), never from clicking for points.
@@ -285,7 +287,7 @@ export async function award(prisma: Db, key: string, source: string, amount: num
   try {
     const pet = await prisma.pet.findFirst();
     if (!pet || amount <= 0) return null;
-    if (await prisma.petXp.findUnique({ where: { key } })) return null;
+    if (await prisma.petXp.findUnique({ where: { userId_key: { userId: OWNER_ID, key } } })) return null;
     if (source === "task" && (await prisma.petXp.count({ where: { source: "task", createdAt: { gte: startOfToday() } } })) >= TASK_DAILY_FULL) amount = 1;
     const row = await createRow(prisma, pet, key, source, amount, note);
     await checkQuests(prisma);
@@ -299,10 +301,10 @@ export async function awardAtLeast(prisma: Db, key: string, source: string, amou
     const pet = await prisma.pet.findFirst();
     if (!pet || amount <= 0) return null;
     const final = Math.round(amount * (1 + bonusPct(pet.traits, source) / 100));
-    const existing = await prisma.petXp.findUnique({ where: { key } });
+    const existing = await prisma.petXp.findUnique({ where: { userId_key: { userId: OWNER_ID, key } } });
     let row = null;
     if (!existing) row = await prisma.petXp.create({ data: { key, source, amount: final, note: String(note).slice(0, 140) } });
-    else if (final > existing.amount) row = await prisma.petXp.update({ where: { key }, data: { amount: final, note: String(note).slice(0, 140) } });
+    else if (final > existing.amount) row = await prisma.petXp.update({ where: { userId_key: { userId: OWNER_ID, key } }, data: { amount: final, note: String(note).slice(0, 140) } });
     await checkQuests(prisma);
     return row;
   } catch (e) { console.error("XP award failed:", errorInfo(e).message); return null; }
@@ -317,7 +319,7 @@ export async function awardCapture(prisma: Db, kind: string, refId: number) {
     const today = await prisma.petXp.count({ where: { source: "add", key: { startsWith: `cap:${kind}:` }, createdAt: { gte: startOfToday() } } });
     if (today >= cfg.cap) return null;
     const key = `cap:${kind}:${refId}`;
-    if (await prisma.petXp.findUnique({ where: { key } })) return null;
+    if (await prisma.petXp.findUnique({ where: { userId_key: { userId: OWNER_ID, key } } })) return null;
     return await prisma.petXp.create({ data: { key, source: "add", amount: cfg.xp, note: cfg.label } });
   } catch (e) { console.error("XP award failed:", errorInfo(e).message); return null; }
 }
@@ -347,12 +349,12 @@ async function checkQuests(prisma: Db): Promise<void> {
     for (const q of QUESTS) {
       if (have[q.id] >= q.need) {
         const key = `quest:${day}:${q.id}`;
-        if (!(await prisma.petXp.findUnique({ where: { key } }))) await prisma.petXp.create({ data: { key, source: "quest", amount: q.bonus, note: `Daily quest: ${q.label}` } });
+        if (!(await prisma.petXp.findUnique({ where: { userId_key: { userId: OWNER_ID, key } } }))) await prisma.petXp.create({ data: { key, source: "quest", amount: q.bonus, note: `Daily quest: ${q.label}` } });
       } else all = false;
     }
     if (all) {
       const key = `quest:${day}:all`;
-      if (!(await prisma.petXp.findUnique({ where: { key } }))) await prisma.petXp.create({ data: { key, source: "quest", amount: ALL_QUESTS_BONUS, note: "All daily quests done" } });
+      if (!(await prisma.petXp.findUnique({ where: { userId_key: { userId: OWNER_ID, key } } }))) await prisma.petXp.create({ data: { key, source: "quest", amount: ALL_QUESTS_BONUS, note: "All daily quests done" } });
     }
   } catch (e) { console.error("Quest check failed:", errorInfo(e).message); }
 }

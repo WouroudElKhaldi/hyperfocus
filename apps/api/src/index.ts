@@ -1,7 +1,7 @@
 import { config } from "./config.ts"; // first: loads and checks the settings, and stops the app if they are wrong
 import { serve } from "@hono/node-server";
 import { fileURLToPath } from "node:url";
-import { PrismaClient } from "@hyperfocus/db";
+import { OWNER_OMIT, PrismaClient } from "@hyperfocus/db";
 import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { gmailAppPassword } from "./modules/emails/mail-provider.ts";
@@ -18,7 +18,7 @@ import { ai } from "./ai.ts";
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
 // from the environment so nothing can ever read them.
 const DEMO = config.demo;
-const prisma = new PrismaClient({ datasourceUrl: config.databaseUrl });
+const prisma = new PrismaClient({ datasourceUrl: config.databaseUrl, omit: OWNER_OMIT }); // (no row's owner id in any answer)
 if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_API_KEY", "GMAIL_APP_KEY"]) delete process.env[k];
 // Where finished posts go: LinkedIn through the n8n webhook (empty in the demo, so nothing can be posted).
 const publisher = n8nPublisher(config.n8nWebhookUrl);
