@@ -7,6 +7,8 @@ import { PrismaClient } from "@hyperfocus/db";
 import { strToU8, zipSync } from "fflate";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { ALL, runImport, total } from "../../src/taxonomy/datasets.ts";
+import { searchTaxonomy } from "../../src/taxonomy/search.ts";
+import { get } from "../support/api.js";
 
 // P6-04: the taxonomy importer, on small files in each dataset's real format (O*NET text zip, CIP CSV with Excel's
 // ="01" codes, the CIP–SOC Excel sheet, GeoNames, ESCO CSV with quoted line breaks), into a database of its own.
@@ -143,5 +145,36 @@ describe("the taxonomy importer", () => {
     const r = await runImport(db, "onet", dir);
     expect(r.Occupation).toEqual({ inserted: 0, updated: 1, unchanged: 1 });
     expect(total(r)).toMatchObject({ inserted: 0, updated: 1 });
+  });
+});
+
+// P6-06: typeahead over what was imported above
+describe("taxonomy search", () => {
+  const labels = async (kind, q) => (await searchTaxonomy(db, kind, q)).map((h) => h.label);
+  it("finds by the start of a name, any title, a word in it, or with spaces taken out", async () => {
+    expect((await labels("occupation", "soft"))[0]).toBe("Software Developers");
+    expect(await searchTaxonomy(db, "occupation", "swe")).toEqual([expect.objectContaining({ label: "Software Developers", detail: expect.stringContaining("also called \"SWE\"") })]);
+    expect(await labels("occupation", "frontend")).toEqual(["Software Developers"]); // "Frontend Engineer"
+    expect(await labels("occupation", "engineer")).toEqual(["Software Developers"]); // a word in "Software Engineer"
+    expect(await labels("skill", "pyt")).toEqual(["Python"]);
+    expect((await labels("field", "comp"))[0]).toBe("Computer Science");
+    expect(await labels("city", "bei")).toEqual(["Beirut"]);
+    expect(await labels("country", "leb")).toEqual(["Lebanon"]);
+  });
+
+  it("forgives typos from 4 letters, shows an ESCO job and its O*NET twin once, and ignores 1 letter or wildcards", async () => {
+    expect((await labels("occupation", "sofware develper"))[0]).toBe("Software Developers");
+    expect((await labels("occupation", "software developer")).filter((l) => /software developer/i.test(l))).toEqual(["Software Developers"]);
+    expect(await labels("occupation", "s")).toEqual([]);
+    expect(await labels("occupation", "%%")).toEqual([]);
+    expect(await labels("occupation", "__")).toEqual([]);
+  });
+
+  it("is an API route that checks what it is asked", async () => {
+    const r = await get("/api/taxonomy/search?kind=occupation&q=so");
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ items: expect.any(Array) });
+    expect((await get("/api/taxonomy/search?kind=planets&q=so")).status).toBe(400);
+    expect((await get("/api/taxonomy/search?kind=skill&q=so&limit=500")).status).toBe(400);
   });
 });

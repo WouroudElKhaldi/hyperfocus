@@ -8768,6 +8768,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/taxonomy/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Typeahead: the best matches for a few letters (typos forgiven) */
+        get: {
+            parameters: {
+                query: {
+                    kind: "occupation" | "skill" | "field" | "city" | "country" | "industry";
+                    limit?: number;
+                    q: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Best first (empty under 2 letters) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: components["schemas"]["TaxonomyHit"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/wins": {
         parameters: {
             query?: never;
@@ -9176,6 +9218,15 @@ export interface components {
                 name: string;
                 why: string;
             }[];
+        };
+        TaxonomyHit: {
+            /** @example onet:15-1252.00 */
+            code: string;
+            /** @example also called "Frontend Engineer" · Computer and Mathematical Occupations */
+            detail: string;
+            id: number | string;
+            /** @example Software Developers */
+            label: string;
         };
     };
     responses: never;
