@@ -14,6 +14,7 @@ import { chatRouter } from "./modules/chat/routes.ts";
 import { coachRouter } from "./modules/coach/routes.ts";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
 import type { FileStorage } from "./storage/files.ts";
+import type { Auth } from "./auth.ts";
 import { emailsRouter } from "./modules/emails/routes.ts";
 import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
@@ -44,6 +45,8 @@ export type AppDeps = {
   config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway; publisher: SocialPublisher; mail: MailProvider;
   /** Where uploaded files go (P4-07); left out or null = inside the database. */
   files?: FileStorage | null;
+  /** Accounts and sign-in (P5-01): only in cloud mode; left out = local mode (nobody signs in). */
+  auth?: Auth | null;
 };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
 export type AppEnv = { Variables: { requestId: string; log: Logger } };
@@ -104,6 +107,10 @@ export function createApp(deps: AppDeps) {
       await next();
     });
   }
+
+  // accounts and sign-in (P5-01, Better Auth): sign up, sign in and out, verify, reset, sessions, Google
+  const auth = deps.auth;
+  if (auth) app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
 

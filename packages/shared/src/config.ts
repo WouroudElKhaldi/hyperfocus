@@ -35,6 +35,12 @@ const schema = z.object({
   DEMO_MODE: flag,
   NOTIFY_DRY_RUN: flag,
   NO_BACKGROUND_JOBS: flag,
+  APP_MODE: text.refine((v) => ["", "local", "cloud"].includes(v), { message: "APP_MODE must be local (just you, on this computer) or cloud (sign-in, several people)" }),
+  BETTER_AUTH_SECRET: text,
+  PUBLIC_URL: url("PUBLIC_URL"),
+  GOOGLE_CLIENT_ID: text,
+  GOOGLE_CLIENT_SECRET: text,
+  MAIL_DRY_RUN: flag,
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
   DEEPSEEK_MODEL: text,
@@ -56,6 +62,10 @@ const schema = z.object({
   S3_SECRET_ACCESS_KEY: text,
   S3_REGION: text,
   LOG_LEVEL: text.refine((v) => v === "" || LOG_LEVELS.includes(v as LogLevel), { message: `LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}` }),
+}).refine((e) => e.APP_MODE !== "cloud" || e.BETTER_AUTH_SECRET.length >= 32, {
+  message: "APP_MODE=cloud needs BETTER_AUTH_SECRET: a random secret of at least 32 characters (for example from: openssl rand -base64 32)",
+}).refine((e) => !e.GOOGLE_CLIENT_ID === !e.GOOGLE_CLIENT_SECRET, {
+  message: "Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (or neither)",
 }).refine((e) => e.FILE_STORAGE !== "s3" || (e.S3_ENDPOINT && e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY), {
   message: "FILE_STORAGE=s3 needs S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY",
 });
@@ -70,6 +80,14 @@ export type ApiConfig = {
   notifyDryRun: boolean;
   /** This copy answers requests only; another copy runs the reminders, the post scheduler and backups (P4-08). */
   noBackgroundJobs: boolean;
+  /**
+   * local (default, APP_MODE): just you, on this computer: one owner account, nobody signs in (works like before accounts existed).
+   * cloud: people sign up and sign in (email + password with verification and reset, and Google when its keys are set).
+   */
+  mode: "local" | "cloud";
+  auth: { secret: string; publicUrl: string; google: { clientId: string; clientSecret: string } | null };
+  /** Write the emails the app sends for accounts (verify, reset) to the log instead of sending them (tests). */
+  mailDryRun: boolean;
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -105,6 +123,14 @@ export function parseApiConfig(env: Env): ConfigResult {
       demo,
       notifyDryRun: demo || e.NOTIFY_DRY_RUN,
       noBackgroundJobs: e.NO_BACKGROUND_JOBS,
+      mode: (e.APP_MODE || "local") as "local" | "cloud", // checked above (APP_MODE: Vite and others already use MODE)
+      auth: {
+        // local mode never signs anyone in, so it needs no secret of its own
+        secret: e.BETTER_AUTH_SECRET || "local-mode-has-no-sign-in-so-this-secret-is-never-used",
+        publicUrl: e.PUBLIC_URL || `http://localhost:${e.PORT || 4000}`,
+        google: e.GOOGLE_CLIENT_ID ? { clientId: e.GOOGLE_CLIENT_ID, clientSecret: e.GOOGLE_CLIENT_SECRET } : null,
+      },
+      mailDryRun: e.MAIL_DRY_RUN,
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them
       deepseek: { apiKey: demo ? "" : e.DEEPSEEK_API_KEY, url: e.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions", model: e.DEEPSEEK_MODEL || "deepseek-chat" },
       n8nWebhookUrl: demo ? "" : e.N8N_WEBHOOK_URL,

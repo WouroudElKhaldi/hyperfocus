@@ -6,6 +6,7 @@ import { EventBus } from "./events.ts";
 import { petEarnsXp } from "./modules/pet/xp.ts";
 import { gmailAppPassword } from "./modules/emails/mail-provider.ts";
 import { createApp } from "./app.ts";
+import { authMailer, createAuth } from "./auth.ts";
 import { fileStorageFrom } from "./storage/files.ts";
 import { n8nPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
@@ -30,7 +31,9 @@ petEarnsXp(events, prisma);
 // Uploaded files: inside the database unless FILE_STORAGE says a folder or S3-compatible storage (P4-07).
 // (the default folder is <project>/storage, next to backups)
 const files = fileStorageFrom({ ...config.fileStorage, dir: config.fileStorage.dir || fileURLToPath(new URL("../../../storage/", import.meta.url)) });
-const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail, files }), {
+// Accounts (P5-01): cloud mode only; local mode has one owner and nobody signs in.
+const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: authMailer({ mail, log, dryRun: config.mailDryRun }) }) : null;
+const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail, files, auth }), {
   demo: DEMO,
   corsOrigins: config.corsOrigins,
   webDist: fileURLToPath(new URL("../../web/dist/", import.meta.url)),
