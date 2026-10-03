@@ -187,7 +187,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", studyRouter(deps));
   app.route("/", petRouter(deps));
   app.route("/", profileRouter(deps));
-  app.route("/", settingsRouter());
+  app.route("/", settingsRouter(deps));
   app.route("/", backupsRouter(deps));
   app.route("/", skillsRouter(deps));
   app.route("/", booksRouter(deps));

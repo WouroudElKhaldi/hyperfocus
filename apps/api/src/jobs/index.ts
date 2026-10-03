@@ -30,7 +30,7 @@ export function backgroundJobs({ prisma, publisher, events, secrets }: { prisma:
     },
     { name: "my-reminders", everyMs: 20 * SECOND, firstAfterMs: 5 * SECOND, run: () => each(() => checkMyReminders(prisma)) },
     { name: "nudges", everyMs: 60 * SECOND, firstAfterMs: 15 * SECOND, run: () => each(() => checkReminders(prisma)) }, // breaks, posts going live, events, the morning list
-    { name: "outbox", everyMs: 5 * SECOND, firstAfterMs: 2 * SECOND, run: () => deliverOutbox(prisma, notify) }, // sends queued notifications (P4-06)
+    { name: "outbox", everyMs: 5 * SECOND, firstAfterMs: 2 * SECOND, run: () => asSystem(() => deliverOutbox(prisma, notify)) }, // sends queued notifications (P4-06)
     { name: "auto-backup", everyMs: 6 * HOUR, firstAfterMs: 0, run: () => backupIfDue(prisma) }, // when the newest backup is over a day old
   ];
 }

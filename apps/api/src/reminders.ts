@@ -9,7 +9,7 @@ const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)
 const clock = (d: Date) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 export async function checkReminders(prisma: Db): Promise<void> {
-  const settings = getSettings();
+  const settings = await getSettings(prisma);
   if (!settings.reminders) return;
   const now = new Date();
 

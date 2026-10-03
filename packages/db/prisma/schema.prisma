@@ -572,6 +572,17 @@ model AiUsage {
   @@unique([userId, day])
 }
 
+// A person's settings (P5-11): reminders, accessibility, notification channels. One row per person; `data` holds the
+// fields of Settings in @hyperfocus/shared (missing ones take their defaults). Before P5-11 this was one settings.json
+// file for everyone; in local mode the owner's file is read once when there is no row yet.
+model UserSettings {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json     @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
 model FeatureFlag {
   key       String   @id
   enabled   Boolean  @default(false)
@@ -581,7 +592,9 @@ model FeatureFlag {
 
 model OutboxMessage {
   id        Int       @id @default(autoincrement())
-  key       String    @unique
+  userId    String    @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
   kind      String    @default("notification")
   title     String
   body      String    @default("")
@@ -591,6 +604,8 @@ model OutboxMessage {
   lastError String    @default("")
 
   @@index([sentAt, id])
+  @@unique([userId, key]) // (each person's own: two people's "morning:<day>" are two messages, P5-11)
+  @@index([userId])
 }
 
 // ---------- accounts and sign-in (P5-01, Better Auth) ----------
@@ -635,6 +650,8 @@ model User {
   jobApplications JobApplication[]
   integrations    Integration[]
   aiUsage         AiUsage[]
+  settings        UserSettings?
+  outbox          OutboxMessage[]
 }
 
 model Session {

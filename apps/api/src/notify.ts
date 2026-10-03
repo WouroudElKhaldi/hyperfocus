@@ -4,25 +4,41 @@ import { fileURLToPath } from "node:url";
 import type { Settings as SharedSettings } from "@hyperfocus/shared";
 import { config } from "./config.ts";
 import { enqueue } from "./outbox.ts";
-import { compact } from "./types.ts";
+import { OWNER_ID } from "./owner.ts";
+import { currentUserId } from "./tenancy.ts";
+import { type Db, compact } from "./types.ts";
 
-// Windows desktop notifications sent by the server, so they work even when the browser is closed.
+// Each person's settings (P5-11: a row in UserSettings; before, one settings.json file for everyone). Local mode: until the
+// owner saves a setting, their old settings.json is read, so nothing changes for you.
 const SETTINGS_FILE = config.settingsFile || fileURLToPath(new URL("../settings.json", import.meta.url));
-export type Settings = SharedSettings & { sent: Record<string, number> };
+export type Settings = SharedSettings;
 // the accessibility settings (P3-18) start as the app always looked: motion follows the computer, usual fonts and size
-const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", motion: "auto", font: "default", textSize: "normal", focusMode: false, sent: {} };
+const DEFAULTS: Settings = { reminders: true, breakEveryMin: 50, morningAt: "09:00", motion: "auto", font: "default", textSize: "normal", focusMode: false };
+const KEYS = Object.keys(DEFAULTS) as (keyof Settings)[];
+/** Only the known fields (an old file may carry others, like the "sent" log it once kept). */
+const known = (o: Record<string, unknown>) => Object.fromEntries(KEYS.filter((k) => k in o).map((k) => [k, o[k]])) as Partial<Settings>;
 
-export function getSettings(): Settings {
+type SettingsDb = Pick<Db, "userSettings">;
+function oldFile(): Partial<Settings> {
   try {
-    return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8")) };
+    return known(JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8")));
   } catch {
-    return { ...DEFAULTS };
+    return {};
   }
 }
+
+/** The settings of the person asking. */
+export async function getSettings(db: SettingsDb): Promise<Settings> {
+  const row = await db.userSettings.findFirst({ select: { data: true } });
+  if (row) return { ...DEFAULTS, ...known(row.data as Record<string, unknown>) };
+  return { ...DEFAULTS, ...(currentUserId() === OWNER_ID ? oldFile() : {}) };
+}
 // The values are checked before they get here (UpdateSettingsInput in @hyperfocus/shared); fields left undefined are kept.
-export function saveSettings(patch: { [K in keyof Settings]?: Settings[K] | undefined }): Settings {
-  const next = { ...getSettings(), ...compact(patch) };
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(next, null, 2));
+export async function saveSettings(db: SettingsDb, patch: { [K in keyof Settings]?: Settings[K] | undefined }): Promise<Settings> {
+  const userId = currentUserId();
+  if (!userId) throw new Error("Settings belong to someone: nobody is asking.");
+  const next = { ...(await getSettings(db)), ...compact(patch) };
+  await db.userSettings.upsert({ where: { userId }, create: { data: next }, update: { data: next } });
   return next;
 }
 
@@ -56,7 +72,7 @@ $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
 // Sends a reminder only when reminders are on, and only once per key.
 // A nudge, sent once per key (P4-06: through the outbox, so it is saved with the change that caused it and never sent twice,
 // even with several copies of the API). Nothing is queued while reminders are switched off in Settings.
-export async function remind(db: Parameters<typeof enqueue>[0], key: string, title: string, body: string): Promise<void> {
-  if (!getSettings().reminders) return;
+export async function remind(db: Parameters<typeof enqueue>[0] & SettingsDb, key: string, title: string, body: string): Promise<void> {
+  if (!(await getSettings(db)).reminders) return;
   await enqueue(db, key, title, body);
 }

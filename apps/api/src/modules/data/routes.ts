@@ -20,7 +20,7 @@ export function dataRouter({ prisma, files }: AppDeps) {
       responses: { 200: { description: "The zip", content: { "application/zip": { schema: z.string().openapi({ format: "binary" }) } } } },
     }),
     async (c) => {
-      const zip = await exportAll(prisma, store, getSettings());
+      const zip = await exportAll(prisma, store, await getSettings(prisma));
       const day = new Date().toISOString().slice(0, 10);
       return c.body(Buffer.from(zip), 200, { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="hyperfocus-export-${day}.zip"` });
     },
@@ -34,7 +34,7 @@ export function dataRouter({ prisma, files }: AppDeps) {
     async (c) => {
       try {
         const r = await importAll(prisma, store, new Uint8Array(await c.req.arrayBuffer()));
-        if (r.settings) saveSettings(r.settings);
+        if (r.settings) await saveSettings(prisma, r.settings);
         return c.json({ ok: true as const, tables: r.tables }, 200);
       } catch (e) {
         if (e instanceof ImportError) throw httpError(400, e.message);

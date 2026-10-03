@@ -14,7 +14,7 @@ import type { Db } from "../../types.ts";
 export const FORMAT = "hyperfocus-export";
 export const VERSION = 1;
 // (the sign-in tables hold password hashes and session tokens: never exported; who you are travels with your account, P5-12)
-const SKIP = new Set(["OutboxMessage", "User", "Session", "Account", "Verification", "FeatureFlag", "Integration", "AiUsage"]); // (and never anyone's tokens, P5-07) // (feature flags are for everyone, P5-06)
+const SKIP = new Set(["OutboxMessage", "User", "Session", "Account", "Verification", "FeatureFlag", "Integration", "AiUsage", "UserSettings"]); // (settings travel as settings.json in the zip) // (and never anyone's tokens, P5-07) // (feature flags are for everyone, P5-06)
 
 type Model = (typeof Prisma.dmmf.datamodel.models)[number];
 const models = (): Model[] => Prisma.dmmf.datamodel.models.filter((m) => !SKIP.has(m.name));
@@ -59,7 +59,7 @@ export async function exportAll(prisma: Db, store: AttachmentFiles, settings: Re
       zip[`data/${m.name}.json`] = strToU8(JSON.stringify(out, null, 2));
     } else zip[`data/${m.name}.json`] = strToU8(JSON.stringify(rows, null, 2));
   }
-  const { sent: _sent, ...visibleSettings } = settings;
+  const visibleSettings = settings;
   zip["data/settings.json"] = strToU8(JSON.stringify(visibleSettings, null, 2));
   zip["manifest.json"] = strToU8(JSON.stringify({ format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), tables: counts }, null, 2));
   return zipSync(zip, { level: 6 });

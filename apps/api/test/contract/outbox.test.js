@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, inject, it as vitestIt } from "vitest";
 import { PrismaClient } from "@hyperfocus/db";
 import { deliverOutbox, enqueue, MAX_ATTEMPTS } from "../../src/outbox.ts";
+import { asUser, tenancy } from "../../src/tenancy.ts";
 import { ok, post } from "../support/api.js";
 
 // P4-06: the transactional outbox. No notification is lost (a failed send is kept and retried) and none is sent twice
@@ -8,10 +9,12 @@ import { ok, post } from "../support/api.js";
 
 // these messages have their own kind, so the app's own delivery job (which sends notifications) leaves them to the test
 const K = "test";
-let db;
-beforeAll(() => { db = new PrismaClient({ datasourceUrl: inject("databaseUrl") }); });
-afterAll(() => db?.$disconnect());
-beforeEach(() => db.outboxMessage.deleteMany({ where: { kind: K } })); // each test starts with an empty test outbox
+// (each message belongs to someone, P5-11: the tests write and deliver as the owner)
+let raw, db;
+beforeAll(() => { raw = new PrismaClient({ datasourceUrl: inject("databaseUrl") }); db = raw.$extends(tenancy); });
+afterAll(() => raw?.$disconnect());
+beforeEach(() => raw.outboxMessage.deleteMany({ where: { kind: K } })); // each test starts with an empty test outbox
+const it = (name, fn, timeout) => vitestIt(name, () => asUser("owner", fn), timeout);
 
 // a fake "send" that records what went out, and can be told to fail
 const sender = (failures = 0) => {
@@ -24,7 +27,7 @@ const sender = (failures = 0) => {
   };
   return { send, out };
 };
-const row = (key) => db.outboxMessage.findUnique({ where: { key } });
+const row = (key) => db.outboxMessage.findFirst({ where: { key } });
 const mine = (key) => ({ where: { key: { startsWith: key } } });
 
 describe("the outbox", () => {
@@ -59,6 +62,21 @@ describe("the outbox", () => {
     await Promise.all([deliverOutbox(db, s.send, { kind: K, limit: 50 }), deliverOutbox(db, s.send, { kind: K, limit: 50 }), deliverOutbox(db, s.send, { kind: K, limit: 50 })]);
     for (let i = 0; i < 10; i++) expect(s.out.filter((x) => x === `Pair ${i}|d`), `Pair ${i}`).toHaveLength(1);
     expect(await db.outboxMessage.count({ where: { ...mine("t4:pair").where, sentAt: null } })).toBe(0);
+  });
+
+  vitestIt("each person has their own messages: the same key for two people is two messages (P5-11)", async () => {
+    const other = `outbox-other-${Date.now()}`;
+    await raw.user.create({ data: { id: other, name: "Other", email: `${other}@example.com` } });
+    try {
+      await asUser("owner", () => enqueue(db, "t5:morning", "Owner's morning", "", K));
+      await asUser(other, () => enqueue(db, "t5:morning", "Other's morning", "", K));
+      const rows = await raw.outboxMessage.findMany({ where: { key: "t5:morning" }, orderBy: { id: "asc" } });
+      expect(rows.map((r) => [r.userId, r.title])).toEqual([["owner", "Owner's morning"], [other, "Other's morning"]]);
+      // and a person only ever sees their own
+      expect((await asUser(other, async () => await db.outboxMessage.findMany({ where: { key: "t5:morning" } }))).map((r) => r.title)).toEqual(["Other's morning"]);
+    } finally {
+      await raw.user.delete({ where: { id: other } });
+    }
   });
 
   it("a due reminder is finished and its notification queued together, then delivered", async () => {

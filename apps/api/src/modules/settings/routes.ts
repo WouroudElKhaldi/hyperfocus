@@ -1,28 +1,25 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { Settings, UpdateSettingsInput } from "@hyperfocus/shared";
-import type { AppEnv } from "../../app.ts";
+import type { AppDeps, AppEnv } from "../../app.ts";
 import { Ok, body, json, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
 import { getSettings, notify, saveSettings } from "../../notify.ts";
 import { httpError } from "../../types.ts";
 
-// Reminder settings and the "send me a test notification" button (P2-20). The settings file also keeps a log of the
-// reminders already sent (`sent`); it is never shown or changed from outside.
+// Reminder settings and the "send me a test notification" button (P2-20). Each person's own (P5-11).
 
-const visible = ({ sent: _, ...rest }: ReturnType<typeof getSettings>) => rest;
-
-export function settingsRouter() {
+export function settingsRouter({ prisma }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   app.openapi(
     createRoute({ method: "get", path: "/api/settings", tags: ["Settings"], summary: "Your reminder settings", responses: { 200: json(Settings, "The settings") } }),
-    (c) => c.json(visible(getSettings()), 200),
+    async (c) => c.json(await getSettings(prisma), 200),
   );
   app.openapi(
     createRoute({
       method: "patch", path: "/api/settings", tags: ["Settings"], summary: "Change reminder settings (wrong values are ignored)",
       request: { body: body(UpdateSettingsInput) }, responses: { 200: json(Settings, "The settings after the change") },
     }),
-    (c) => c.json(visible(saveSettings(c.req.valid("json"))), 200),
+    async (c) => c.json(await saveSettings(prisma, c.req.valid("json")), 200),
   );
   app.openapi(
     createRoute({

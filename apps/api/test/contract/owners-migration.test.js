@@ -18,8 +18,8 @@ const run = (file) => prismaCli("db", "execute", "--url", url.toString(), "--fil
 const TABLES = ["Note", "Task", "Step", "Goal", "GoalAction", "Win", "Pet", "PetXp", "Profile", "Reminder", "ChatThread", "ChatMessage"];
 let db;
 const counts = async () => Object.fromEntries(await Promise.all(TABLES.map(async (t) => [t, (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM "${t}"`))[0].n])));
-// (Integration, P5-07, and AiUsage, P5-10, were made after this migration, with their owner from the start)
-const ownerColumns = async () => (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'userId' AND table_name NOT IN ('Session', 'Account', 'Integration', 'AiUsage')`, url.searchParams.get("schema")))[0].n;
+// (Integration P5-07, AiUsage P5-10, UserSettings and OutboxMessage P5-11 got their owner after this migration)
+const ownerColumns = async () => (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema = $1 AND column_name = 'userId' AND table_name NOT IN ('Session', 'Account', 'Integration', 'AiUsage', 'UserSettings', 'OutboxMessage')`, url.searchParams.get("schema")))[0].n;
 
 beforeAll(async () => {
   prismaCli("migrate", "deploy");
