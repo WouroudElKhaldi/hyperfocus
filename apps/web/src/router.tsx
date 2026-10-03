@@ -34,6 +34,7 @@ const JobDetail = lazyRouteComponent(() => import("./features/jobs/pages/JobDeta
 const Chat = lazyRouteComponent(() => import("./features/chat/pages/Chat.tsx"));
 const Pet = lazyRouteComponent(() => import("./features/pet/pages/Pet.tsx"));
 const Profile = lazyRouteComponent(() => import("./features/profile/pages/Profile.tsx"));
+const Admin = lazyRouteComponent(() => import("./features/admin/pages/Admin.tsx")); // P5-06: admins only
 // the design system page (P3-02): development only, so it never ships in the built app
 // development pages: in development, and in the browser-test build (pnpm build:e2e sets VITE_DEV_PAGES); never in the app you use
 const DEV_PAGES = import.meta.env.DEV || import.meta.env["VITE_DEV_PAGES"] === "1";
@@ -82,6 +83,7 @@ const routes = [
   page("/chat", Chat),
   page("/pet", Pet),
   page("/profile", Profile),
+  page("/admin", Admin),
 ] as const;
 const devRoutes = DevUi && PetGallery && SoundCheck ? [page("/dev/ui", DevUi), page("/dev/pet", PetGallery), page("/dev/sound", SoundCheck)] : [];
 

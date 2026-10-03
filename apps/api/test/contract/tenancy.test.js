@@ -49,7 +49,8 @@ async function viewOf(person) {
   const view = {};
   for (const [p] of paths) {
     const r = await person.call("GET", p === "/api/calendar" ? `/api/calendar?from=${day(-7)}&to=${day(30)}` : p); // (the calendar needs a range)
-    view[p] = r.headers.get("content-type")?.includes("json") ? await r.json() : r.status;
+    // (a refusal, like the admin area for someone who isn't an admin, counts by its status: each one has its own request id)
+    view[p] = r.ok && r.headers.get("content-type")?.includes("json") ? await r.json() : r.status;
   }
   return view;
 }

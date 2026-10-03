@@ -24,6 +24,7 @@ import { emailsRouter } from "./modules/emails/routes.ts";
 import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { jobsRouter } from "./modules/jobs/routes.ts";
+import { adminRouter } from "./modules/admin/routes.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
 import type { SocialPublisher } from "./modules/posts/publisher.ts";
@@ -54,7 +55,7 @@ export type AppDeps = {
   auth?: Auth | null;
 };
 /** What every request carries: its id (also sent back as X-Request-Id) and a logger that includes that id. */
-export type AppEnv = { Variables: { requestId: string; log: Logger; /** who is asking (P5-03) */ userId: string } };
+export type AppEnv = { Variables: { requestId: string; log: Logger; /** who is asking (P5-03) */ userId: string; /** their role (P5-06) */ role: "user" | "admin" } };
 
 const Health = z
   .object({
@@ -73,7 +74,8 @@ const switchedOffInDemo = (path: string) => DEMO_OFF.some((p) => path === p || p
 const Me = z
   .object({
     mode: z.enum(["local", "cloud"]).openapi({ description: "local: just the owner, nobody signs in. cloud: people sign in." }),
-    user: z.object({ id: z.string(), name: z.string(), email: z.string() }).nullable().openapi({ description: "Who is signed in (in local mode, the owner); null = nobody" }),
+    user: z.object({ id: z.string(), name: z.string(), email: z.string(), role: z.enum(["user", "admin"]) }).nullable().openapi({ description: "Who is signed in (in local mode, the owner); null = nobody" }),
+    flags: z.array(z.string()).openapi({ description: "The features an admin switched on (P5-06)" }),
     google: z.boolean().openapi({ description: "Sign in with Google is offered" }),
   })
   .openapi("Me");
@@ -100,6 +102,20 @@ export const OPENAPI_DOC = {
   },
 };
 
+type Who = { id: string; name: string; email: string; role: "user" | "admin" };
+/** Who is asking: the owner in local mode (an admin), otherwise the signed-in person or null. Admin = their role, or
+ * their email in ADMIN_EMAILS. */
+async function whoIsAsking({ auth, prisma, config }: AppDeps, headers: Headers): Promise<Who | null> {
+  if (!auth) {
+    const owner = await prisma.user.findUnique({ where: { id: OWNER_ID }, select: { id: true, name: true, email: true } });
+    return { ...(owner ?? { id: OWNER_ID, name: "You", email: "" }), role: "admin" };
+  }
+  const s = await auth.api.getSession({ headers });
+  if (!s) return null;
+  const admin = s.user.role === "admin" || config.adminEmails.includes(s.user.email.toLowerCase());
+  return { id: s.user.id, name: s.user.name, email: s.user.email, role: admin ? "admin" : "user" };
+}
+
 export function createApp(deps: AppDeps) {
   const { config, log } = deps;
   const app = new OpenAPIHono<AppEnv>({ defaultHook }); // a request that breaks a schema gets a 400 with its message
@@ -123,9 +139,12 @@ export function createApp(deps: AppDeps) {
   // The rest of the request runs as that person: the tenancy guard scopes every query to their rows.
   app.use("/api/*", async (c, next) => {
     if (OPEN.test(c.req.path)) return next();
-    const userId = deps.auth ? ((await deps.auth.api.getSession({ headers: c.req.raw.headers }))?.user.id ?? null) : OWNER_ID;
-    if (!userId) throw httpError(401, "Please sign in.");
+    // (local mode: the owner, an admin, without asking the database)
+    const who = deps.auth ? await whoIsAsking(deps, c.req.raw.headers) : { id: OWNER_ID, role: "admin" as const };
+    if (!who) throw httpError(401, "Please sign in.");
+    const userId = who.id;
     c.set("userId", userId);
+    c.set("role", who.role);
     return asUser(userId, () => next());
   });
   if (config.demo) {
@@ -140,12 +159,10 @@ export function createApp(deps: AppDeps) {
   if (auth) app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
   app.openapi(meRoute, async (c) => {
-    if (!deps.auth) {
-      const owner = await deps.prisma.user.findUnique({ where: { id: OWNER_ID }, select: { id: true, name: true, email: true } });
-      return c.json({ mode: "local" as const, user: owner, google: false }, 200);
-    }
-    const s = await deps.auth.api.getSession({ headers: c.req.raw.headers });
-    return c.json({ mode: "cloud" as const, user: s ? { id: s.user.id, name: s.user.name, email: s.user.email } : null, google: !!config.auth.google }, 200);
+    const flags = (await deps.prisma.featureFlag.findMany({ where: { enabled: true }, select: { key: true }, orderBy: { key: "asc" } })).map((f) => f.key);
+    const who = await whoIsAsking(deps, c.req.raw.headers);
+    const user = who ? { id: who.id, name: who.name, email: who.email, role: who.role } : null;
+    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, google: !!deps.auth && !!config.auth.google }, 200);
   });
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
@@ -171,6 +188,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", emailsRouter(deps));
   app.route("/", dataRouter(deps)); // P4-08: export my data, and bring an export back
   app.route("/", jobsRouter(deps));
+  app.route("/", adminRouter(deps)); // P5-06: admins only
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", OPENAPI_DOC);

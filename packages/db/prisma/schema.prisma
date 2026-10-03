@@ -545,6 +545,14 @@ model JobApplication {
 // P4-06: messages for the outside world (desktop notifications for now), saved in the same transaction as the change that
 // causes them, then delivered by a background job (src/outbox.ts). `key` makes each one unique, so none is ever sent twice;
 // one that fails stays here and is tried again.
+// Features switched on or off for everyone by an admin (P5-06). A flag that doesn't exist yet counts as off.
+model FeatureFlag {
+  key       String   @id
+  enabled   Boolean  @default(false)
+  note      String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
 model OutboxMessage {
   id        Int       @id @default(autoincrement())
   key       String    @unique
@@ -568,6 +576,7 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   phone         String    @default("") // asked at sign-up (P5-04); empty for the owner and for Google sign-ups
+  role          String    @default("user") // "user" or "admin" (P5-06); the owner is an admin
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

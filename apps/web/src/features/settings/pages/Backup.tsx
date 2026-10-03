@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { signOut, useMe } from "../../account/index.ts";
 import { useEffect, useState } from "react";
 import { MyReminders } from "../../reminders/index.ts";
@@ -59,6 +60,15 @@ export default function Backup() {
           <div className="row" style={{ justifyContent: "space-between" }}>
             <div><b>Signed in as {me.user.name}</b><div className="muted">{me.user.email}</div></div>
             <button onClick={() => void signOut(client)}>Sign out</button>
+          </div>
+        </div>
+      )}
+
+      {me?.user?.role === "admin" && (
+        <div className="card">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <div><b>You are an admin</b><div className="muted">Services, people and feature flags for the whole app.</div></div>
+            <Link className="btn" to="/admin">Open the admin area</Link>
           </div>
         </div>
       )}

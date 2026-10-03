@@ -3,6 +3,288 @@
 /* biome-ignore-all lint: generated */
 
 export interface paths {
+    "/api/admin/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feature flags */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Every flag */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FeatureFlag"][];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/flags/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Switch a feature on or off for everyone (made if it is new) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        enabled: boolean;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The flag */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FeatureFlag"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which outside services are connected */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Their state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProviderHealth"];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everyone with an account, newest first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The people */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminPerson"][];
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Make someone an admin, or a user again */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        role: "user" | "admin";
+                    };
+                };
+            };
+            responses: {
+                /** @description The person after the change */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminPerson"];
+                    };
+                };
+                /** @description You can't take away your own admin role */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Only admins can do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description No such person */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/ai/organize": {
         parameters: {
             query?: never;
@@ -7990,6 +8272,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminPerson: {
+            createdAt: string;
+            email: string;
+            id: string;
+            name: string;
+            /** @enum {string} */
+            role: "user" | "admin";
+        };
         Backups: {
             backups: {
                 createdAt: string;
@@ -8048,6 +8338,12 @@ export interface components {
                 threadId?: number | null;
             };
         };
+        FeatureFlag: {
+            enabled: boolean;
+            key: string;
+            note: string;
+            updatedAt: string;
+        };
         Health: {
             /** @description A DeepSeek key is set */
             ai: boolean;
@@ -8084,6 +8380,8 @@ export interface components {
             [key: string]: unknown;
         };
         Me: {
+            /** @description The features an admin switched on (P5-06) */
+            flags: string[];
             /** @description Sign in with Google is offered */
             google: boolean;
             /**
@@ -8096,6 +8394,8 @@ export interface components {
                 email: string;
                 id: string;
                 name: string;
+                /** @enum {string} */
+                role: "user" | "admin";
             } | null;
         };
         Ok: {
@@ -8119,6 +8419,22 @@ export interface components {
             traits?: string[];
         } & {
             [key: string]: unknown;
+        };
+        ProviderHealth: {
+            /** @description An AI key is set */
+            ai: boolean;
+            /** @description Sending email is set up */
+            email: boolean;
+            /** @description Where uploaded files go: database, disk or s3 */
+            fileStorage: string;
+            /** @description Sign in with Google is set up */
+            google: boolean;
+            /** @description LinkedIn posting (n8n) is set up */
+            linkedin: boolean;
+            /** @enum {string} */
+            mode: "local" | "cloud";
+            /** @description How many accounts there are */
+            people: number;
         };
         SkillPlan: {
             books: {

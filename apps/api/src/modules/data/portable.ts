@@ -14,7 +14,7 @@ import type { Db } from "../../types.ts";
 export const FORMAT = "hyperfocus-export";
 export const VERSION = 1;
 // (the sign-in tables hold password hashes and session tokens: never exported; who you are travels with your account, P5-12)
-const SKIP = new Set(["OutboxMessage", "User", "Session", "Account", "Verification"]);
+const SKIP = new Set(["OutboxMessage", "User", "Session", "Account", "Verification", "FeatureFlag"]); // (feature flags are for everyone, P5-06)
 
 type Model = (typeof Prisma.dmmf.datamodel.models)[number];
 const models = (): Model[] => Prisma.dmmf.datamodel.models.filter((m) => !SKIP.has(m.name));

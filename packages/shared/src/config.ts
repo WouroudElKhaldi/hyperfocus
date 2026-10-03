@@ -41,6 +41,7 @@ const schema = z.object({
   GOOGLE_CLIENT_ID: text,
   GOOGLE_CLIENT_SECRET: text,
   MAIL_DRY_RUN: flag,
+  ADMIN_EMAILS: text,
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
   DEEPSEEK_MODEL: text,
@@ -88,6 +89,8 @@ export type ApiConfig = {
   auth: { secret: string; publicUrl: string; google: { clientId: string; clientSecret: string } | null };
   /** Write the emails the app sends for accounts (verify, reset) to the log instead of sending them (tests). */
   mailDryRun: boolean;
+  /** Cloud mode: the people (by email, lower case) who are always admins (P5-06). Others are made admin from the admin area. */
+  adminEmails: string[];
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -131,6 +134,7 @@ export function parseApiConfig(env: Env): ConfigResult {
         google: e.GOOGLE_CLIENT_ID ? { clientId: e.GOOGLE_CLIENT_ID, clientSecret: e.GOOGLE_CLIENT_SECRET } : null,
       },
       mailDryRun: e.MAIL_DRY_RUN,
+      adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them
       deepseek: { apiKey: demo ? "" : e.DEEPSEEK_API_KEY, url: e.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions", model: e.DEEPSEEK_MODEL || "deepseek-chat" },
       n8nWebhookUrl: demo ? "" : e.N8N_WEBHOOK_URL,

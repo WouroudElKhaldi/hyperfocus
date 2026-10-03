@@ -42,7 +42,7 @@ export function createAuth({ prisma, config, send }: { prisma: Db; config: ApiCo
     // when NODE_ENV is "test"; here it is on whatever the environment says (found by the P5-01 tests)
     advanced: { disableOriginCheck: false, disableCSRFCheck: false },
     // sign-up asks for the full name, the email and a phone number (P5-04, at your request)
-    user: { additionalFields: { phone: { type: "string", required: false, defaultValue: "", input: true } } },
+    user: { additionalFields: { phone: { type: "string", required: false, defaultValue: "", input: true }, role: { type: "string", required: false, defaultValue: "user", input: false } } },
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path !== "/sign-up/email") return;

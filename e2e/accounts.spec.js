@@ -42,9 +42,14 @@ test.describe("accounts @cloud", () => {
     await expect(page.locator(".sidebar")).toBeVisible();
     await expect(page.locator("header.topbar")).toContainText("Robin Example");
 
+    // someone new is not an admin (P5-06): no admin link in Settings, and the admin page says so
+    await page.goto("/admin");
+    await expect(page.getByText("Only admins can open this page.")).toBeVisible();
+
     // sign out from Settings
     await page.goto("/backup");
     await expect(page.getByText("Signed in as Robin Example")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open the admin area" })).toHaveCount(0);
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 
