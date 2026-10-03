@@ -3,11 +3,12 @@ import type { PublishResult, SocialPublisher } from "./modules/posts/publisher.t
 import { makeState } from "./oauth-state.ts";
 import { errorInfo } from "./types.ts";
 
-// "Connect LinkedIn" (P5-09): each person lets the app post on their own LinkedIn, through LinkedIn's official
-// "Share on LinkedIn" product (scopes: openid, profile, w_member_social). No n8n needed. The access token lasts about
-// 60 days; when it runs out, posting says to connect again. Needs the website's LinkedIn app: LINKEDIN_CLIENT_ID and
-// LINKEDIN_CLIENT_SECRET, with <PUBLIC_URL>/api/integrations/linkedin/callback as an authorised redirect URL.
-// LINKEDIN_OAUTH_URL / LINKEDIN_API_URL replace LinkedIn only in tests.
+// "Connect LinkedIn" (P5-09): each person posts on their own LinkedIn through LinkedIn's official "Share on LinkedIn"
+// product (scopes: openid, profile, w_member_social), with **their own LinkedIn app** (free, linkedin.com/developers):
+// they save its Client ID and Secret in Settings, add <PUBLIC_URL>/api/integrations/linkedin/callback to it as an
+// authorised redirect URL, and click Connect LinkedIn. Nothing of the website owner's is used. The access token lasts
+// about 60 days; when it runs out, posting says to connect again. LINKEDIN_OAUTH_URL / LINKEDIN_API_URL replace
+// LinkedIn only in tests.
 
 export const LINKEDIN_SCOPES = ["openid", "profile", "w_member_social"];
 export type LinkedInSettings = { clientId: string; clientSecret: string; publicUrl: string; secret: string; oauthUrl: string; apiUrl: string; version: string };

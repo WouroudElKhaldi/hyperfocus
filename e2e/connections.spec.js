@@ -45,27 +45,40 @@ test("each connection links to its step-by-step guide", async ({ page }) => {
   await expect(page).toHaveURL(/\/help\/connections#gmail$/);
   await expect(page.getByRole("heading", { name: "How to connect your accounts" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "2. Email: send from your own Gmail" })).toBeInViewport();
-  for (const h of ["1. The AI: your DeepSeek API key", "3. LinkedIn posting (through n8n)", "Step B: the part that receives your posts (Webhook)"]) {
+  for (const h of ["1. The AI: your DeepSeek API key", "3. LinkedIn posting (your own LinkedIn app)", "Step A: make your LinkedIn app", "4. Or: LinkedIn through your own n8n (optional)", "Step B: the part that receives your posts (Webhook)"]) {
     await expect(page.getByRole("heading", { name: h })).toBeVisible();
   }
   await expect(page.getByText("{{ $json.body.text }}")).toBeVisible();
-  await page.getByText('n8n asks for a Client ID and Client Secret (getting your LinkedIn "id")').click();
-  await expect(page.getByText("Primary Client Secret")).toBeVisible();
+  await expect(page.getByText("Primary Client Secret").first()).toBeVisible();
   await page.getByRole("region", { name: "1. The AI: your DeepSeek API key" }).getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/backup$/);
 });
 
-// P5-09: "Connect LinkedIn". This test copy has no LinkedIn app, so it says to use n8n; the way back reports under
-// LinkedIn (the full flow with a stand-in LinkedIn is in the API suite)
-test("Connect LinkedIn: explains when it isn't set up, and reports how coming back from LinkedIn went", async ({ page }) => {
+// P5-09: "Connect LinkedIn" with your own LinkedIn app: save its two codes, then the button appears; the address to give
+// LinkedIn is shown; the way back reports under LinkedIn (the full flow with a stand-in LinkedIn is in the API suite)
+test("LinkedIn posting: save your own LinkedIn app, then Connect LinkedIn", async ({ page }) => {
   await page.goto("/backup");
   const li = page.getByRole("region", { name: "LinkedIn posting" });
-  await li.getByRole("button", { name: "Connect LinkedIn" }).click();
-  await expect(li.getByRole("alert")).toContainText("Connecting LinkedIn directly isn't set up for this app");
+  await expect(li.getByText(/\/api\/integrations\/linkedin\/callback$/)).toBeVisible();
+  await expect(li.getByRole("button", { name: "Connect LinkedIn" })).toHaveCount(0); // (no app saved yet)
+  await li.getByLabel("LinkedIn app Client ID").fill("x");
+  await li.getByLabel("LinkedIn app Client Secret").fill("short");
+  await li.getByRole("button", { name: "Save LinkedIn posting" }).click();
+  await expect(li.getByRole("alert")).toContainText("Client ID");
+  await li.getByLabel("LinkedIn app Client ID").fill("86e2etestapp42");
+  await li.getByLabel("LinkedIn app Client Secret").fill("e2e-primary-secret");
+  await li.getByRole("button", { name: "Save LinkedIn posting" }).click();
+  await expect(li.getByText("App saved: app …pp42")).toBeVisible();
+  await expect(page.getByText("e2e-primary-secret")).toHaveCount(0);
+  await expect(li.getByRole("button", { name: "Connect LinkedIn" })).toBeVisible();
+
   await page.goto(`/backup?connect-error=${encodeURIComponent("You didn't allow it, so nothing changed.")}&for=linkedin`);
   await expect(li.getByRole("alert")).toHaveText("You didn't allow it, so nothing changed.");
   await page.goto("/backup?connected=linkedin");
   await expect(page.getByRole("status").filter({ hasText: "LinkedIn connected" })).toBeVisible();
   await li.getByRole("link", { name: "How do I get this?" }).click();
-  await expect(page.getByRole("heading", { name: "The easy way: Connect LinkedIn (1 minute)" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Step A: make your LinkedIn app" })).toBeVisible();
+  await page.goto("/backup");
+  await li.getByRole("button", { name: "Disconnect" }).click();
+  await expect(li.getByLabel("LinkedIn app Client ID")).toBeVisible();
 });

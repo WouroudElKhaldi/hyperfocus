@@ -4367,7 +4367,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description LinkedIn isn't set up for this app */
+                /** @description Your LinkedIn app isn't saved yet */
                 409: {
                     headers: {
                         [name: string]: unknown;

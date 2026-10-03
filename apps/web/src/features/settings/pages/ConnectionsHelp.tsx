@@ -26,7 +26,7 @@ export default function ConnectionsHelp() {
         website's owner.
       </p>
       <nav className="card" aria-label="Guides">
-        <b>Jump to:</b> <a href="#ai">The AI (DeepSeek key)</a> · <a href="#gmail">Email (Gmail)</a> · <a href="#linkedin">LinkedIn posting</a>
+        <b>Jump to:</b> <a href="#ai">The AI (DeepSeek key)</a> · <a href="#gmail">Email (Gmail)</a> · <a href="#linkedin">LinkedIn posting</a> · <a href="#linkedin-n8n">LinkedIn through n8n</a>
       </nav>
 
       <section id="ai" className="card" aria-labelledby="ai-title">
@@ -83,32 +83,54 @@ export default function ConnectionsHelp() {
       </section>
 
       <section id="linkedin" className="card" aria-labelledby="linkedin-title">
-        <h2 id="linkedin-title">3. LinkedIn posting (through n8n)</h2>
+        <h2 id="linkedin-title">3. LinkedIn posting (your own LinkedIn app)</h2>
         <p>
-          So Hyperfocus can publish your finished posts on your LinkedIn, right away or at the time you schedule. It goes through <b>n8n</b>, a
-          service that connects apps together: Hyperfocus hands the post to n8n, and n8n posts it on LinkedIn as you. You set this up once.{" "}
-          <b>Time needed: about 15 minutes.</b>
+          So Hyperfocus can publish your finished posts on your LinkedIn, right away or at the time you schedule. You make a small, free
+          "app" on LinkedIn once; it is yours, and Hyperfocus posts only through it, only when you ask. <b>Time needed: about 10 minutes.</b>
         </p>
         <p className="muted">
           Without it, you can still use everything: Hyperfocus gives you a <b>Copy</b> button and you paste the post on LinkedIn yourself.
         </p>
 
-        <h3>The easy way: Connect LinkedIn (1 minute)</h3>
+        <h3>Step A: make your LinkedIn app</h3>
         <Steps>
-          <li>In <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting</b>, click <b>Connect LinkedIn</b>.</li>
-          <li>LinkedIn opens. Sign in if asked, and click <b>Allow</b> so Hyperfocus can post for you (it can't read your messages or change your profile).</li>
-          <li>You come back to Settings, and it says <i>Connected to LinkedIn as</i> your name. Your posts now go straight to your LinkedIn.</li>
+          <li>
+            Open <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">linkedin.com/developers/apps</a> (sign in
+            with your LinkedIn) and click <b>Create app</b>.
+          </li>
+          <li>
+            App name: <i>My Hyperfocus posting</i>. <b>LinkedIn Page</b>: LinkedIn requires a company page here. If you don't have one, make a
+            simple page first (LinkedIn → <b>For Business</b> → <b>Create a Company Page</b>); it can stay empty. Add a logo (any picture), tick
+            the agreement, click <b>Create app</b>.
+          </li>
+          <li>Open the <b>Products</b> tab and click <b>Request access</b> for <b>Share on LinkedIn</b> and for <b>Sign In with LinkedIn using OpenID Connect</b> (both free, approved at once).</li>
+        </Steps>
+
+        <h3>Step B: tell your app where to send you back</h3>
+        <Steps>
+          <li>In Hyperfocus, <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting</b> shows an address ending in <code>/api/integrations/linkedin/callback</code>. Copy it.</li>
+          <li>In your LinkedIn app, open the <b>Auth</b> tab. Under <b>Authorized redirect URLs for your app</b>, click the pencil, paste that address, and click <b>Update</b>.</li>
+        </Steps>
+
+        <h3>Step C: give Hyperfocus your app's two codes, and connect</h3>
+        <Steps>
+          <li>Still on the <b>Auth</b> tab: copy the <b>Client ID</b>, and the <b>Primary Client Secret</b> (click the eye to show it).</li>
+          <li>In Hyperfocus, <b>LinkedIn posting</b>: paste them and click <b>Save</b>. (They are locked when saved and never shown again.)</li>
+          <li>Click <b>Connect LinkedIn</b>. LinkedIn asks you to allow posting; click <b>Allow</b>. You come back, and it says <i>Posting as</i> your name.</li>
+          <li>Try it: write a short post in Hyperfocus and click <b>Publish</b>. It appears on your LinkedIn within a few seconds.</li>
         </Steps>
         <p className="muted">
-          LinkedIn asks you to allow it again about every 60 days; Hyperfocus tells you when. If the button says it isn't set up for this
-          app, the website's owner hasn't switched it on yet: use n8n below instead.
+          LinkedIn asks you to allow it again about every 60 days; Hyperfocus tells you when (click Connect LinkedIn again). Your app keeps
+          working; nothing to redo there.
         </p>
+      </section>
 
-        <h3>Or: through your own n8n (free, on your computer)</h3>
+      <section id="linkedin-n8n" className="card" aria-labelledby="linkedin-n8n-title">
+        <h2 id="linkedin-n8n-title">4. Or: LinkedIn through your own n8n (optional)</h2>
         <p className="muted">
-          For when Connect LinkedIn isn't available. n8n is free when it runs on your own computer, and this works when Hyperfocus runs on the
-          same computer too (the hosted Hyperfocus can't reach a program on your computer: use Connect LinkedIn there). n8n also sells a hosted
-          version; you don't need it.
+          Only if you already use n8n and prefer it. You host your own n8n (it is free when you run it yourself). On the hosted Hyperfocus, your
+          n8n must be at a public <code>https://</code> address; one running only on your computer works when Hyperfocus also runs on your
+          computer.
         </p>
         <h3>Step A: run n8n on your computer</h3>
         <Steps>
@@ -130,7 +152,7 @@ export default function ConnectionsHelp() {
           <li>Click the <b>+</b> on the right of the Webhook, search for <b>LinkedIn</b>, and choose <b>Create a post</b>.</li>
           <li>
             Next to <b>Credential to connect with</b>, choose <b>Create new credential</b>. n8n asks for a <b>Client ID</b> and <b>Client Secret</b>:
-            make them once with the free LinkedIn developer app, see "n8n asks for a Client ID" below. Then click <b>Connect my account</b>, sign in to
+            use the Client ID and Secret of your LinkedIn app (section 3, steps A–C; in step B paste n8n's <b>OAuth Redirect URL</b> instead). Then click <b>Connect my account</b>, sign in to
             LinkedIn and click <b>Allow</b>.
           </li>
           <li>Set <b>Post As</b> to <b>Person</b>, and in <b>Person</b> pick your name.</li>
@@ -146,34 +168,12 @@ export default function ConnectionsHelp() {
           <li>Click <b>Save</b>, then switch the workflow on (the <b>Inactive / Active</b> switch at the top, or <b>Publish</b>, depending on your n8n version).</li>
           <li>Open the <b>Webhook</b> box again. Click <b>Production URL</b> (not "Test URL") and copy the address. It looks like <code>http://localhost:5678/webhook/…</code>.</li>
           <li>
-            In Hyperfocus, <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn posting</b>: paste it and click{" "}
+            In Hyperfocus, <Link to="/backup">Settings</Link> → <b>Your connections</b> → <b>LinkedIn through n8n</b>: paste it and click{" "}
             <b>Save</b>.
           </li>
           <li>Try it: write a short post in Hyperfocus and click <b>Publish</b>. It should appear on your LinkedIn within a few seconds.</li>
         </Steps>
 
-        <details>
-          <summary>n8n asks for a Client ID and Client Secret (getting your LinkedIn "id")</summary>
-          <p>You make a small, free "app" on LinkedIn once, and it gives you the two codes:</p>
-          <Steps>
-            <li>
-              Open <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">linkedin.com/developers/apps</a> and click{" "}
-              <b>Create app</b>.
-            </li>
-            <li>
-              App name: <i>My posting</i>. <b>LinkedIn Page</b>: LinkedIn requires a company page here. If you don't have one, make a simple page for
-              yourself first (LinkedIn → <b>For Business</b> → <b>Create a Company Page</b>); it can stay empty. Add a logo (any picture), tick the
-              agreement, click <b>Create app</b>.
-            </li>
-            <li>Open the <b>Products</b> tab and click <b>Request access</b> for <b>Share on LinkedIn</b> and for <b>Sign In with LinkedIn using OpenID Connect</b>.</li>
-            <li>Open the <b>Auth</b> tab. You'll see the <b>Client ID</b> and the <b>Primary Client Secret</b> (click the eye to show it).</li>
-            <li>
-              In n8n's credential window, copy the <b>OAuth Redirect URL</b> it shows. Back on LinkedIn's Auth tab, under{" "}
-              <b>Authorized redirect URLs for your app</b>, click the pencil, add that address, and click <b>Update</b>.
-            </li>
-            <li>Paste the Client ID and Client Secret into n8n, click <b>Connect my account</b>, sign in to LinkedIn and click <b>Allow</b>.</li>
-          </Steps>
-        </details>
         <details>
           <summary>Publishing says n8n answered with an error, or nothing appears on LinkedIn</summary>
           <ul>

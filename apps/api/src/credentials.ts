@@ -20,6 +20,11 @@ export const CREDENTIALS = {
   n8n: z.object({
     webhookUrl: z.string().trim().url("Paste the full address of your n8n webhook (https://…).").max(500).refine((u) => /^https?:\/\//.test(u), "The webhook address must start with http:// or https://."),
   }),
+  // the person's own LinkedIn app (free, linkedin.com/developers), for "Connect LinkedIn" (P5-09)
+  "linkedin-app": z.object({
+    clientId: z.string().trim().regex(/^[A-Za-z0-9]{8,40}$/, "Paste the Client ID from your LinkedIn app's Auth tab."),
+    clientSecret: z.string().trim().min(8, "Paste the Primary Client Secret from your LinkedIn app's Auth tab.").max(200),
+  }),
   gmail: z.object({
     user: z.string().trim().email("Your full Gmail address, like you@gmail.com."),
     appKey: z.string().transform((s) => s.replace(/\s+/g, "")).pipe(z.string().regex(/^[a-z]{16}$/i, "A Gmail App Password is 16 letters (spaces don't matter).")),
@@ -38,6 +43,7 @@ const LOADED = [...CREDENTIAL_KINDS, "linkedin"];
 export function describe(kind: CredentialKind, c: Credentials[CredentialKind]): string {
   if (kind === "deepseek") return `key ending in …${(c as Credentials["deepseek"])!.apiKey.slice(-4)}`;
   if (kind === "n8n") return new URL((c as Credentials["n8n"])!.webhookUrl).host;
+  if (kind === "linkedin-app") return `app …${(c as Credentials["linkedin-app"])!.clientId.slice(-4)}`;
   return (c as Credentials["gmail"])!.user;
 }
 

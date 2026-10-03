@@ -47,8 +47,6 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: text,
   VAPID_SUBJECT: text,
   ALLOW_LOCAL_ADDRESSES: flag,
-  LINKEDIN_CLIENT_ID: text,
-  LINKEDIN_CLIENT_SECRET: text,
   LINKEDIN_API_VERSION: text,
   LINKEDIN_OAUTH_URL: url("LINKEDIN_OAUTH_URL"),
   LINKEDIN_API_URL: url("LINKEDIN_API_URL"),
@@ -75,9 +73,6 @@ const schema = z.object({
 }).refine((e) => e.APP_MODE !== "cloud" || e.SECRETS_KEYS !== "", {
   message: "Cloud mode needs SECRETS_KEYS (the key that seals people's tokens): make one with pnpm secrets:new-key",
   path: ["SECRETS_KEYS"],
-}).refine((e) => !e.LINKEDIN_CLIENT_ID === !e.LINKEDIN_CLIENT_SECRET, {
-  message: "Connect LinkedIn needs both LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET (or neither)",
-  path: ["LINKEDIN_CLIENT_SECRET"],
 }).refine((e) => !e.GOOGLE_CLIENT_ID === !e.GOOGLE_CLIENT_SECRET, {
   message: "Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (or neither)",
 });
@@ -112,8 +107,8 @@ export type ApiConfig = {
   vapid: { publicKey: string; privateKey: string; subject: string };
   /** Tests only: accept addresses on this machine for push and n8n webhooks (stand-ins). Never set it on a real server. */
   allowLocalAddresses: boolean;
-  /** "Connect LinkedIn" (P5-09): the website's LinkedIn app; null = not set up. The URLs replace LinkedIn only in tests. */
-  linkedin: { clientId: string; clientSecret: string; version: string; oauthUrl: string; apiUrl: string } | null;
+  /** "Connect LinkedIn" (P5-09): the Posts API version; the URLs replace LinkedIn only in tests. (Each person brings their own LinkedIn app.) */
+  linkedin: { version: string; oauthUrl: string; apiUrl: string };
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -159,7 +154,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       mailDryRun: e.MAIL_DRY_RUN,
       secretsKeys: e.SECRETS_KEYS,
       allowLocalAddresses: e.ALLOW_LOCAL_ADDRESSES,
-      linkedin: e.LINKEDIN_CLIENT_ID ? { clientId: e.LINKEDIN_CLIENT_ID, clientSecret: e.LINKEDIN_CLIENT_SECRET, version: e.LINKEDIN_API_VERSION || "202609", oauthUrl: e.LINKEDIN_OAUTH_URL, apiUrl: e.LINKEDIN_API_URL } : null,
+      linkedin: { version: e.LINKEDIN_API_VERSION || "202609", oauthUrl: e.LINKEDIN_OAUTH_URL, apiUrl: e.LINKEDIN_API_URL },
       vapid: { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT || "mailto:hyperfocus@localhost" },
       shareAiKey: e.SHARE_AI_KEY,
       aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),

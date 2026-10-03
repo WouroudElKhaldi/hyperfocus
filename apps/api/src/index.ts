@@ -32,7 +32,7 @@ if (DEMO) for (const k of ["DEEPSEEK_API_KEY", "N8N_WEBHOOK_URL", "GOOGLE_BOOKS_
 // (each person's own webhook from Settings → Connections; the .env one only in local mode, P5-07)
 // (and before that, P5-09: their own LinkedIn connected directly, when the website has a LinkedIn app)
 const n8nOrFallback = personalPublisher(config.mode === "local" ? config.n8nWebhookUrl : "");
-const publisher = DEMO ? n8nPublisher("") : config.linkedin ? linkedinFirst(config.linkedin, n8nOrFallback) : n8nOrFallback;
+const publisher = DEMO ? n8nPublisher("") : linkedinFirst(config.linkedin, n8nOrFallback);
 // Sending email: her Gmail with an App Password (switched off in the demo).
 // (each person's own Gmail from Settings → Connections; the .env one only in local mode, P5-07). The account emails
 // (confirm, reset) are the app's own: always the .env Gmail.

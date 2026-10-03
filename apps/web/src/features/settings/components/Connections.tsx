@@ -6,19 +6,27 @@ import { keyOf } from "../../../api/query.ts";
 import { Link } from "@tanstack/react-router";
 
 // which part of the step-by-step guide (/help/connections) explains each one
-const GUIDE = { deepseek: "ai", gmail: "gmail", n8n: "linkedin" } as const;
+const GUIDE = { deepseek: "ai", gmail: "gmail", "linkedin-app": "linkedin", n8n: "linkedin-n8n" } as const;
 
 // Your own credentials (P5-07): the AI (DeepSeek key), LinkedIn posting (your n8n webhook) and email (your Gmail with an
 // App Password). Sealed on the server and never shown again: after saving you only see which account it is.
 
 type Field = { name: string; label: string; type?: string; placeholder: string; hint?: string };
-const KINDS: { id: "deepseek" | "n8n" | "gmail"; title: string; what: string; fields: Field[] }[] = [
+const KINDS: { id: "deepseek" | "linkedin-app" | "n8n" | "gmail"; title: string; what: string; fields: Field[] }[] = [
   {
     id: "deepseek", title: "AI (DeepSeek)", what: "Rewrites, coaching, chat and everything else the AI does for you.",
     fields: [{ name: "apiKey", label: "DeepSeek API key", type: "password", placeholder: "sk-…", hint: "From platform.deepseek.com → API keys." }],
   },
   {
-    id: "n8n", title: "LinkedIn posting", what: "Publishing your posts to LinkedIn, now or scheduled.",
+    // P5-09: your own free LinkedIn app, then "Connect LinkedIn"
+    id: "linkedin-app", title: "LinkedIn posting", what: "Publishing your posts to your LinkedIn, now or scheduled, through your own (free) LinkedIn app.",
+    fields: [
+      { name: "clientId", label: "LinkedIn app Client ID", placeholder: "86abc123xyz", hint: "Your app at linkedin.com/developers/apps → Auth tab." },
+      { name: "clientSecret", label: "LinkedIn app Client Secret", type: "password", placeholder: "Primary Client Secret", hint: "Same tab: Primary Client Secret (click the eye to show it)." },
+    ],
+  },
+  {
+    id: "n8n", title: "LinkedIn through n8n (optional)", what: "Instead of the LinkedIn app: your own n8n, at a public https address.",
     fields: [{ name: "webhookUrl", label: "n8n webhook address", type: "url", placeholder: "https://your-n8n.example/webhook/…", hint: "The production URL of the Webhook node in your LinkedIn workflow." }],
   },
   {
@@ -48,7 +56,7 @@ export default function Connections() {
     const q = new URLSearchParams(window.location.search);
     if (q.get("connected") === "linkedin") setNotice("✅ LinkedIn connected. Your posts now go straight to your LinkedIn.");
     const failed = q.get("connect-error");
-    if (failed) setError({ id: "n8n", message: failed });
+    if (failed) setError({ id: "linkedin-app", message: failed });
     if (q.has("connected") || failed) window.history.replaceState(null, "", window.location.pathname);
   }, []);
   const directLinkedIn = saved.find((s) => s.provider === "linkedin"); // P5-09
@@ -75,20 +83,17 @@ export default function Connections() {
       <p className="muted">Your own keys for the AI, LinkedIn and email. They are locked (encrypted) when saved and never shown again. Not sure how? <Link to="/help/connections">Step-by-step guides</Link>.</p>
       {notice && <p role="status">{notice}</p>}
       {KINDS.map((k) => {
-        // LinkedIn connected directly (P5-09) takes the place of the n8n form
-        const viaLinkedIn = k.id === "n8n" ? directLinkedIn : undefined;
-        const have = viaLinkedIn ?? saved.find((s) => s.provider === k.id);
-        const open = !viaLinkedIn && (editing === k.id || !have);
+        const have = saved.find((s) => s.provider === k.id);
+        const open = editing === k.id || !have;
         return (
           <section key={k.id} className="connection" aria-label={k.title}>
             <div className="row" style={{ justifyContent: "space-between" }}>
               <div>
                 <b>{k.title}</b>
                 <Link className="tiny" to="/help/connections" hash={GUIDE[k.id]}>How do I get this?</Link>
-                <div className="muted">{viaLinkedIn ? <>✅ Connected to LinkedIn as {viaLinkedIn.account}</> : have ? <>✅ Connected: {have.account}</> : k.what}</div>
+                <div className="muted">{have ? <>✅ {k.id === "linkedin-app" ? "App saved" : "Connected"}: {have.account}</> : k.what}</div>
               </div>
-              {viaLinkedIn && <button onClick={() => remove.mutate(viaLinkedIn.provider)}>Disconnect</button>}
-              {!viaLinkedIn && have && editing !== k.id && (
+              {have && editing !== k.id && (
                 <div className="row">
                   <button onClick={() => setEditing(k.id)}>Change</button>
                   <button onClick={() => remove.mutate(k.id)}>Disconnect</button>
@@ -98,8 +103,19 @@ export default function Connections() {
             {k.id === "deepseek" && usage && usage.shared && usage.limit > 0 && !usage.ownKey && (
               <p className="muted tiny" data-testid="ai-usage">Today: {usage.used} of {usage.limit} AI requests on the app's key. Add your own key above for no limit.</p>
             )}
-            {k.id === "n8n" && !viaLinkedIn && (
-              <p><button type="button" onClick={() => void connectLinkedIn("n8n")}>Connect LinkedIn</button> <span className="muted tiny">The easy way: no n8n needed. Or use your own n8n webhook below.</span></p>
+            {k.id === "linkedin-app" && (
+              <>
+                <p className="muted tiny">In your LinkedIn app, add this as an authorised redirect URL: <code>{`${window.location.origin}/api/integrations/linkedin/callback`}</code></p>
+                {have && (directLinkedIn ? (
+                  <div className="row">
+                    <span>✅ Posting as {directLinkedIn.account}</span>
+                    <button onClick={() => remove.mutate("linkedin")}>Disconnect LinkedIn</button>
+                  </div>
+                ) : (
+                  <p><button type="button" className="primary" onClick={() => void connectLinkedIn("linkedin-app")}>Connect LinkedIn</button> <span className="muted tiny">LinkedIn asks you to allow posting; you come back here.</span></p>
+                ))}
+                {!open && error?.id === k.id && <p role="alert" className="error">{error.message}</p>}
+              </>
             )}
             {open && (
               <form className="form-grid" onSubmit={submit(k.id)}>
