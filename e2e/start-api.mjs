@@ -13,6 +13,9 @@ const stack = await startTestStack({
   port,
   env: cloud ? { APP_MODE: "cloud", BETTER_AUTH_SECRET: "e2e-secret-that-is-long-enough-1234567890", PUBLIC_URL: process.env.E2E_PUBLIC_URL ?? "", MAIL_DRY_RUN: "1" } : {},
 });
+// a small taxonomy (jobs, skills, majors, places) so the Job Radar pages have something to show (P6)
+const { seedTaxonomy } = await import("../apps/api/test/support/taxonomy-fixture.js");
+await seedTaxonomy(stack.databaseUrl);
 if (cloud) fs.writeFileSync(path.join(os.tmpdir(), "hyperfocus-e2e-cloud.json"), JSON.stringify({ log: path.join(stack.tmpDir, "api.log") }));
 console.log(`Test API on ${stack.apiUrl} (data in ${stack.tmpDir})`);
 

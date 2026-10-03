@@ -769,6 +769,8 @@ exports[`response shapes of read endpoints > GET /api/skills (item) 1`] = `
     "name": "string",
     "notes": "string",
     "target": "number",
+    "taxonomyCode": "string",
+    "taxonomyLabel": "string",
     "updatedAt": "date",
   },
 ]

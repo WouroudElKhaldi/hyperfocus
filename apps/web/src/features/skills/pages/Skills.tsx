@@ -1,4 +1,5 @@
 import { type FormEvent, useMemo, useState } from "react";
+import TaxonomyPicker from "../../../components/TaxonomyPicker.tsx";
 import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import type { Skill, SkillPlan, SkillSuggestion } from "../../../types.ts";
@@ -38,6 +39,7 @@ function SkillRow({ skill, onDelete }: { skill: Skill; onDelete: () => void }) {
   const addBookChange = useApiChange("post", "/books", { refresh: ["/books"] });
   const busy = planChange.isPending;
   const [notes, setNotes] = useState(skill.notes);
+  const [linking, setLinking] = useState(false); // P6-08: picking the standard skill this one is
   const gap = skill.level > 0 ? Math.max(0, skill.target - skill.level) : null;
 
   const patch = (change: Parameters<typeof update.mutate>[0]["change"]) => update.mutate({ id: skill.id, change });
@@ -69,6 +71,23 @@ function SkillRow({ skill, onDelete }: { skill: Skill; onDelete: () => void }) {
         </div>
         <input className="skill-notes" placeholder="Notes (what I tried, what confuses me…)" value={notes}
           onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== skill.notes && patch({ notes })} />
+        {/* P6-08: optionally, which standard skill this is (Job Radar matches jobs on it); the name above stays yours */}
+        <div className="row skill-standard" style={{ gap: "var(--s-2)", marginTop: "var(--s-1)" }}>
+          {skill.taxonomyCode ? (
+            <>
+              <span className="muted tiny">🔗 Standard skill: <b>{skill.taxonomyLabel}</b></span>
+              <button className="ghost tiny" onClick={() => patch({ taxonomyCode: "" })}>Unlink</button>
+            </>
+          ) : linking ? (
+            <>
+              <TaxonomyPicker kind="skill" label={`Standard skill for ${skill.name}`} placeholder="Type to find it in the standard list…" autoFocus
+                onPick={(it) => { patch({ taxonomyCode: it.code }); setLinking(false); }} />
+              <button className="ghost tiny" onClick={() => setLinking(false)}>Cancel</button>
+            </>
+          ) : (
+            <button className="ghost tiny" onClick={() => setLinking(true)}>🔗 Link to a standard skill</button>
+          )}
+        </div>
         {plan && (
           <div className="refined">
             {plan.steps.map((s, i) => (

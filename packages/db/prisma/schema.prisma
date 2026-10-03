@@ -268,6 +268,10 @@ model Skill {
   level     Int      @default(0)
   target    Int      @default(4)
   notes     String   @default("")
+  /// the standard skill it is (P6-08, optional): its taxonomy code and name, kept by value so a re-import of the
+  /// taxonomy or "Export my data" never breaks it. Empty = a free-text skill, as before.
+  taxonomyCode  String @default("")
+  taxonomyLabel String @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

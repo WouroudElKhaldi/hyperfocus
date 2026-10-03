@@ -11,10 +11,15 @@ export const Skill = z.object({
   level: z.number().int(),
   target: z.number().int(),
   notes: z.string(),
+  /** the standard skill it is linked to (P6-08): its code and name; both empty when it isn't */
+  taxonomyCode: z.string(),
+  taxonomyLabel: z.string(),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
 });
 export type Skill = z.infer<typeof Skill>;
+/** A standard skill's code ("onet-tech:Python"), or "" to unlink. The server checks it and fills in its name. */
+const taxonomyCode = z.string().trim().max(200).optional();
 
 /** A level from 0 to 5, rounded. Anything that isn't a number is 0. */
 export const clampLevel = (n: unknown) => Math.min(5, Math.max(0, Math.round(Number(n) || 0)));
@@ -27,6 +32,7 @@ export const CreateSkillInput = z.object({
   notes: z.string().optional(),
   level,
   target: z.preprocess((v) => clampLevel(v ?? 4) || 4, z.number().int()),
+  taxonomyCode,
 });
 export type CreateSkillInput = z.input<typeof CreateSkillInput>;
 
@@ -37,6 +43,7 @@ export const UpdateSkillInput = z.object({
   notes: z.string().optional(),
   level,
   target: z.preprocess((v) => (v === undefined ? undefined : clampLevel(v) || 1), z.number().int().optional()),
+  taxonomyCode,
 });
 export type UpdateSkillInput = z.input<typeof UpdateSkillInput>;
 

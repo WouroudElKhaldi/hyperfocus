@@ -7411,6 +7411,8 @@ export interface paths {
                             name: string;
                             notes: string;
                             target: number;
+                            taxonomyCode: string;
+                            taxonomyLabel: string;
                             /** Format: date-time */
                             updatedAt: string;
                         }[];
@@ -7435,6 +7437,7 @@ export interface paths {
                         name: string;
                         notes?: string;
                         target?: number | null;
+                        taxonomyCode?: string;
                     };
                 };
             };
@@ -7454,6 +7457,8 @@ export interface paths {
                             name: string;
                             notes: string;
                             target: number;
+                            taxonomyCode: string;
+                            taxonomyLabel: string;
                             /** Format: date-time */
                             updatedAt: string;
                         };
@@ -7544,6 +7549,7 @@ export interface paths {
                         name?: string;
                         notes?: string;
                         target?: number | null;
+                        taxonomyCode?: string;
                     };
                 };
             };
@@ -7563,6 +7569,8 @@ export interface paths {
                             name: string;
                             notes: string;
                             target: number;
+                            taxonomyCode: string;
+                            taxonomyLabel: string;
                             /** Format: date-time */
                             updatedAt: string;
                         };
@@ -7690,6 +7698,8 @@ export interface paths {
                             name: string;
                             notes: string;
                             target: number;
+                            taxonomyCode: string;
+                            taxonomyLabel: string;
                             /** Format: date-time */
                             updatedAt: string;
                         }[];

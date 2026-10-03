@@ -66,7 +66,7 @@ export type Book = {
 };
 
 // ---------- skills, reviews, wins ----------
-export type Skill = { id: number; name: string; area: string; level: number; target: number; notes: string; createdAt: string; updatedAt: string };
+export type Skill = { id: number; name: string; area: string; level: number; target: number; notes: string; taxonomyCode: string; taxonomyLabel: string; createdAt: string; updatedAt: string };
 export type SkillSuggestion = { name: string; area: string; why: string };
 export type SkillPlan = { steps: string[]; books: { title: string; author: string }[] };
 export type ReviewStats = {

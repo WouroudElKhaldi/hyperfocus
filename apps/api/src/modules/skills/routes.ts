@@ -16,6 +16,14 @@ const Suggestions = z.object({ skills: z.array(z.object({ name: z.string(), area
 const Plan = z.object({ steps: z.array(z.string()), books: z.array(z.object({ title: z.string(), author: z.string() })) }).openapi("SkillPlan");
 
 export function skillsRouter({ prisma, events, ai }: AppDeps) {
+  /** P6-08: linking a skill to a standard one ("" unlinks). Only real taxonomy skills; their name is copied. */
+  const standard = async (code: string | undefined) => {
+    if (code === undefined) return {};
+    if (code === "") return { taxonomyCode: "", taxonomyLabel: "" };
+    const found = await prisma.taxonomySkill.findUnique({ where: { code }, select: { code: true, name: true } });
+    if (!found) throw httpError(400, "That isn't a skill from the standard list. Pick one from the suggestions.");
+    return { taxonomyCode: found.code, taxonomyLabel: found.name };
+  };
   const app = crudRouter({
     path: "/api/skills",
     tag: "Skills",
@@ -26,11 +34,12 @@ export function skillsRouter({ prisma, events, ai }: AppDeps) {
     notFound: SKILL_404,
     store: {
       list: () => prisma.skill.findMany({ orderBy: byArea }),
-      create: ({ name, area, notes, level, target }) => prisma.skill.create({ data: { name, target, ...compact({ area, notes, level }) } }),
-      update: async (id, data) => {
+      create: async ({ name, area, notes, level, target, taxonomyCode }) =>
+        prisma.skill.create({ data: { name, target, ...compact({ area, notes, level }), ...(await standard(taxonomyCode)) } }),
+      update: async (id, { taxonomyCode, ...data }) => {
         const before = await prisma.skill.findUnique({ where: { id } });
         if (!before) return null;
-        const skill = await orNull(prisma.skill.update({ where: { id }, data: compact(data) }));
+        const skill = await orNull(prisma.skill.update({ where: { id }, data: { ...compact(data), ...(await standard(taxonomyCode)) } }));
         if (skill && skill.level > before.level) await events.publish("SkillLevelledUp", { skillId: skill.id, name: skill.name, level: skill.level });
         return skill;
       },

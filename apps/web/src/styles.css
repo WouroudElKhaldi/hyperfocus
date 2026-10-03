@@ -586,3 +586,10 @@ select.chip { width: auto; border: 0; padding: var(--s-1) var(--s-3); cursor: po
 .bell-list { list-style: none; margin: 8px 0 0; padding: 0; }
 .bell-list li { padding: 8px 0; border-top: 1px solid var(--border, rgba(0,0,0,.08)); }
 .bell-list li.unread b::before { content: "● "; color: var(--accent, #7447e6); }
+
+/* taxonomy typeahead (P6-29) */
+.taxonomy-picker { position: relative; flex: 1; min-width: 220px; }
+.taxonomy-picker input { width: 100%; }
+.taxonomy-options { position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; background: var(--surface, #fff); border: 1px solid var(--line-2, rgba(0,0,0,.12)); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12); max-height: 280px; overflow: auto; }
+.taxonomy-options [role="option"] { padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.taxonomy-options [role="option"].active { background: var(--accent-soft, rgba(116,71,230,.12)); }
