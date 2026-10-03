@@ -7,6 +7,7 @@ export * from "./constants.ts";
 export * from "./emails.ts";
 export * from "./goals.ts";
 export * from "./jobs.ts";
+export * from "./job-filter.ts";
 export * from "./notes.ts";
 export * from "./pet.ts";
 export * from "./primitives.ts";

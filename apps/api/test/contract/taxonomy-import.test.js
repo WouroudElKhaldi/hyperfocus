@@ -8,6 +8,8 @@ import { strToU8, zipSync } from "fflate";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { ALL, runImport, total } from "../../src/taxonomy/datasets.ts";
 import { searchTaxonomy } from "../../src/taxonomy/search.ts";
+import { MAJORS, presetForField } from "../../src/taxonomy/presets.ts";
+import { JobFilterSpec } from "@hyperfocus/shared";
 import { get } from "../support/api.js";
 
 // P6-04: the taxonomy importer, on small files in each dataset's real format (O*NET text zip, CIP CSV with Excel's
@@ -24,7 +26,7 @@ const tsvText = (head, rows) => [head.join("\t"), ...rows.map((r) => r.join("\t"
 function writeFixtures({ developerDescription = "Write software." } = {}) {
   const onet = "db_30_1_text/";
   fs.writeFileSync(path.join(dir, "onet.zip"), zipSync({
-    [`${onet}Occupation Data.txt`]: strToU8(tsvText(["O*NET-SOC Code", "Title", "Description"], [["15-1252.00", "Software Developers", developerDescription], ["29-1141.00", "Registered Nurses", "Care for patients."]])),
+    [`${onet}Occupation Data.txt`]: strToU8(tsvText(["O*NET-SOC Code", "Title", "Description"], [["15-1252.00", "Software Developers", developerDescription], ["29-1141.00", "Registered Nurses", "Care for patients."], ["11-9199.00", "Managers, All Other", "Manage."], ["11-9199.11", "Brownfield Redevelopment Specialists", "Redevelop."]])),
     [`${onet}Job Zones.txt`]: strToU8(tsvText(["O*NET-SOC Code", "Job Zone", "Date", "Domain Source"], [["15-1252.00", "4", "08/2023", "Analyst"]])),
     [`${onet}Alternate Titles.txt`]: strToU8(tsvText(["O*NET-SOC Code", "Alternate Title", "Short Title", "Source(s)"], [["15-1252.00", "Frontend Engineer", "n/a", "08"], ["15-1252.00", "Software Engineer", "SWE", "08"], ["15-1252.00", "Software Engineer", "SWE", "10"], ["29-1141.00", "Staff Nurse", "RN", "08"]])),
     [`${onet}Skills.txt`]: strToU8(tsvText(["O*NET-SOC Code", "Element ID", "Element Name", "Scale ID", "Data Value", "N", "Standard Error", "Lower CI Bound", "Upper CI Bound", "Recommend Suppress", "Not Relevant", "Date", "Domain Source"],
@@ -46,9 +48,9 @@ their uses.","",`,
   fs.writeFileSync(path.join(dir, "CIP2020_SOC2018_Crosswalk.xlsx"), zipSync({
     "xl/workbook.xml": xml(`<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Intro" sheetId="1" r:id="rId1"/><sheet name="CIP-SOC" sheetId="2" r:id="rId2"/></sheets></workbook>`),
     "xl/_rels/workbook.xml.rels": xml(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="ws" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="ws" Target="worksheets/sheet2.xml"/></Relationships>`),
-    "xl/sharedStrings.xml": xml(`<sst><si><t>CIP2020Code</t></si><si><t>SOC2018Code</t></si><si><t>11.0701</t></si><si><t>15-1252</t></si><si><r><t>99-</t></r><r><t>9999</t></r></si></sst>`),
+    "xl/sharedStrings.xml": xml(`<sst><si><t>CIP2020Code</t></si><si><t>SOC2018Code</t></si><si><t>11.0701</t></si><si><t>15-1252</t></si><si><r><t>99-</t></r><r><t>9999</t></r></si><si><t>11-9199</t></si></sst>`),
     "xl/worksheets/sheet1.xml": xml(`<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Not this one</t></is></c></row></sheetData></worksheet>`),
-    "xl/worksheets/sheet2.xml": xml(`<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row><row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2" t="s"><v>3</v></c></row><row r="3"><c r="A3" t="s"><v>2</v></c><c r="B3" t="s"><v>4</v></c></row></sheetData></worksheet>`),
+    "xl/worksheets/sheet2.xml": xml(`<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row><row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2" t="s"><v>3</v></c></row><row r="3"><c r="A3" t="s"><v>2</v></c><c r="B3" t="s"><v>4</v></c></row><row r="4"><c r="A4" t="s"><v>2</v></c><c r="B4" t="s"><v>5</v></c></row></sheetData></worksheet>`),
   }));
   fs.writeFileSync(path.join(dir, "countryInfo.txt"), "# GeoNames\n#ISO\tISO3\n" + ["LB", "LBN", "422", "LE", "Lebanon", "Beirut", "10400", "6000000", "AS", ".lb", "LBP", "Pound", "961", "", "", "ar-LB,fr-LB,en", "272103", "SY,IL", ""].join("\t") + "\n");
   fs.writeFileSync(path.join(dir, "cities15000.zip"), zipSync({ "cities15000.txt": strToU8([
@@ -116,7 +118,8 @@ describe("the taxonomy importer", () => {
   it("CIP: fields of study in a tree (deleted ones left out, quoted text kept), and the jobs each leads to", async () => {
     const cs = await db.fieldOfStudy.findUnique({ where: { code: "cip:11.0701" }, include: { parent: { include: { parent: true } }, occupations: { include: { occupation: true } } } });
     expect(cs).toMatchObject({ title: "Computer Science", level: 3, description: "A program that focuses on computers, \"computing\", and\ntheir uses.", parent: { code: "cip:11.07", parent: { code: "cip:11", level: 1 } } });
-    expect(cs.occupations.map((o) => o.occupation.title)).toEqual(["Software Developers"]);
+    // a catch-all code reaches only the catch-all itself, not its unrelated specialities
+    expect(cs.occupations.map((o) => o.occupation.title).sort()).toEqual(["Managers, All Other", "Software Developers"]);
     expect(await db.fieldOfStudy.count({ where: { code: "cip:11.0799" } })).toBe(0);
   });
 
@@ -143,7 +146,7 @@ describe("the taxonomy importer", () => {
   it("a new release only changes what changed", async () => {
     writeFixtures({ developerDescription: "Write and test software." });
     const r = await runImport(db, "onet", dir);
-    expect(r.Occupation).toEqual({ inserted: 0, updated: 1, unchanged: 1 });
+    expect(r.Occupation).toEqual({ inserted: 0, updated: 1, unchanged: 3 }); // (4 occupations in the sample: only the changed one is written)
     expect(total(r)).toMatchObject({ inserted: 0, updated: 1 });
   });
 });
@@ -176,5 +179,35 @@ describe("taxonomy search", () => {
     expect(r.body).toEqual({ items: expect.any(Array) });
     expect((await get("/api/taxonomy/search?kind=planets&q=so")).status).toBe(400);
     expect((await get("/api/taxonomy/search?kind=skill&q=so&limit=500")).status).toBe(400);
+  });
+});
+
+// P6-07: "I study ___" → a ready-made Job Radar filter
+describe("student presets", () => {
+  it("builds a filter from a field of study: its jobs (named ones before catch-alls), student levels, core skills", async () => {
+    const p = await presetForField(db, "cip:11.0701");
+    expect(JobFilterSpec.parse(p.spec)).toEqual(p.spec); // a valid filter as it is
+    expect(p.field).toEqual({ code: "cip:11.0701", label: "Computer Science" }); // the hand-picked name
+    expect(p.spec.occupations.map((o) => o.label)).toEqual(["Software Developers", "Managers, All Other"]);
+    expect(p.spec.fieldsOfStudy).toEqual([{ code: "cip:11.0701", label: "Computer Science" }]);
+    expect(p.spec.seniority).toEqual(["student", "intern", "entry", "junior"]);
+    expect(p.spec.employmentTypes).toContain("internship");
+    expect(p.spec.skills.must).toEqual([]); // a student isn't expected to have them all yet
+    expect(p.spec.skills.nice[0]).toEqual({ code: "onet-tech:Python", label: "Python" }); // in-demand technology first
+    expect(p.spec.skills.nice.map((s) => s.label)).toEqual(expect.arrayContaining(["Git", "Active Learning"]));
+    expect(p.summary).toMatch(/^Computer Science: 2 kinds of jobs/);
+    expect(await presetForField(db, "cip:99.9999")).toBeNull();
+  });
+
+  it("has 40 hand-picked majors, each a CIP programme, no repeats", () => {
+    expect(MAJORS).toHaveLength(40);
+    expect(new Set(MAJORS.map((m) => m.code)).size).toBe(40);
+    for (const m of MAJORS) expect(m.code, m.label).toMatch(/^cip:\d{2}\.\d{4}$/);
+  });
+
+  it("are API routes", async () => {
+    expect((await get("/api/presets/majors")).body).toHaveLength(40);
+    expect((await get("/api/presets/fields/cip:99.9999")).status).toBe(404);
+    expect((await get("/api/presets/fields/not-a-code")).status).toBe(400);
   });
 });

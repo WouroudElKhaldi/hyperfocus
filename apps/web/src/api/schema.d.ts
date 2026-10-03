@@ -6518,6 +6518,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/presets/fields/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** "I study ___": a ready-made Job Radar filter for a field of study */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The filter, ready to save */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["JobFilterPreset"];
+                    };
+                };
+                /** @description No such field of study (import the taxonomy first) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets/majors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The majors students pick most, grouped (40, picked by hand) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The majors */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Major"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profile": {
         parameters: {
             query?: never;
@@ -9044,6 +9130,126 @@ export interface components {
             url?: string;
         } & {
             [key: string]: unknown;
+        };
+        JobFilterPreset: {
+            field: {
+                code: string;
+                label: string;
+            };
+            spec: {
+                /**
+                 * @default {
+                 *       "include": [],
+                 *       "exclude": []
+                 *     }
+                 */
+                companies: {
+                    /** @default [] */
+                    exclude: string[];
+                    /** @default [] */
+                    include: string[];
+                };
+                /**
+                 * @default daily
+                 * @enum {string}
+                 */
+                digest: "off" | "realtime" | "daily" | "weekly";
+                /**
+                 * @default null
+                 * @enum {string|null}
+                 */
+                educationLevel: "none" | "secondary" | "vocational" | "associate" | "bachelor" | "master" | "doctorate" | null;
+                /** @default [] */
+                employmentTypes: ("full_time" | "part_time" | "internship" | "apprenticeship" | "contract" | "freelance" | "volunteer" | "student_job")[];
+                /** @default [] */
+                fieldsOfStudy: {
+                    code: string;
+                    label: string;
+                }[];
+                /** @default [] */
+                industries: {
+                    code: string;
+                    label: string;
+                }[];
+                /**
+                 * @default {
+                 *       "include": [],
+                 *       "exclude": [],
+                 *       "scope": [
+                 *         "title",
+                 *         "description"
+                 *       ]
+                 *     }
+                 */
+                keywords: {
+                    /** @default [] */
+                    exclude: string[];
+                    /** @default [] */
+                    include: string[];
+                    /**
+                     * @default [
+                     *       "title",
+                     *       "description"
+                     *     ]
+                     */
+                    scope: ("title" | "description" | "requirements")[];
+                };
+                /** @default [] */
+                languages: string[];
+                /** @default [] */
+                locations: {
+                    code: string;
+                    label: string;
+                    /** @default null */
+                    radiusKm: number | null;
+                }[];
+                /** @default null */
+                maxYearsExperience: number | null;
+                /** @default [] */
+                occupations: {
+                    code: string;
+                    label: string;
+                }[];
+                /** @default null */
+                postedWithinDays: number | null;
+                /** @default null */
+                salaryMin: {
+                    amount: number;
+                    currency: string;
+                } | null;
+                /** @default [] */
+                seniority: ("student" | "intern" | "entry" | "junior" | "mid" | "senior" | "lead")[];
+                /**
+                 * @default {
+                 *       "must": [],
+                 *       "nice": []
+                 *     }
+                 */
+                skills: {
+                    /** @default [] */
+                    must: {
+                        code: string;
+                        label: string;
+                    }[];
+                    /** @default [] */
+                    nice: {
+                        code: string;
+                        label: string;
+                    }[];
+                };
+                /** @default [] */
+                titles: string[];
+                /** @default null */
+                visaSponsorship: boolean | null;
+                /** @default [] */
+                workModes: ("onsite" | "hybrid" | "remote")[];
+            };
+            summary: string;
+        };
+        Major: {
+            code: string;
+            group: string;
+            label: string;
         };
         Me: {
             /** @description What works for you: your own credentials, or the app's where it shares them */

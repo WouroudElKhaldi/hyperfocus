@@ -132,13 +132,16 @@ export async function importCip(db: Db, dir: string): Promise<Report> {
   }
   (report["FieldOfStudy"] as Changes).updated += relinked;
 
-  // major → occupations: a SOC code reaches every O*NET occupation under it ("15-1252" → 15-1252.00, …)
+  // major → occupations: a SOC code reaches every O*NET occupation under it ("29-1141" → Registered Nurses and its
+  // specialities). Except the catch-all "… All Other" codes (ending in 99, like 11-9199 Managers, All Other): O*NET
+  // splits those into unrelated specialities (Wind Energy Development Managers…), so they reach only the catch-all itself.
   const xwalk = path.join(dir, "CIP2020_SOC2018_Crosswalk.xlsx");
   if (fs.existsSync(xwalk)) {
     const occs = await db.occupation.findMany({ where: { source: "onet" }, select: { id: true, code: true } });
     const bySoc = new Map<string, number[]>();
     for (const o of occs) {
       const soc = o.code.slice(5, 12);
+      if (soc.endsWith("99") && !o.code.endsWith(".00")) continue;
       bySoc.set(soc, [...(bySoc.get(soc) ?? []), o.id]);
     }
     const links: { fieldId: number; occupationId: number }[] = [];
@@ -146,7 +149,16 @@ export async function importCip(db: Db, dir: string): Promise<Report> {
       const field = ids.get(`cip:${r["CIP2020Code"]}`);
       for (const occupationId of bySoc.get(r["SOC2018Code"] ?? "") ?? []) if (field) links.push({ fieldId: field.id, occupationId });
     }
-    report["FieldOfStudyOccupation"] = await sync(tbl(db.fieldOfStudyOccupation), links, { key: ["fieldId", "occupationId"], fields: [], whereOf: (l) => ({ fieldId_occupationId: l }) });
+    const changes = await sync(tbl(db.fieldOfStudyOccupation), links, { key: ["fieldId", "occupationId"], fields: [], whereOf: (l) => ({ fieldId_occupationId: l }) });
+    // links the crosswalk (or the rule above) no longer makes are taken away
+    const wanted = new Set(links.map((l) => `${l.fieldId}:${l.occupationId}`));
+    const cipFields = [...ids.values()].map((f) => f.id);
+    const stale = (await db.fieldOfStudyOccupation.findMany({ where: { fieldId: { in: cipFields } }, select: { fieldId: true, occupationId: true } })).filter((l) => !wanted.has(`${l.fieldId}:${l.occupationId}`));
+    for (let i = 0; i < stale.length; i += 1000) {
+      await db.fieldOfStudyOccupation.deleteMany({ where: { OR: stale.slice(i, i + 1000) } });
+    }
+    changes.updated += stale.length;
+    report["FieldOfStudyOccupation"] = changes;
   }
   return report;
 }

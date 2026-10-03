@@ -29,6 +29,7 @@ import { notificationsRouter } from "./modules/notifications/routes.ts";
 import { pushRouter } from "./modules/notifications/push-routes.ts";
 import { accountRouter } from "./modules/account/routes.ts";
 import { taxonomyRouter } from "./modules/taxonomy/routes.ts";
+import { presetsRouter } from "./modules/taxonomy/presets-routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -218,6 +219,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", pushRouter(deps)); // P5-11: web push on your devices
   app.route("/", accountRouter(deps)); // P5-12: delete my account
   app.route("/", taxonomyRouter(deps)); // P6-06: typeahead over jobs, skills, majors, places
+  app.route("/", presetsRouter(deps)); // P6-07: "I study ___" presets
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------
