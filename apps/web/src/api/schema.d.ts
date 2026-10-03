@@ -7716,6 +7716,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/radar/matches/{id}/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare: a task with small steps to get the application out (P6-30) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The task */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description The steps were written by the AI */
+                            ai: boolean;
+                            taskId: number;
+                        };
+                    };
+                };
+                /** @description Match not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/radar/matches/{id}/skill-gaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The skills this job asks for that you don't have yet go on your Skills map (P6-30) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description What was added, and what you already have */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            added: string[];
+                            have: string[];
+                        };
+                    };
+                };
+                /** @description Match not found. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/radar/status": {
         parameters: {
             query?: never;
@@ -10339,6 +10446,8 @@ export interface components {
         RadarMatch: {
             applicationId: number | null;
             createdAt: string;
+            /** @description Its closing day on your calendar (P6-30) */
+            eventId: number | null;
             feedback: number;
             filterId: number;
             filterName: string;
@@ -10348,6 +10457,8 @@ export interface components {
             score: number;
             /** @enum {string} */
             status: "new" | "seen" | "saved" | "dismissed" | "applied";
+            /** @description Its "Prepare" task */
+            taskId: number | null;
         };
         RadarPosting: {
             company: string;

@@ -74,6 +74,13 @@ test.describe.serial("Job Radar", () => {
     await expect(card.getByRole("button", { name: "More like this" })).toHaveAttribute("aria-pressed", "true");
     await card.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Saved for later (1)")).toBeVisible();
+    await expect(page.getByText(/closing day is on your calendar/)).toBeVisible();
+    // P6-30: a task with steps, and the skills it names onto the Skills map
+    await card.getByRole("button", { name: "Prepare" }).first().click();
+    await expect(page.getByText(/A task with steps is in your Tasks/)).toBeVisible();
+    await expect(card.getByRole("link", { name: "📋 Your task" }).first()).toBeVisible();
+    await card.getByRole("button", { name: "Skills I'm missing" }).first().click();
+    await expect(page.getByText(/Added to your Skills map: .*Python|already have every skill/)).toBeVisible();
     await card.getByRole("button", { name: "Apply" }).first().click();
     await expect(page.getByText("Added to your Job applications. Good luck!")).toBeVisible();
     await page.goto("/jobs");

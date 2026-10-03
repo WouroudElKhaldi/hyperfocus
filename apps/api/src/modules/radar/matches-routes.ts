@@ -3,11 +3,13 @@ import type { AppDeps, AppEnv } from "../../app.ts";
 import { IdParam, body, json, pathId, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
 import { specOf } from "../../radar/match.ts";
+import { deadlineToCalendar, prepareTask, skillGaps } from "../../radar/tie-ins.ts";
 import { httpError } from "../../types.ts";
 
 // Your Job Radar matches (P6-25, P6-26, P6-27): the best first, with the posting and why it fits. Save it, say "not
 // for me", 👍/👎 (which teaches that filter which skills matter to you), or Apply: it becomes a Job application in your
-// Jobs list (with the link, the company and where it is), and the pet is pleased (JobApplied).
+// Jobs list (with the link, the company and where it is), and the pet is pleased (JobApplied). P6-30: saving puts its
+// closing day on your calendar with a reminder; "Prepare" makes a task with steps; "Skill gaps" fills your Skills map.
 
 const NOT_FOUND = "Match not found.";
 const STATUSES = ["new", "seen", "saved", "dismissed", "applied"] as const;
@@ -21,19 +23,22 @@ const Posting = z.object({
 }).openapi("RadarPosting");
 const Match = z.object({
   id: z.number(), filterId: z.number(), filterName: z.string(), score: z.number(), reasons: z.array(z.string()),
-  status: z.enum(STATUSES), feedback: z.number(), applicationId: z.number().nullable(), createdAt: z.string(), posting: Posting,
+  status: z.enum(STATUSES), feedback: z.number(), applicationId: z.number().nullable(),
+  eventId: z.number().nullable().openapi({ description: "Its closing day on your calendar (P6-30)" }), taskId: z.number().nullable().openapi({ description: "Its \"Prepare\" task" }),
+  createdAt: z.string(), posting: Posting,
 }).openapi("RadarMatch");
 
 const SOURCE_NAMES: Record<string, string> = { arbeitnow: "Arbeitnow", greenhouse: "Greenhouse", lever: "Lever" };
 type Row = {
   id: number; filterId: number; score: number; reasons: unknown; status: string; feedback: number; applicationId: number | null; createdAt: Date;
+  eventId: number | null; reminderId: number | null; taskId: number | null;
   filter: { name: string };
   posting: { id: number; title: string; company: string; url: string; locationText: string; countryCode: string; workMode: string | null; employmentType: string | null; seniority: string | null; salaryMin: number | null; salaryMax: number | null; salaryCurrency: string; salaryPeriod: string; postedAt: Date; expiresAt: Date; description: string; source: { kind: string; name: string } };
 };
 const INCLUDE = { filter: { select: { name: true } }, posting: { include: { source: { select: { kind: true, name: true } } } } } as const;
 const show = (m: Row) => ({
   id: m.id, filterId: m.filterId, filterName: m.filter.name, score: m.score, reasons: Array.isArray(m.reasons) ? (m.reasons as string[]) : [],
-  status: m.status as (typeof STATUSES)[number], feedback: m.feedback, applicationId: m.applicationId, createdAt: m.createdAt.toISOString(),
+  status: m.status as (typeof STATUSES)[number], feedback: m.feedback, applicationId: m.applicationId, eventId: m.eventId, taskId: m.taskId, createdAt: m.createdAt.toISOString(),
   posting: {
     id: m.posting.id, title: m.posting.title, company: m.posting.company, url: m.posting.url, locationText: m.posting.locationText, countryCode: m.posting.countryCode,
     workMode: m.posting.workMode, employmentType: m.posting.employmentType, seniority: m.posting.seniority, salaryMin: m.posting.salaryMin, salaryMax: m.posting.salaryMax,
@@ -42,7 +47,7 @@ const show = (m: Row) => ({
   },
 });
 
-export function radarMatchesRouter({ prisma, events }: AppDeps) {
+export function radarMatchesRouter({ prisma, events, ai }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });
   const one = async (id: number) => {
     const m = await prisma.jobMatch.findFirst({ where: { id }, include: INCLUDE });
@@ -98,6 +103,7 @@ export function radarMatchesRouter({ prisma, events }: AppDeps) {
         where: { id },
         data: { ...(status ? { status } : {}), ...(feedback !== undefined ? { feedback } : {}), ...(feedback === -1 && !status ? { status: "dismissed" } : {}) },
       });
+      if (status === "saved") await deadlineToCalendar(prisma, m); // P6-30 (once)
       return c.json(show(await one(id)), 200);
     },
   );
@@ -120,6 +126,28 @@ export function radarMatchesRouter({ prisma, events }: AppDeps) {
       await events.publish("JobApplied", { matchId: m.id, applicationId: application.id, title: p.title });
       return c.json({ match: show(await one(m.id)), applicationId: application.id }, 200);
     },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post", path: "/api/radar/matches/{id}/prepare", tags: ["Job Radar"], summary: "Prepare: a task with small steps to get the application out (P6-30)",
+      request: { params: IdParam },
+      responses: { 200: json(z.object({ taskId: z.number(), ai: z.boolean().openapi({ description: "The steps were written by the AI" }) }), "The task"), 404: problem(NOT_FOUND) },
+    }),
+    async (c) => {
+      const m = await one(pathId(c.req.param("id"), NOT_FOUND));
+      await deadlineToCalendar(prisma, m);
+      return c.json(await prepareTask(prisma, ai, m), 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post", path: "/api/radar/matches/{id}/skill-gaps", tags: ["Job Radar"], summary: "The skills this job asks for that you don't have yet go on your Skills map (P6-30)",
+      request: { params: IdParam },
+      responses: { 200: json(z.object({ added: z.array(z.string()), have: z.array(z.string()) }), "What was added, and what you already have"), 404: problem(NOT_FOUND) },
+    }),
+    async (c) => c.json(await skillGaps(prisma, await one(pathId(c.req.param("id"), NOT_FOUND))), 200),
   );
   return app;
 }

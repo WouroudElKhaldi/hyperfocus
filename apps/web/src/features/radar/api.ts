@@ -35,6 +35,9 @@ export function useRadarActions() {
       onSuccess: refresh,
     }),
     apply: useMutation({ mutationFn: (id: number) => api.post(`/radar/matches/${id}/apply`), onSuccess: refresh }),
+    // P6-30: a task with steps, and the skills it asks for onto your Skills map
+    prepare: useMutation({ mutationFn: (id: number) => api.post(`/radar/matches/${id}/prepare`), onSuccess: refresh }),
+    gaps: useMutation({ mutationFn: (id: number) => api.post(`/radar/matches/${id}/skill-gaps`) }),
   };
 }
 

@@ -1083,6 +1083,10 @@ model JobMatch {
   feedback      Int        @default(0)
   /// the Job application it became (P6-25)
   applicationId Int?
+  /// P6-30: its deadline on the calendar, its reminder, its "Prepare" task
+  eventId       Int?
+  reminderId    Int?
+  taskId        Int?
   notifiedAt    DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
