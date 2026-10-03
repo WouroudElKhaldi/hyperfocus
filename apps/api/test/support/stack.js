@@ -18,6 +18,8 @@ const TEST_DB = process.env.TEST_DATABASE_URL || "postgresql://hyperfocus:hyperf
 const prismaCli = (args, env, input) =>
   execFileSync(process.execPath, [path.join(DB_DIR, "node_modules/prisma/build/index.js"), ...args], { cwd: DB_DIR, env, stdio: "pipe", ...(input ? { input } : {}) });
 
+export const TEST_SECRETS_KEYS = `test:${Buffer.alloc(32, 7).toString("base64")}`;
+
 export const freePort = () =>
   new Promise((resolve) => {
     const s = net.createServer().listen(0, "127.0.0.1", () => {
@@ -63,6 +65,8 @@ export async function startTestStack({ port, env: extraEnv = {} } = {}) {
     GMAIL_USER: " ",
     GMAIL_APP_KEY: " ",
     GOOGLE_BOOKS_API_KEY: " ",
+    // the key that seals tokens (P5-07): fixed, so the tests can seal and open them too
+    SECRETS_KEYS: TEST_SECRETS_KEYS,
   };
   delete env.DEMO_MODE;
   Object.assign(env, extraEnv); // (the cloud-mode stack for the browser tests, P5-04)

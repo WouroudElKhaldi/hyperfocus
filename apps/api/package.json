@@ -8,6 +8,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:routes": "node test/support/route-coverage.mjs",
+    "secrets:new-key": "node scripts/secrets.ts new-key",
+    "secrets:rotate": "node --env-file-if-exists=../../.env scripts/secrets.ts rotate",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint ."
   },

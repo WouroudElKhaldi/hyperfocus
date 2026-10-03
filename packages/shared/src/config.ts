@@ -42,6 +42,7 @@ const schema = z.object({
   GOOGLE_CLIENT_SECRET: text,
   MAIL_DRY_RUN: flag,
   ADMIN_EMAILS: text,
+  SECRETS_KEYS: text,
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
   DEEPSEEK_MODEL: text,
@@ -65,6 +66,9 @@ const schema = z.object({
   LOG_LEVEL: text.refine((v) => v === "" || LOG_LEVELS.includes(v as LogLevel), { message: `LOG_LEVEL must be one of: ${LOG_LEVELS.join(", ")}` }),
 }).refine((e) => e.APP_MODE !== "cloud" || e.BETTER_AUTH_SECRET.length >= 32, {
   message: "APP_MODE=cloud needs BETTER_AUTH_SECRET: a random secret of at least 32 characters (for example from: openssl rand -base64 32)",
+}).refine((e) => e.APP_MODE !== "cloud" || e.SECRETS_KEYS !== "", {
+  message: "Cloud mode needs SECRETS_KEYS (the key that seals people's tokens): make one with pnpm secrets:new-key",
+  path: ["SECRETS_KEYS"],
 }).refine((e) => !e.GOOGLE_CLIENT_ID === !e.GOOGLE_CLIENT_SECRET, {
   message: "Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (or neither)",
 }).refine((e) => e.FILE_STORAGE !== "s3" || (e.S3_ENDPOINT && e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY), {
@@ -91,6 +95,8 @@ export type ApiConfig = {
   mailDryRun: boolean;
   /** Cloud mode: the people (by email, lower case) who are always admins (P5-06). Others are made admin from the admin area. */
   adminEmails: string[];
+  /** The key ring that seals each person's tokens (P5-07): "id:base64key,…", first one seals. Empty in local mode = a key file. */
+  secretsKeys: string;
   deepseek: { apiKey: string; url: string; model: string };
   n8nWebhookUrl: string;
   googleBooksApiKey: string;
@@ -134,6 +140,7 @@ export function parseApiConfig(env: Env): ConfigResult {
         google: e.GOOGLE_CLIENT_ID ? { clientId: e.GOOGLE_CLIENT_ID, clientSecret: e.GOOGLE_CLIENT_SECRET } : null,
       },
       mailDryRun: e.MAIL_DRY_RUN,
+      secretsKeys: e.SECRETS_KEYS,
       adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them
       deepseek: { apiKey: demo ? "" : e.DEEPSEEK_API_KEY, url: e.DEEPSEEK_URL || "https://api.deepseek.com/chat/completions", model: e.DEEPSEEK_MODEL || "deepseek-chat" },

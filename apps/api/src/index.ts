@@ -10,6 +10,7 @@ import { tenancy } from "./tenancy.ts";
 import type { Db } from "./types.ts";
 import { authMailer, createAuth } from "./auth.ts";
 import { fileStorageFrom } from "./storage/files.ts";
+import { keyRing, localKeyRing } from "./secrets.ts";
 import { n8nPublisher } from "./modules/posts/publisher.ts";
 import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
@@ -37,7 +38,9 @@ petEarnsXp(events, prisma);
 const files = fileStorageFrom({ ...config.fileStorage, dir: config.fileStorage.dir || fileURLToPath(new URL("../../../storage/", import.meta.url)) });
 // Accounts (P5-01): cloud mode only; local mode has one owner and nobody signs in.
 const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: authMailer({ mail, log, dryRun: config.mailDryRun }) }) : null;
-const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail, files, auth }), {
+// The key that seals each person's tokens (P5-07): SECRETS_KEYS, or in local mode a key file made once next to the API.
+const secrets = config.secretsKeys ? keyRing(config.secretsKeys) : localKeyRing(fileURLToPath(new URL("../secrets.key", import.meta.url)));
+const server = createServer(createApp({ config, prisma, log, events, ai, publisher, mail, files, auth, secrets }), {
   demo: DEMO,
   corsOrigins: config.corsOrigins,
   webDist: fileURLToPath(new URL("../../web/dist/", import.meta.url)),

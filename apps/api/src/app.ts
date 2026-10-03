@@ -25,6 +25,8 @@ import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
 import { jobsRouter } from "./modules/jobs/routes.ts";
 import { adminRouter } from "./modules/admin/routes.ts";
+import { integrationsRouter } from "./modules/integrations/routes.ts";
+import type { KeyRing } from "./secrets.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
 import type { SocialPublisher } from "./modules/posts/publisher.ts";
@@ -51,6 +53,8 @@ export type AppDeps = {
   config: ApiConfig; prisma: Db; log: Logger; events: EventBus; ai: AiGateway; publisher: SocialPublisher; mail: MailProvider;
   /** Where uploaded files go (P4-07); left out or null = inside the database. */
   files?: FileStorage | null;
+  /** The key ring that seals people's tokens (P5-07); left out = the integrations routes can list and disconnect only. */
+  secrets?: KeyRing | null;
   /** Accounts and sign-in (P5-01): only in cloud mode; left out = local mode (nobody signs in). */
   auth?: Auth | null;
 };
@@ -189,6 +193,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", dataRouter(deps)); // P4-08: export my data, and bring an export back
   app.route("/", jobsRouter(deps));
   app.route("/", adminRouter(deps)); // P5-06: admins only
+  app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------
   app.doc31("/api/openapi.json", OPENAPI_DOC);

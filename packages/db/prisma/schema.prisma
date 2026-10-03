@@ -546,6 +546,21 @@ model JobApplication {
 // causes them, then delivered by a background job (src/outbox.ts). `key` makes each one unique, so none is ever sent twice;
 // one that fails stays here and is tried again.
 // Features switched on or off for everyone by an admin (P5-06). A flag that doesn't exist yet counts as off.
+// A person's connected account (P5-07): Gmail, LinkedIn … One per provider per person. `secret` holds their tokens,
+// sealed with AES-256-GCM (apps/api/src/secrets.ts); the key is never in the database.
+model Integration {
+  id        Int      @id @default(autoincrement())
+  userId    String   @default(dbgenerated("current_setting('hyperfocus.user_id')"))
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String
+  account   String   @default("")
+  secret    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, provider])
+}
+
 model FeatureFlag {
   key       String   @id
   enabled   Boolean  @default(false)
@@ -607,6 +622,7 @@ model User {
   emailTemplates  EmailTemplate[]
   emailAttachments EmailAttachment[]
   jobApplications JobApplication[]
+  integrations    Integration[]
 }
 
 model Session {

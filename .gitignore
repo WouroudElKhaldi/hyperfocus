@@ -6,6 +6,7 @@ dist
 /backups/
 logs
 apps/api/settings.json
+apps/api/secrets.key
 demo
 apps/web/dist
 tools

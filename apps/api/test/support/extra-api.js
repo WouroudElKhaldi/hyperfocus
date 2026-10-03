@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { inject } from "vitest";
-import { freePort } from "./stack.js";
+import { TEST_SECRETS_KEYS, freePort } from "./stack.js";
 
 // An extra API process for a test, on a fresh database of its own (a new schema in the test database, migrated like the
 // app's), so the test can use settings the shared one doesn't have (APP_MODE=cloud …) and nothing it does reaches other tests.
@@ -29,7 +29,7 @@ export async function startExtraApi(name, env = {}) {
       ...process.env, DATABASE_URL: url.toString(), PORT: String(port), NOTIFY_DRY_RUN: "1", NO_BACKGROUND_JOBS: "1",
       SETTINGS_FILE: path.join(tmp, `settings-${name}.json`), BACKUP_DIR: path.join(tmp, `backups-${name}`),
       GMAIL_USER: " ", GMAIL_APP_KEY: " ", DEEPSEEK_API_KEY: "test-key", DEEPSEEK_URL: `${inject("aiUrl")}/chat/completions`,
-      RATE_LIMIT_PER_MINUTE: "1000000", AI_RATE_LIMIT_PER_MINUTE: "1000000", ...env,
+      RATE_LIMIT_PER_MINUTE: "1000000", AI_RATE_LIMIT_PER_MINUTE: "1000000", SECRETS_KEYS: TEST_SECRETS_KEYS, ...env,
     },
   });
   const apiUrl = `http://127.0.0.1:${port}`;
