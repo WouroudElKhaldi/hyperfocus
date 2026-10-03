@@ -51,6 +51,8 @@ const schema = z.object({
   LINKEDIN_OAUTH_URL: url("LINKEDIN_OAUTH_URL"),
   LINKEDIN_API_URL: url("LINKEDIN_API_URL"),
   SHARE_AI_KEY: flag,
+  INGEST_SECRET: text.refine((v) => v === "" || v.length >= 32, { message: "INGEST_SECRET must be at least 32 characters (make one with: pnpm secrets:new-key)" }),
+  RADAR_FETCH_OFF: flag,
   AI_DAILY_LIMIT: text.refine((v) => v === "" || /^\d+$/.test(v), { message: "AI_DAILY_LIMIT must be a whole number (0 = no limit)" }),
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
@@ -103,6 +105,10 @@ export type ApiConfig = {
   aiDailyLimit: number;
   /** Cloud mode: let everyone without their own key use the app's DeepSeek key (with aiDailyLimit). Off: only the owner (ADMIN_EMAILS). */
   shareAiKey: boolean;
+  /** Job Radar (P6-11): the secret batches delivered to /api/ingest/jobs are signed with; empty = that endpoint is off. */
+  ingestSecret: string;
+  /** Job Radar: don't fetch from the job sources (tests, or a copy that only answers requests). */
+  radarFetchOff: boolean;
   /** Web push (P5-11): the app's VAPID keys and a contact (mailto: or https:). Empty in local mode = a key file. */
   vapid: { publicKey: string; privateKey: string; subject: string };
   /** Tests only: accept addresses on this machine for push and n8n webhooks (stand-ins). Never set it on a real server. */
@@ -157,6 +163,8 @@ export function parseApiConfig(env: Env): ConfigResult {
       linkedin: { version: e.LINKEDIN_API_VERSION || "202609", oauthUrl: e.LINKEDIN_OAUTH_URL, apiUrl: e.LINKEDIN_API_URL },
       vapid: { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT || "mailto:hyperfocus@localhost" },
       shareAiKey: e.SHARE_AI_KEY,
+      ingestSecret: e.INGEST_SECRET,
+      radarFetchOff: e.RADAR_FETCH_OFF,
       aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),
       adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them

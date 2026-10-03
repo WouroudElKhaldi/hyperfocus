@@ -57,7 +57,9 @@ export function bodyLimits(): MiddlewareHandler<AppEnv> {
   const upload = bodyLimit({ maxSize: UPLOAD_LIMIT, onError: tooBig("20 MB per file") });
   // an export brought back (P4-08) holds every file too
   const restore = bodyLimit({ maxSize: 500 * 1024 * 1024, onError: tooBig("500 MB") });
-  return (c, next) => (c.req.path === "/api/import" ? restore : UPLOAD_ROUTE.test(c.req.path) ? upload : json)(c, next);
+  // a batch of job postings (P6-11)
+  const ingest = bodyLimit({ maxSize: 5 * 1024 * 1024, onError: tooBig("5 MB") });
+  return (c, next) => (c.req.path === "/api/import" ? restore : c.req.path === "/api/ingest/jobs" ? ingest : UPLOAD_ROUTE.test(c.req.path) ? upload : json)(c, next);
 }
 
 // ---------- headers ----------

@@ -72,6 +72,7 @@ export async function startTestStack({ port, env: extraEnv = {} } = {}) {
     // the key that seals tokens (P5-07): fixed, so the tests can seal and open them too
     SECRETS_KEYS: TEST_SECRETS_KEYS,
     VAPID_PUBLIC_KEY: TEST_VAPID.publicKey, VAPID_PRIVATE_KEY: TEST_VAPID.privateKey, ALLOW_LOCAL_ADDRESSES: "1",
+    RADAR_FETCH_OFF: "1", // (never the real job sites from tests)
   };
   delete env.DEMO_MODE;
   Object.assign(env, extraEnv); // (the cloud-mode stack for the browser tests, P5-04)

@@ -1040,7 +1040,9 @@ model IngestBatch {
   duplicates     Int       @default(0)
   failed         Int       @default(0)
   errors         Json      @default("[]")
-  status         String    @default("queued") // queued | done | failed
+  /// the raw items until the batch is processed (then emptied)
+  items          Json      @default("[]")
+  status         String    @default("queued") // queued | processing | done | failed
   createdAt      DateTime  @default(now())
   finishedAt     DateTime?
 }

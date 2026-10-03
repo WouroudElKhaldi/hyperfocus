@@ -10,6 +10,9 @@ import { type AppAi, withCredentials } from "../credentials.ts";
 import { type Channel, deliverTo } from "../notifications.ts";
 import { DIGEST, digestSender, queueDigest } from "../digest.ts";
 import { applyChatRetention } from "../retention.ts";
+import { processQueued } from "../radar/ingest.ts";
+import { ensureDefaultSources, fetchDue } from "../radar/fetch.ts";
+import { applyPostingRetention } from "../radar/retention.ts";
 import type { KeyRing } from "../secrets.ts";
 import type { Db } from "../types.ts";
 import type { Job } from "./scheduler.ts";
@@ -20,7 +23,7 @@ import type { Job } from "./scheduler.ts";
 const SECOND = 1000;
 const HOUR = 3600 * SECOND;
 
-export function backgroundJobs({ prisma, publisher, events, secrets, mode = "local", push = null, appMail = null, owners = [] }: { prisma: Db; publisher: SocialPublisher; events: EventBus; secrets?: KeyRing | null; mode?: "local" | "cloud"; push?: Channel | null; appMail?: ((to: string, subject: string, text: string) => Promise<void>) | null; owners?: string[] }): Job[] {
+export function backgroundJobs({ prisma, publisher, events, secrets, mode = "local", push = null, appMail = null, owners = [], radarFetch = false }: { prisma: Db; publisher: SocialPublisher; events: EventBus; secrets?: KeyRing | null; mode?: "local" | "cloud"; push?: Channel | null; appMail?: ((to: string, subject: string, text: string) => Promise<void>) | null; owners?: string[]; radarFetch?: boolean }): Job[] {
   // once per person, as that person, with their own credentials (their n8n webhook for their scheduled posts)
   // notifications: the bell always, and a desktop pop-up in local mode (P5-11)
   const send = deliverTo(prisma, { desktop: mode === "local" ? (note) => notify(note.title, note.body) : null, push });
@@ -48,6 +51,10 @@ export function backgroundJobs({ prisma, publisher, events, secrets, mode = "loc
     ...(appMail ? [{ name: "email-digest-send", everyMs: 15 * SECOND, firstAfterMs: 12 * SECOND, run: () => asSystem(() => deliverOutbox(prisma, digestSender(prisma, appMail), { kind: DIGEST })) }] : []),
     // how long AI chats are kept, as each person chose (P5-12)
     { name: "chat-retention", everyMs: 6 * HOUR, firstAfterMs: 30 * SECOND, run: () => each(() => applyChatRetention(prisma)) },
+    // Job Radar (P6): queued batches, fetching from the free sources, and dropping stale postings
+    { name: "radar-ingest", everyMs: 10 * SECOND, firstAfterMs: 8 * SECOND, run: () => processQueued(prisma) },
+    ...(radarFetch ? [{ name: "radar-fetch", everyMs: 10 * 60 * SECOND, firstAfterMs: 45 * SECOND, init: () => ensureDefaultSources(prisma), run: () => fetchDue(prisma) }] : []),
+    { name: "radar-retention", everyMs: 6 * HOUR, firstAfterMs: 60 * SECOND, run: () => applyPostingRetention(prisma) },
     { name: "auto-backup", everyMs: 6 * HOUR, firstAfterMs: 0, run: () => backupIfDue(prisma) }, // when the newest backup is over a day old
   ];
 }

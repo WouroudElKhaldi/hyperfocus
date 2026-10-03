@@ -29,7 +29,7 @@ export async function startExtraApi(name, env = {}) {
       ...process.env, DATABASE_URL: url.toString(), PORT: String(port), NOTIFY_DRY_RUN: "1", NO_BACKGROUND_JOBS: "1",
       SETTINGS_FILE: path.join(tmp, `settings-${name}.json`), BACKUP_DIR: path.join(tmp, `backups-${name}`),
       GMAIL_USER: " ", GMAIL_APP_KEY: " ", DEEPSEEK_API_KEY: "test-key", DEEPSEEK_URL: `${inject("aiUrl")}/chat/completions`,
-      RATE_LIMIT_PER_MINUTE: "1000000", AI_RATE_LIMIT_PER_MINUTE: "1000000", SECRETS_KEYS: TEST_SECRETS_KEYS, VAPID_PUBLIC_KEY: TEST_VAPID.publicKey, VAPID_PRIVATE_KEY: TEST_VAPID.privateKey, ALLOW_LOCAL_ADDRESSES: "1", ...env,
+      RATE_LIMIT_PER_MINUTE: "1000000", AI_RATE_LIMIT_PER_MINUTE: "1000000", SECRETS_KEYS: TEST_SECRETS_KEYS, VAPID_PUBLIC_KEY: TEST_VAPID.publicKey, VAPID_PRIVATE_KEY: TEST_VAPID.privateKey, ALLOW_LOCAL_ADDRESSES: "1", RADAR_FETCH_OFF: "1", ...env,
     },
   });
   const apiUrl = `http://127.0.0.1:${port}`;

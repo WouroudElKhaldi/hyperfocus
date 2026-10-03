@@ -4160,6 +4160,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ingest/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deliver a batch of postings (signed; for n8n or another workflow) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "x-idempotency-key"?: string;
+                    "x-signature"?: string;
+                    "x-timestamp"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        cursor?: string;
+                        items: unknown[];
+                        source: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Queued (or already received) */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            batchId: number;
+                            replay: boolean;
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Not a batch, or an unknown source */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Not signed, or signed wrong, or too old */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+                /** @description Ingest is switched off (no INGEST_SECRET) */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/integrations": {
         parameters: {
             query?: never;

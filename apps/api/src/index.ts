@@ -71,6 +71,6 @@ serve({ fetch: server.fetch, port, hostname: "127.0.0.1" }, () => {
   if (config.noBackgroundJobs) return; // NO_BACKGROUND_JOBS: this copy only answers requests
   // a queue in PostgreSQL (P4-05), so the jobs run once even with several copies of the API
   const scheduler = pgBossScheduler({ databaseUrl: config.databaseUrl, log });
-  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push, appMail: accountMail, owners: config.adminEmails })) scheduler.add(job);
+  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push, appMail: accountMail, owners: config.adminEmails, radarFetch: !config.radarFetchOff })) scheduler.add(job);
   scheduler.start();
 });

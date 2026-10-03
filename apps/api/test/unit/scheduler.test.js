@@ -109,8 +109,13 @@ describe("the background jobs", () => {
       ["outbox", 5000, 2000], // P4-06: sends queued notifications
       ["email-digest", 60000, 10000], // P5-11: queues each person's daily email when it is time (sent only when the app has a mailer)
       ["chat-retention", 6 * 3600000, 30000], // P5-12: deletes AI chats older than each person chose
+      ["radar-ingest", 10000, 8000], // P6-11: queued batches of postings
+      ["radar-retention", 6 * 3600000, 60000], // P6-17: stale postings archived, old ones deleted
       ["auto-backup", 6 * 3600000, 0],
     ]);
+    // fetching from the job sites only when asked (never in tests): every 10 min, each source at its own pace
+    const fetching = backgroundJobs({ prisma: {}, publisher: { configured: () => false, publish: async () => ({ ok: true }) }, events: {}, radarFetch: true });
+    expect(fetching.find((j) => j.name === "radar-fetch")).toMatchObject({ everyMs: 600000, firstAfterMs: 45000 });
     expect(typeof jobs[0].init).toBe("function"); // posts left "posting" by a crash are failed first, never re-sent
   });
 });

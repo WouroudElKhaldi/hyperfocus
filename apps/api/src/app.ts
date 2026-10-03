@@ -19,7 +19,8 @@ import { OWNER_ID } from "./owner.ts";
 import { asUser } from "./tenancy.ts";
 
 /** What anyone may reach without signing in (cloud mode): health, signing in itself, and the API docs. */
-const OPEN = /^\/api\/(health$|me$|auth\/|docs\/?$|openapi\.json$)/;
+// (the ingest endpoint is signed instead of signed-in: P6-11)
+const OPEN = /^\/api\/(health$|me$|auth\/|docs\/?$|openapi\.json$|ingest\/jobs$)/;
 import { emailsRouter } from "./modules/emails/routes.ts";
 import { dataRouter } from "./modules/data/routes.ts";
 import { goalsRouter } from "./modules/goals/routes.ts";
@@ -31,6 +32,7 @@ import { accountRouter } from "./modules/account/routes.ts";
 import { taxonomyRouter } from "./modules/taxonomy/routes.ts";
 import { presetsRouter } from "./modules/taxonomy/presets-routes.ts";
 import { radarFiltersRouter } from "./modules/radar/filters-routes.ts";
+import { ingestRouter } from "./modules/radar/ingest-routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -222,6 +224,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", taxonomyRouter(deps)); // P6-06: typeahead over jobs, skills, majors, places
   app.route("/", presetsRouter(deps)); // P6-07: "I study ___" presets
   app.route("/", radarFiltersRouter(deps)); // P6-20: your Job Radar filters
+  app.route("/", ingestRouter(deps)); // P6-11: signed batches of postings
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------
