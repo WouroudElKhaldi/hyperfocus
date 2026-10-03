@@ -107,8 +107,15 @@ describe("the background jobs", () => {
       ["my-reminders", 20000, 5000],
       ["nudges", 60000, 15000],
       ["outbox", 5000, 2000], // P4-06: sends queued notifications
+      ["email-digest", 60000, 10000], // P5-11: queues each person's daily email when it is time (sent only when the app has a mailer)
       ["auto-backup", 6 * 3600000, 0],
     ]);
     expect(typeof jobs[0].init).toBe("function"); // posts left "posting" by a crash are failed first, never re-sent
   });
+});
+
+it("sends the daily emails only when the app has a mailer (P5-11)", () => {
+  const base = { prisma: {}, publisher: { configured: () => false, publish: async () => ({ ok: true }) }, events: {} };
+  expect(backgroundJobs(base).map((j) => j.name)).not.toContain("email-digest-send");
+  expect(backgroundJobs({ ...base, appMail: async () => {} }).find((j) => j.name === "email-digest-send")).toMatchObject({ everyMs: 15000, firstAfterMs: 12000 });
 });

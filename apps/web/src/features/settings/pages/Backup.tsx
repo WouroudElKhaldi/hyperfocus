@@ -193,6 +193,18 @@ export default function Backup() {
           )}
           <DevicePush />
           <div className="row" style={{ marginTop: "var(--s-2)" }}>
+            <label className="row" style={{ gap: "var(--s-1)" }}>
+              <input type="checkbox" className="check" checked={prefs.emailDigest} onChange={(e) => savePrefs({ emailDigest: e.target.checked })} />
+              A daily email with what you haven't seen
+            </label>
+            {prefs.emailDigest && (
+              <label className="muted">at
+                <input type="time" aria-label="Daily email time" style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.digestAt} onChange={(e) => savePrefs({ digestAt: e.target.value })} />
+              </label>
+            )}
+          </div>
+          {prefs.emailDigest && <p className="muted tiny">Sent to {me?.user?.email || "the email in your Profile"}, only on days with something unread.</p>}
+          <div className="row" style={{ marginTop: "var(--s-2)" }}>
             <label className="muted">Quiet from
               <input type="time" aria-label="Quiet hours start" style={{ width: "auto", margin: "0 var(--s-1)" }} value={prefs.quietFrom} onChange={(e) => savePrefs({ quietFrom: e.target.value })} />
             </label>

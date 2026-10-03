@@ -58,3 +58,20 @@ test("turn notifications on and off for this device", async ({ page, context }) 
   await expect(card.getByText(/^Off: reminders only show in the bell/)).toBeVisible();
   expect((await (await page.request.get("/api/settings")).json()).push).toBe(false);
 });
+
+// P5-11 part 4: the daily email digest is switched on with a time, and stays so
+test("the daily email can be switched on, with its time", async ({ page }) => {
+  await page.goto("/backup");
+  const card = page.locator(".card", { has: page.getByRole("heading", { name: "Where notifications go" }) });
+  const box = card.getByRole("checkbox", { name: "A daily email with what you haven't seen" });
+  if (await box.isChecked()) { await box.click(); await expect(box).not.toBeChecked(); }
+  await expect(card.getByLabel("Daily email time")).toHaveCount(0);
+  await box.click();
+  await expect(box).toBeChecked();
+  await card.getByLabel("Daily email time").fill("19:30");
+  await expect(card.getByText(/only on days with something unread/)).toBeVisible();
+  await page.reload();
+  await expect(card.getByLabel("Daily email time")).toHaveValue("19:30");
+  await box.click();
+  await expect(box).not.toBeChecked();
+});

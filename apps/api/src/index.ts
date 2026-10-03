@@ -45,7 +45,9 @@ petEarnsXp(events, prisma);
 // (the default folder is <project>/storage, next to backups)
 const files = fileStorageFrom({ ...config.fileStorage, dir: config.fileStorage.dir || fileURLToPath(new URL("../../../storage/", import.meta.url)) });
 // Accounts (P5-01): cloud mode only; local mode has one owner and nobody signs in.
-const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: authMailer({ mail: appMail, log, dryRun: config.mailDryRun }) }) : null;
+// the website's own emails (account emails, the daily digest): always the .env Gmail
+const accountMail = authMailer({ mail: appMail, log, dryRun: config.mailDryRun });
+const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: accountMail }) : null;
 // The key that seals each person's tokens (P5-07): SECRETS_KEYS, or in local mode a key file made once next to the API.
 const secrets = config.secretsKeys ? keyRing(config.secretsKeys) : localKeyRing(fileURLToPath(new URL("../secrets.key", import.meta.url)));
 // AI daily limits on the app's own key (P5-10)
@@ -66,6 +68,6 @@ serve({ fetch: server.fetch, port, hostname: "127.0.0.1" }, () => {
   if (config.noBackgroundJobs) return; // NO_BACKGROUND_JOBS: this copy only answers requests
   // a queue in PostgreSQL (P4-05), so the jobs run once even with several copies of the API
   const scheduler = pgBossScheduler({ databaseUrl: config.databaseUrl, log });
-  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push })) scheduler.add(job);
+  for (const job of backgroundJobs({ prisma, publisher, events, secrets, mode: config.mode, push, appMail: accountMail })) scheduler.add(job);
   scheduler.start();
 });
