@@ -46,6 +46,7 @@ const Usage = z
     used: z.number().openapi({ description: "AI requests today on the app's key" }),
     limit: z.number().openapi({ description: "How many a day (0 = no limit)" }),
     ownKey: z.boolean().openapi({ description: "You use your own key: no limit" }),
+    shared: z.boolean().openapi({ description: "You may use the app's key, with the daily limit (the owner shares it)" }),
     resetsAt: z.string().openapi({ description: "When the count starts again (midnight UTC)" }),
   })
   .openapi("AiUsage");

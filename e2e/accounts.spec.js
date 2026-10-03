@@ -50,8 +50,9 @@ test.describe("accounts @cloud", () => {
     await page.goto("/backup");
     await expect(page.getByText("Signed in as Robin Example")).toBeVisible();
     await expect(page.getByRole("link", { name: "Open the admin area" })).toHaveCount(0);
-    // the AI daily limit on the app's key (P5-10; 30 a day by default in cloud mode)
-    await expect(page.getByTestId("ai-usage")).toHaveText("Today: 0 of 30 AI requests on the app's key. Add your own key above for no limit.");
+    // the owner's AI key isn't shared (the default): no shared-key line, the AI asks for your own key
+    await expect(page.getByTestId("ai-usage")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "AI (DeepSeek)" }).getByLabel("DeepSeek API key")).toBeVisible();
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 

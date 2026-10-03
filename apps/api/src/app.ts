@@ -33,7 +33,7 @@ import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
 import type { KeyRing } from "./secrets.ts";
-import { withCredentials } from "./credentials.ts";
+import { type AppAi, withCredentials } from "./credentials.ts";
 import { notesRouter } from "./modules/notes/routes.ts";
 import { petRouter } from "./modules/pet/routes.ts";
 import type { SocialPublisher } from "./modules/posts/publisher.ts";
@@ -121,6 +121,9 @@ export const OPENAPI_DOC = {
 };
 
 type Who = { id: string; name: string; email: string; role: "user" | "admin" };
+/** Who may use the app's own DeepSeek key: the owner (local mode, or an ADMIN_EMAILS address); everyone only if shared. */
+const appAiFor = ({ auth, config }: AppDeps, email: string): AppAi =>
+  !auth || config.adminEmails.includes(email.toLowerCase()) ? "owner" : config.shareAiKey ? "shared" : "none";
 /** Who is asking: the owner in local mode (an admin), otherwise the signed-in person or null. Admin = their role, or
  * their email in ADMIN_EMAILS. */
 async function whoIsAsking({ auth, prisma, config }: AppDeps, headers: Headers): Promise<Who | null> {
@@ -158,13 +161,13 @@ export function createApp(deps: AppDeps) {
   app.use("/api/*", async (c, next) => {
     if (OPEN.test(c.req.path)) return next();
     // (local mode: the owner, an admin, without asking the database)
-    const who = deps.auth ? await whoIsAsking(deps, c.req.raw.headers) : { id: OWNER_ID, role: "admin" as const };
+    const who = deps.auth ? await whoIsAsking(deps, c.req.raw.headers) : { id: OWNER_ID, role: "admin" as const, email: "" };
     if (!who) throw httpError(401, "Please sign in.");
     const userId = who.id;
     c.set("userId", userId);
     c.set("role", who.role);
     // with their own credentials opened (P5-07): their AI key, n8n webhook, Gmail
-    return asUser(userId, () => withCredentials(deps.prisma, deps.secrets, () => next()));
+    return asUser(userId, () => withCredentials(deps.prisma, deps.secrets, () => next(), appAiFor(deps, who.email)));
   });
   if (config.demo) {
     app.use(async (c, next) => {
@@ -183,7 +186,7 @@ export function createApp(deps: AppDeps) {
     const user = who ? { id: who.id, name: who.name, email: who.email, role: who.role } : null;
     const aiReady = deps.aiReady ?? (() => !!config.deepseek.apiKey);
     const connected = !who ? { ai: false, linkedin: false, email: false }
-      : await asUser(who.id, () => withCredentials(deps.prisma, deps.secrets, async () => ({ ai: aiReady(), linkedin: deps.publisher.configured(), email: !deps.mail.unavailable() })));
+      : await asUser(who.id, () => withCredentials(deps.prisma, deps.secrets, async () => ({ ai: aiReady(), linkedin: deps.publisher.configured(), email: !deps.mail.unavailable() }), appAiFor(deps, who.email)));
     return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google }, 200);
   });
 

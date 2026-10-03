@@ -1,5 +1,5 @@
 import { type AiGateway, type AiProvider, createAiGateway, deepSeek } from "@hyperfocus/ai";
-import { own } from "./credentials.ts";
+import { appAi, own } from "./credentials.ts";
 import { config } from "./config.ts";
 import { log } from "./log.ts";
 
@@ -8,13 +8,17 @@ import { log } from "./log.ts";
 
 export type { AiMessage } from "@hyperfocus/ai";
 
-/** DeepSeek with the person's own key (Settings → Connections), otherwise the app's DEEPSEEK_API_KEY. */
+/**
+ * DeepSeek with the person's own key (Settings → Connections). Otherwise the app's DEEPSEEK_API_KEY, but only for the
+ * owner (local mode, or ADMIN_EMAILS), or for everyone when SHARE_AI_KEY is on: nobody else spends the owner's credit.
+ */
 function personalDeepSeek(): AiProvider {
   const current = () => {
     const mine = own("deepseek");
-    return deepSeek(mine ? { ...config.deepseek, apiKey: mine.apiKey } : config.deepseek);
+    if (mine) return deepSeek({ ...config.deepseek, apiKey: mine.apiKey });
+    return deepSeek(appAi() === "none" ? { ...config.deepseek, apiKey: "" } : config.deepseek);
   };
-  const missing = config.mode === "cloud" ? "The AI isn't set up: add your DeepSeek API key in Settings → Connections." : "The AI isn't set up: add your DeepSeek API key in Settings → Connections (or DEEPSEEK_API_KEY in the .env file).";
+  const missing = config.mode === "cloud" ? "To use the AI, add your own DeepSeek API key in Settings → Connections (\"How do I get this?\" shows how)." : "The AI isn't set up: add your DeepSeek API key in Settings → Connections (or DEEPSEEK_API_KEY in the .env file).";
   return { name: "deepseek", unavailable: () => (current().unavailable() ? missing : null), complete: (request) => current().complete(request) };
 }
 

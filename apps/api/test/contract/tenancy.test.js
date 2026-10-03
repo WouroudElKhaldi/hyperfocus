@@ -12,7 +12,7 @@ let api, alice, bob;
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
 beforeAll(async () => {
-  api = await startExtraApi("tenancy", CLOUD);
+  api = await startExtraApi("tenancy", { ...CLOUD, SHARE_AI_KEY: "1" }); // (Alice uses the AI features too)
   [alice, bob] = await Promise.all([signUp(api, "alice@example.com", "Alice"), signUp(api, "bob@example.com", "Bob")]);
   // Alice: something in every module
   const a = (m, p, b) => alice.json(m, p, b);

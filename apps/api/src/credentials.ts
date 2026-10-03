@@ -46,10 +46,16 @@ export function describe(kind: CredentialKind, c: Credentials[CredentialKind]): 
 
 export const sealContext = (provider: string) => `integration:${provider}`;
 
-const store = new AsyncLocalStorage<Credentials>();
+/**
+ * May this person use the app's own DeepSeek key (DEEPSEEK_API_KEY)? "owner": yes (local mode, or an email in
+ * ADMIN_EMAILS); "shared": yes, with the daily limit (only when SHARE_AI_KEY is on); "none": no, only their own key.
+ * Off by default: nobody spends the owner's DeepSeek credit but the owner.
+ */
+export type AppAi = "owner" | "shared" | "none";
+const store = new AsyncLocalStorage<{ creds: Credentials; appAi: AppAi }>();
 
 /** Runs `fn` with the person's credentials opened (call inside asUser). A credential that can't be opened is skipped. */
-export async function withCredentials<T>(db: Db, ring: KeyRing | null | undefined, fn: () => Promise<T>): Promise<T> {
+export async function withCredentials<T>(db: Db, ring: KeyRing | null | undefined, fn: () => Promise<T>, appAi: AppAi = "none"): Promise<T> {
   const found: Credentials = {};
   if (ring) {
     const rows = await db.integration.findMany({ where: { provider: { in: LOADED } }, select: { provider: true, secret: true } });
@@ -61,8 +67,10 @@ export async function withCredentials<T>(db: Db, ring: KeyRing | null | undefine
       }
     }
   }
-  return store.run(found, fn);
+  return store.run({ creds: found, appAi }, fn);
 }
 
 /** The person's own credentials for this kind, if they saved them. */
-export const own = <K extends keyof Credentials>(kind: K): Credentials[K] | undefined => store.getStore()?.[kind];
+export const own = <K extends keyof Credentials>(kind: K): Credentials[K] | undefined => store.getStore()?.creds[kind];
+/** Whether the person asking may use the app's own AI key, and how (see AppAi). */
+export const appAi = (): AppAi => store.getStore()?.appAi ?? "none";

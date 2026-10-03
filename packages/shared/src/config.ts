@@ -54,6 +54,7 @@ const schema = z.object({
   LINKEDIN_API_VERSION: text,
   LINKEDIN_OAUTH_URL: url("LINKEDIN_OAUTH_URL"),
   LINKEDIN_API_URL: url("LINKEDIN_API_URL"),
+  SHARE_AI_KEY: flag,
   AI_DAILY_LIMIT: text.refine((v) => v === "" || /^\d+$/.test(v), { message: "AI_DAILY_LIMIT must be a whole number (0 = no limit)" }),
   DEEPSEEK_API_KEY: text,
   DEEPSEEK_URL: url("DEEPSEEK_URL"),
@@ -114,6 +115,8 @@ export type ApiConfig = {
   secretsKeys: string;
   /** AI requests a day per person on the app's own key (P5-10); 0 = no limit. Default: 30 in cloud mode, none in local mode. */
   aiDailyLimit: number;
+  /** Cloud mode: let everyone without their own key use the app's DeepSeek key (with aiDailyLimit). Off: only the owner (ADMIN_EMAILS). */
+  shareAiKey: boolean;
   /** Tests only: an address standing in for Google's OAuth (…/auth, …/token), and a plain SMTP host:port for Gmail. */
   googleOAuthUrl: string;
   gmailSmtp: string;
@@ -172,6 +175,7 @@ export function parseApiConfig(env: Env): ConfigResult {
       allowLocalAddresses: e.ALLOW_LOCAL_ADDRESSES,
       linkedin: e.LINKEDIN_CLIENT_ID ? { clientId: e.LINKEDIN_CLIENT_ID, clientSecret: e.LINKEDIN_CLIENT_SECRET, version: e.LINKEDIN_API_VERSION || "202609", oauthUrl: e.LINKEDIN_OAUTH_URL, apiUrl: e.LINKEDIN_API_URL } : null,
       vapid: { publicKey: e.VAPID_PUBLIC_KEY, privateKey: e.VAPID_PRIVATE_KEY, subject: e.VAPID_SUBJECT || "mailto:hyperfocus@localhost" },
+      shareAiKey: e.SHARE_AI_KEY,
       aiDailyLimit: e.AI_DAILY_LIMIT === "" ? (e.APP_MODE === "cloud" ? 30 : 0) : Number(e.AI_DAILY_LIMIT),
       adminEmails: e.ADMIN_EMAILS.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
       // in the demo every secret is blanked, so nobody can spend someone else's credits or post as them

@@ -9018,6 +9018,8 @@ export interface components {
             ownKey: boolean;
             /** @description When the count starts again (midnight UTC) */
             resetsAt: string;
+            /** @description You may use the app's key, with the daily limit (the owner shares it) */
+            shared: boolean;
             /** @description AI requests today on the app's key */
             used: number;
         };

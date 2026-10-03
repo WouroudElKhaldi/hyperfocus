@@ -97,7 +97,7 @@ export default function Connections() {
                 </div>
               )}
             </div>
-            {k.id === "deepseek" && usage && usage.limit > 0 && !usage.ownKey && (
+            {k.id === "deepseek" && usage && usage.shared && usage.limit > 0 && !usage.ownKey && (
               <p className="muted tiny" data-testid="ai-usage">Today: {usage.used} of {usage.limit} AI requests on the app's key. Add your own key above for no limit.</p>
             )}
             {k.id === "gmail" && !viaGoogle && (

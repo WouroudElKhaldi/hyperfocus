@@ -24,7 +24,8 @@ export function backgroundJobs({ prisma, publisher, events, secrets, mode = "loc
   // once per person, as that person, with their own credentials (their n8n webhook for their scheduled posts)
   // notifications: the bell always, and a desktop pop-up in local mode (P5-11)
   const send = deliverTo(prisma, { desktop: mode === "local" ? (note) => notify(note.title, note.body) : null, push });
-  const each = (fn: () => Promise<unknown>) => forEachUser(prisma, () => withCredentials(prisma, secrets, fn));
+  // (the app's AI key in jobs: only in local mode, where it is the owner's)
+  const each = (fn: () => Promise<unknown>) => forEachUser(prisma, () => withCredentials(prisma, secrets, fn, mode === "local" ? "owner" : "none"));
   return [
     {
       name: "post-scheduler", // sends scheduled LinkedIn posts
