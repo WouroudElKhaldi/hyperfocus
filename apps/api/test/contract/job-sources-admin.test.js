@@ -1,5 +1,6 @@
 import { PrismaClient } from "@hyperfocus/db";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { ensureDefaultSources } from "../../src/radar/fetch.ts";
 import { processBatch, receiveBatch } from "../../src/radar/ingest.ts";
 import { get, ok, patch, post } from "../support/api.js";
 
@@ -13,7 +14,7 @@ beforeAll(() => {
   raw = new PrismaClient({ datasourceUrl: inject("databaseUrl") });
 });
 afterAll(async () => {
-  await raw.jobSource.deleteMany({ where: { key: { in: [`greenhouse:${board}`, `lever:${board}`] } } });
+  await raw.jobSource.deleteMany({ where: { key: { in: [`greenhouse:${board}`, `lever:${board}`, `web:${board}.example`] } } });
   await raw.$disconnect();
 });
 
@@ -47,5 +48,25 @@ describe("job sources (admin)", () => {
     const soon = await ok(patch(`/api/admin/job-sources/${added.id}`, { enabled: true, checkSoon: true }));
     expect(soon).toMatchObject({ enabled: true, status: "waiting", lastRunAt: null });
     expect((await patch("/api/admin/job-sources/999999", { enabled: false })).status).toBe(404);
+  });
+
+  it("a board without an API: added switched off, can't be switched on until its permission is recorded", async () => {
+    const r = await post("/api/admin/job-sources", { kind: "webpage", name: "Example board", listUrl: `https://www.${board}.example/jobs`, linkPattern: "^/job/" });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ key: `web:${board}.example`, kind: "webpage", enabled: false, status: "off", permission: "" });
+    expect((await post("/api/admin/job-sources", { kind: "webpage", name: "x", listUrl: "http://plain.example/jobs", linkPattern: "x" })).status).toBe(400);
+    expect((await post("/api/admin/job-sources", { kind: "webpage", name: "x", listUrl: "https://ok.example/jobs", linkPattern: "([" })).status).toBe(400);
+    expect((await patch(`/api/admin/job-sources/${r.body.id}`, { enabled: true })).status).toBe(400);
+    const allowed = await ok(patch(`/api/admin/job-sources/${r.body.id}`, { permission: "Allowed by email from the board, 2026-10-04", enabled: true }));
+    expect(allowed).toMatchObject({ enabled: true, permission: "Allowed by email from the board, 2026-10-04" });
+    // taking the permission back switches it off
+    expect(await ok(patch(`/api/admin/job-sources/${r.body.id}`, { permission: "" }))).toMatchObject({ enabled: false, permission: "" });
+    expect((await patch(`/api/admin/job-sources/${added.id}`, { permission: "x" })).status).toBe(400); // not a web board
+  });
+
+  it("the Lebanese boards are there, switched off, waiting for permission", async () => {
+    await ensureDefaultSources(raw);
+    const all = await ok(get("/api/admin/job-sources"));
+    for (const key of ["web:jobsforlebanon", "web:jobslebanon"]) expect(all.find((x) => x.key === key)).toMatchObject({ kind: "webpage", enabled: false, permission: "" });
   });
 });

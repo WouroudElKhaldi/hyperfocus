@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Db } from "../types.ts";
 import { ADAPTERS, type Http, httpJson } from "./adapters.ts";
+import { type HttpText, httpText } from "./webpage.ts";
 import { processBatch, receiveBatch } from "./ingest.ts";
 
 // Fetching from the free sources (P6-02, P6-16): the app asks each enabled source itself, no more often than its terms
@@ -11,14 +12,23 @@ import { processBatch, receiveBatch } from "./ingest.ts";
 const MAX_PAGES = 3;
 
 /** Arbeitnow is on from the start; company boards (Greenhouse, Lever) are added by an admin. */
+/** Boards made for Lebanese job seekers that have no API: read from their public job pages, only with permission. */
+export const LEBANESE_BOARDS = [
+  { key: "web:jobsforlebanon", name: "Jobs for Lebanon", config: { listUrl: "https://www.jobsforlebanon.com/search/?latest=1", linkPattern: "^/job/", board: "Jobs for Lebanon", permission: "" } },
+  { key: "web:jobslebanon", name: "JobsLebanon", config: { listUrl: "https://jobslebanon.com/jobs", linkPattern: "^/jobs/[^/?]+$", board: "JobsLebanon", permission: "" } },
+];
+
 export async function ensureDefaultSources(db: Db): Promise<void> {
   await db.jobSource.upsert({ where: { key: "arbeitnow" }, create: { key: "arbeitnow", kind: "arbeitnow", name: "Arbeitnow" }, update: {} });
+  // Lebanese boards with no API (docs/job-sources.md): added switched off. Their terms ask for written permission
+  // before any automated reading; once it is recorded in Admin → Job sources, an admin switches them on.
+  for (const s of LEBANESE_BOARDS) await db.jobSource.upsert({ where: { key: s.key }, create: { ...s, kind: "webpage", enabled: false }, update: {} });
 }
 
 export type FetchReport = { source: string; pages: number; items: number; created: number; error?: string };
 
 /** Fetches every enabled source that is due. `base` (tests) replaces every source's address. */
-export async function fetchDue(db: Db, { now = new Date(), http = httpJson, base = "" }: { now?: Date; http?: Http; base?: string } = {}): Promise<FetchReport[]> {
+export async function fetchDue(db: Db, { now = new Date(), http = httpJson, text = httpText, base = "" }: { now?: Date; http?: Http; text?: HttpText; base?: string } = {}): Promise<FetchReport[]> {
   const reports: FetchReport[] = [];
   for (const source of await db.jobSource.findMany({ where: { enabled: true }, orderBy: { id: "asc" } })) {
     const adapter = ADAPTERS[source.kind];
@@ -30,7 +40,7 @@ export async function fetchDue(db: Db, { now = new Date(), http = httpJson, base
     try {
       let cursor: string | null = null;
       do {
-        const page = await adapter.fetchPage(config, cursor, http);
+        const page = await adapter.fetchPage(config, cursor, http, text);
         report.pages++;
         report.items += page.items.length;
         if (page.items.length) {

@@ -234,6 +234,12 @@ export interface paths {
                         /** @enum {string} */
                         kind: "greenhouse" | "lever";
                         name?: string;
+                    } | {
+                        /** @enum {string} */
+                        kind: "webpage";
+                        linkPattern: string;
+                        listUrl: string;
+                        name: string;
                     };
                 };
             };
@@ -308,6 +314,8 @@ export interface paths {
                         checkSoon?: boolean;
                         enabled?: boolean;
                         name?: string;
+                        /** @description A board read from its web pages: who allowed it and when ("" takes it back) */
+                        permission?: string;
                     };
                 };
             };
@@ -11034,6 +11042,8 @@ export interface components {
             lastRunAt: string | null;
             name: string;
             newThisWeek: number;
+            /** @description Boards read from their web pages: who allowed it and when (empty = not read) */
+            permission: string | null;
             /** @description Postings from it that are still shown */
             postings: number;
             /**

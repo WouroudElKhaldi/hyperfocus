@@ -1,6 +1,7 @@
 import { config as appConfig } from "../config.ts";
 import { JobPostingDTO } from "./dto.ts";
 import { linkedinJobs } from "./linkedin-jobs.ts";
+import { type HttpText, webpage } from "./webpage.ts";
 import { htmlToText } from "./text.ts";
 
 // One adapter per source (P6-12, the anti-corruption layer): it knows how to ask the source for a page of postings and
@@ -17,7 +18,7 @@ export type Adapter = {
   everyMinutes: number;
   /** false = skipped for now (LinkedIn until partner access, P6-19); missing = always on */
   enabled?: () => boolean;
-  fetchPage(config: Record<string, string>, cursor: string | null, http: Http): Promise<Page>;
+  fetchPage(config: Record<string, string>, cursor: string | null, http: Http, text?: HttpText): Promise<Page>;
   normalise(item: unknown, config: Record<string, string>): JobPostingDTO;
 };
 export type Http = (url: string) => Promise<unknown>;
@@ -122,4 +123,4 @@ export const lever: Adapter = {
   },
 };
 
-export const ADAPTERS: Record<string, Adapter> = { arbeitnow, greenhouse, lever, linkedin: linkedinJobs(() => appConfig.linkedinJobs) };
+export const ADAPTERS: Record<string, Adapter> = { arbeitnow, greenhouse, lever, linkedin: linkedinJobs(() => appConfig.linkedinJobs), webpage: webpage() };

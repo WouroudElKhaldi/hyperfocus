@@ -5,7 +5,7 @@ import { useApi } from "../../../api/hooks.ts";
 import { keyOf } from "../../../api/query.ts";
 
 // Job sources (P6-18): how each one is doing, switch it off or on, check it soon, add a company's Greenhouse or Lever
-// job board.
+// job board. A board read from its web pages (no API) needs its written permission recorded before it can be switched on.
 
 const STATUS = { ok: "✅ working", failing: "⚠️ failing", waiting: "⏳ not checked yet", off: "⏸ off" } as const;
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "never");
@@ -15,12 +15,13 @@ export default function JobSources() {
   const client = useQueryClient();
   const refresh = () => client.invalidateQueries({ queryKey: keyOf("/admin/job-sources") });
   const change = useMutation({
-    mutationFn: ({ id, ...b }: { id: number; enabled?: boolean; checkSoon?: boolean }) => api.patch(`/admin/job-sources/${id}`, b),
+    mutationFn: ({ id, ...b }: { id: number; enabled?: boolean; checkSoon?: boolean; permission?: string }) => api.patch(`/admin/job-sources/${id}`, b),
     onSettled: refresh,
   });
   const add = useMutation({ mutationFn: (b: { kind: "greenhouse" | "lever"; board: string }) => api.post("/admin/job-sources", b), onSuccess: refresh });
   const [kind, setKind] = useState<"greenhouse" | "lever">("greenhouse");
   const [board, setBoard] = useState("");
+  const [allowed, setAllowed] = useState<Record<number, string>>({});
 
   return (
     <div className="card">
@@ -35,12 +36,23 @@ export default function JobSources() {
               <td>
                 {STATUS[s.status]}
                 {s.lastError && <div className="muted"><small>{s.lastError}</small></div>}
+                {s.permission !== null && (
+                  s.permission ? (
+                    <div className="muted"><small>Permission: {s.permission}</small></div>
+                  ) : (
+                    <form className="row" onSubmit={(e) => { e.preventDefault(); const p = (allowed[s.id] ?? "").trim(); if (p) change.mutate({ id: s.id, permission: p }); }}>
+                      <label htmlFor={`perm-${s.id}`} className="sr-only">Permission for {s.name}</label>
+                      <input id={`perm-${s.id}`} placeholder="Who allowed it, and when" value={allowed[s.id] ?? ""} onChange={(e) => setAllowed({ ...allowed, [s.id]: e.target.value })} />
+                      <button type="submit">Record permission</button>
+                    </form>
+                  )
+                )}
               </td>
               <td>{when(s.lastRunAt)}{s.lastBatch && <div className="muted"><small>last batch: {s.lastBatch.received} in, {s.lastBatch.created} new, {s.lastBatch.duplicates} repeats{s.lastBatch.failed ? `, ${s.lastBatch.failed} failed` : ""}</small></div>}</td>
               <td>{s.postings}</td>
               <td>{s.newThisWeek}</td>
               <td className="row">
-                <button disabled={change.isPending} onClick={() => change.mutate({ id: s.id, enabled: !s.enabled })}>{s.enabled ? "Switch off" : "Switch on"}</button>
+                <button disabled={change.isPending || (s.permission === "" && !s.enabled)} title={s.permission === "" ? "Record the board's permission first" : undefined} onClick={() => change.mutate({ id: s.id, enabled: !s.enabled })}>{s.enabled ? "Switch off" : "Switch on"}</button>
                 {s.enabled && <button className="ghost" disabled={change.isPending} onClick={() => change.mutate({ id: s.id, checkSoon: true })}>Check soon</button>}
               </td>
             </tr>
