@@ -93,6 +93,6 @@ Recently done (newest first, all committed):
 - `.env` currently has `APP_MODE=cloud`, `ADMIN_EMAILS=<owner>`, `PUBLIC_URL=http://localhost:5173`,
   `SECRETS_KEYS` = the contents of `apps/api/secrets.key` (so tokens saved in local mode still open). **Never print
   or commit `.env`, `secrets.key` or `vapid.json`.**
-- Full database copy: `backups/hyperfocus-full-2026-10-05_01-35.dump` (all 63 tables incl. the skills/jobs
+- Full database copy: `backups/hyperfocus-full-2026-10-05_01-46.dump` (all 63 tables incl. the skills/jobs
   taxonomy, majors, places, job sources). Raw taxonomy files: `data/taxonomy/` (re-import: `pnpm taxonomy:import`).
 - Owner's review screenshots go in `review-screens/` (git-ignored).
