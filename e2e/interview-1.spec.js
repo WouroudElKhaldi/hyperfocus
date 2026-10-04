@@ -131,3 +131,14 @@ test("Email in French and Lebanese Arabic (P3-28: pages)", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "الإيميل", level: 1 })).toBeVisible();
   await page.goto("/emails?lang=en");
 });
+
+test("the Calendar in French and Lebanese Arabic (P3-28: pages)", async ({ page }) => {
+  await page.goto("/calendar?lang=fr");
+  await expect(page.getByRole("button", { name: "Aujourd'hui" }).first()).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Semaine" })).toBeVisible();
+  await expect(page.getByText("lun.").first()).toBeVisible(); // weekday names in French
+  await page.goto("/calendar?lang=ar-LB");
+  await expect(page.getByRole("tab", { name: "جمعة" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "جايي" })).toBeVisible(); // "Coming up"
+  await page.goto("/calendar?lang=en");
+});

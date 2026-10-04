@@ -1,11 +1,11 @@
 import { type DragEvent, type MouseEvent, useEffect, useRef } from "react";
+import i18next from "i18next";
 import type { CalendarData, Occurrence } from "../../../types.ts";
-import { type DayInfo, type DragPayload, type MoveEvent, fmtClock, fmtHour, fmtMins, layoutLanes, minutesOfDate, parseDay, toMin, toTime } from "./cal.ts";
+import { type DayInfo, type DragPayload, type MoveEvent, fmtClock, fmtHour, fmtMins, layoutLanes, minutesOfDate, parseDay, toMin, toTime, weekNames } from "./cal.ts";
 import { studyMins } from "../../../api.ts";
 
 const HOUR_H = 52;
 const SNAP = 15;
-const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Week and day view: one column per day with hour rows. Events, study sessions and posts sit at their real times.
 type Item = { key: string; start: number; end: number } & (
@@ -82,7 +82,7 @@ export default function TimeGrid({ days, byDay, today, selected, now, onSelect, 
           const dt = parseDay(day);
           return (
             <button key={day} className={"tg-day" + (day === today ? " today" : "") + (day === selected ? " sel" : "")} onClick={() => onSelect(day)}>
-              <span className="tg-dow">{WEEK[(dt.getDay() + 6) % 7]}</span>
+              <span className="tg-dow">{weekNames()[(dt.getDay() + 6) % 7]}</span>
               <span className="tg-date">{dt.getDate()}</span>
             </button>
           );
@@ -90,16 +90,16 @@ export default function TimeGrid({ days, byDay, today, selected, now, onSelect, 
       </div>
 
       <div className="tg-allday" style={{ gridTemplateColumns: cols }}>
-        <div className="tg-gutter tiny muted">all day</div>
+        <div className="tg-gutter tiny muted">{i18next.t("cal.allDayShort")}</div>
         {days.map((day) => {
           const d: Partial<DayInfo> = byDay[day] || {};
           return (
             <div key={day} className="tg-allcell" onDoubleClick={() => onNewAt(day, "", "")}>
-              {(d.goals || []).map((g) => <div key={`g${g.id}`} className="chipx goal" title={g.title}>Goal: {g.title}</div>)}
+              {(d.goals || []).map((g) => <div key={`g${g.id}`} className="chipx goal" title={g.title}>{i18next.t("cal.goal", { title: g.title })}</div>)}
               {(d.events || []).filter((o) => o.allDay || !o.startTime).map((o) => (
                 <button key={o.occId} className={`chipx ev cat-${o.category}`} onClick={() => onOpenEvent(o)} title={o.title}>{o.title}</button>
               ))}
-              {(d.tasks || []).map((t) => <div key={`t${t.id}`} className={"chipx task" + (t.done ? " done" : "")} title="Task due">{t.title}</div>)}
+              {(d.tasks || []).map((t) => <div key={`t${t.id}`} className={"chipx task" + (t.done ? " done" : "")} title={i18next.t("cal.taskDue")}>{t.title}</div>)}
             </div>
           );
         })}
@@ -143,7 +143,7 @@ export default function TimeGrid({ days, byDay, today, selected, now, onSelect, 
                   const s = it.s;
                   return (
                     <button key={it.key} className="tg-item studylog" style={style} onClick={(e) => { e.stopPropagation(); onOpenStudy(); }}
-                      title={`Studied ${fmtMins(studyMins(s, now.getTime()))}${s.course ? "\n" + s.course : ""}${s.part ? " / " + s.part : ""}`}>
+                      title={`${i18next.t("cal.studied", { time: fmtMins(studyMins(s, now.getTime())) })}${s.course ? "\n" + s.course : ""}${s.part ? " / " + s.part : ""}`}>
                       <b>Studied {fmtMins(studyMins(s, now.getTime()))}{!s.endedAt ? " (now)" : ""}</b>
                       <span>{fmtClock(s.startedAt)}{s.part ? ` · ${s.part}` : ""}</span>
                     </button>
@@ -151,7 +151,7 @@ export default function TimeGrid({ days, byDay, today, selected, now, onSelect, 
                 }
                 return (
                   <button key={it.key} className="tg-item post" style={style} onClick={(e) => { e.stopPropagation(); onOpenPost(it.p.id); }} title={it.p.title}>
-                    <b>{it.p.status === "scheduled" ? "Post goes live" : "Post published"}</b>
+                    <b>{it.p.status === "scheduled" ? i18next.t("cal.postGoesLive") : i18next.t("cal.postPublished")}</b>
                     <span>{fmtClock(it.p.at)}</span>
                   </button>
                 );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import i18next from "i18next";
 import type { Occurrence } from "../../../types.ts";
 import { type DayInfo, type Upcoming, fmtClock, fmtDay, fmtMins, todayStr, addDays } from "./cal.ts";
 import { studyMins } from "../../../api.ts";
@@ -24,30 +25,30 @@ export default function SidePanel({ day, info, upcoming, onShift, onNew, onOpenE
       <div className="card side-card">
         <div className="row between">
           <div className="row" style={{ gap: "var(--s-1)" }}>
-            <button className="ghost icon-btn" onClick={() => onShift(-1)} aria-label="Previous day">‹</button>
+            <button className="ghost icon-btn" onClick={() => onShift(-1)} aria-label={i18next.t("cal.prevDay")}>‹</button>
             <h2 className="side-title">{fmtDay(day)}</h2>
-            <button className="ghost icon-btn" onClick={() => onShift(1)} aria-label="Next day">›</button>
+            <button className="ghost icon-btn" onClick={() => onShift(1)} aria-label={i18next.t("cal.nextDay")}>›</button>
           </div>
-          {isToday && <span className="chip">Today</span>}
+          {isToday && <span className="chip">{i18next.t("cal.today")}</span>}
         </div>
 
         <div className="row" style={{ margin: "var(--s-2) 0 var(--s-1)" }}>
-          <button className="primary" onClick={() => onNew(day)}>+ Event</button>
+          <button className="primary" onClick={() => onNew(day)}>{i18next.t("cal.newEvent")}</button>
           {studied > 0 && <span className="muted tiny">Studied {fmtMins(studied)}</span>}
         </div>
 
-        {empty && <p className="muted">A free day. Nothing planned.</p>}
+        {empty && <p className="muted">{i18next.t("cal.freeDay")}</p>}
 
         {d.events.length > 0 && (
           <section>
-            <h3>Events</h3>
+            <h3>{i18next.t("cal.events")}</h3>
             {d.events.map((o) => (
               <button key={o.occId} className={`side-ev cat-${o.category}`} onClick={() => onOpenEvent(o)}>
                 <span className="cat-bar" />
                 <span className="grow">
                   <b>{o.title}</b>
                   <span className="muted tiny">
-                    {o.allDay ? "All day" : `${o.startTime}${o.endTime ? ` – ${o.endTime}` : ""}`}
+                    {o.allDay ? i18next.t("cal.allDay") : `${o.startTime}${o.endTime ? ` – ${o.endTime}` : ""}`}
                     {o.location ? ` · ${o.location}` : ""}{o.repeat !== "none" ? " · repeats" : ""}
                   </span>
                 </span>
@@ -57,28 +58,28 @@ export default function SidePanel({ day, info, upcoming, onShift, onNew, onOpenE
         )}
 
         <section>
-          <h3>Tasks due</h3>
-          {d.tasks.length === 0 && <p className="muted tiny">None.</p>}
+          <h3>{i18next.t("cal.tasksDue")}</h3>
+          {d.tasks.length === 0 && <p className="muted tiny">{i18next.t("cal.none")}</p>}
           {d.tasks.map((t) => (
             <div className="side-task" key={t.id}>
-              <input type="checkbox" className="check" checked={t.done} onChange={() => onToggleTask(t)} aria-label={`Done: ${t.title}`} />
+              <input type="checkbox" className="check" checked={t.done} onChange={() => onToggleTask(t)} aria-label={i18next.t("cal.doneLabel", { title: t.title })} />
               <span className={"grow" + (t.done ? " done" : "")}>{t.title}</span>
-              <input type="date" className="mini-date" value={t.day} onChange={(e) => onMoveTask(t.id, e.target.value)} aria-label="Move to another day" />
+              <input type="date" className="mini-date" value={t.day} onChange={(e) => onMoveTask(t.id, e.target.value)} aria-label={i18next.t("cal.moveDay")} />
             </div>
           ))}
           <div className="row" style={{ marginTop: "var(--s-2)", flexWrap: "nowrap" }}>
-            <input className="grow" placeholder="New task for this day" value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
-            <button disabled={!newTask.trim()} onClick={add}>Add</button>
+            <input className="grow" placeholder={i18next.t("cal.newTask")} value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
+            <button disabled={!newTask.trim()} onClick={add}>{i18next.t("cal.add")}</button>
           </div>
         </section>
 
         {d.goals.length > 0 && (
           <section>
-            <h3>Goal deadlines</h3>
+            <h3>{i18next.t("cal.goalDeadlines")}</h3>
             {d.goals.map((g) => (
               <div className="side-task" key={g.id}>
                 <span className="grow">{g.title}</span>
-                <input type="date" className="mini-date" value={g.day} onChange={(e) => onMoveGoal(g.id, e.target.value)} aria-label="Move deadline" />
+                <input type="date" className="mini-date" value={g.day} onChange={(e) => onMoveGoal(g.id, e.target.value)} aria-label={i18next.t("cal.moveDeadline")} />
               </div>
             ))}
           </section>
@@ -86,7 +87,7 @@ export default function SidePanel({ day, info, upcoming, onShift, onNew, onOpenE
 
         {d.study.length > 0 && (
           <section>
-            <h3>Study</h3>
+            <h3>{i18next.t("cal.study")}</h3>
             {d.study.map((s) => (
               <button key={s.id} className="side-line" onClick={onOpenStudy}>
                 {fmtClock(s.startedAt)}{s.endedAt ? ` – ${fmtClock(s.endedAt)}` : " – now"} · {fmtMins(studyMins(s))}
@@ -98,10 +99,10 @@ export default function SidePanel({ day, info, upcoming, onShift, onNew, onOpenE
 
         {d.posts.length > 0 && (
           <section>
-            <h3>LinkedIn posts</h3>
+            <h3>{i18next.t("cal.posts")}</h3>
             {d.posts.map((p) => (
               <button key={p.id} className="side-line" onClick={() => onOpenPost(p.id)}>
-                {p.status === "scheduled" ? "Goes live" : "Published"} {fmtClock(p.at)}
+                {p.status === "scheduled" ? i18next.t("cal.goesLive") : i18next.t("cal.published")} {fmtClock(p.at)}
                 <span className="muted tiny"> {p.title}</span>
               </button>
             ))}
@@ -110,11 +111,11 @@ export default function SidePanel({ day, info, upcoming, onShift, onNew, onOpenE
       </div>
 
       <div className="card side-card">
-        <h2>Coming up</h2>
-        {upcoming.length === 0 && <p className="muted tiny">Nothing in the next 7 days.</p>}
+        <h2>{i18next.t("cal.comingUp")}</h2>
+        {upcoming.length === 0 && <p className="muted tiny">{i18next.t("cal.nothingSoon")}</p>}
         {upcoming.map((u) => (
           <button key={u.key} className="up-row" onClick={() => onPickDay(u.day)}>
-            <span className="up-day">{u.day === todayStr() ? "Today" : u.day === addDays(todayStr(), 1) ? "Tomorrow" : fmtDay(u.day, { weekday: "short", day: "numeric" })}</span>
+            <span className="up-day">{u.day === todayStr() ? i18next.t("cal.today") : u.day === addDays(todayStr(), 1) ? i18next.t("cal.tomorrow") : fmtDay(u.day, { weekday: "short", day: "numeric" })}</span>
             <span className={"up-dot " + u.cls} />
             <span className="grow up-text">{u.time ? <b>{u.time}</b> : null} {u.title}</span>
           </button>

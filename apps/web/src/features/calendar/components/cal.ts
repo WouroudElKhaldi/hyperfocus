@@ -1,4 +1,6 @@
 // Date helpers and constants shared by the calendar views. Days are local "YYYY-MM-DD" strings, times are "HH:mm".
+import i18next from "i18next";
+import type { Strings } from "../../../i18n/en.ts";
 import type { CalendarData, Occurrence } from "../../../types.ts";
 
 /** Everything that happens on one day, after the layer toggles. */
@@ -34,35 +36,19 @@ export const monthGrid = (s: string) => {
   return Array.from({ length: weeks * 7 }, (_, i) => addDays(start, i));
 };
 
-export const fmtDay = (s: string, o: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }) => parseDay(s).toLocaleDateString([], o);
-export const fmtHour = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: "numeric" });
-export const fmtClock = (d: string | null) => new Date(d ?? 0).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+export const fmtDay = (s: string, o: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }) => parseDay(s).toLocaleDateString(i18next.language, o);
+export const fmtHour = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString(i18next.language, { hour: "numeric" });
+export const fmtClock = (d: string | null) => new Date(d ?? 0).toLocaleTimeString(i18next.language, { hour: "2-digit", minute: "2-digit" });
 export const fmtMins = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${pad(m % 60)}m` : ""}` : `${m}m`);
 
-export const CATEGORIES = [
-  { id: "event", label: "General" },
-  { id: "study", label: "Study" },
-  { id: "work", label: "Work" },
-  { id: "personal", label: "Personal" },
-  { id: "health", label: "Health" },
-];
-export const REPEATS = [
-  { id: "none", label: "Does not repeat" },
-  { id: "daily", label: "Every day" },
-  { id: "weekdays", label: "Every weekday" },
-  { id: "weekly", label: "Every week" },
-  { id: "monthly", label: "Every month" },
-];
-export const REMINDERS = [
-  { id: -1, label: "No reminder" },
-  { id: 0, label: "At the start" },
-  { id: 5, label: "5 minutes before" },
-  { id: 10, label: "10 minutes before" },
-  { id: 15, label: "15 minutes before" },
-  { id: 30, label: "30 minutes before" },
-  { id: 60, label: "1 hour before" },
-  { id: 1440, label: "1 day before" },
-];
+// (labels in the language files, P3-28; read each time so they follow the chosen language)
+type CalLabel = keyof Strings["cal"];
+const labelled = <I,>(id: I, key: CalLabel) => ({ id, get label(): string { return i18next.t(`cal.${key}`); } });
+export const CATEGORIES = [labelled("event", "cGeneral"), labelled("study", "cStudy"), labelled("work", "cWork"), labelled("personal", "cPersonal"), labelled("health", "cHealth")];
+export const REPEATS = [labelled("none", "rNone"), labelled("daily", "rDaily"), labelled("weekdays", "rWeekdays"), labelled("weekly", "rWeekly"), labelled("monthly", "rMonthly")];
+export const REMINDERS = [labelled(-1, "mNone"), labelled(0, "mStart"), labelled(5, "m5"), labelled(10, "m10"), labelled(15, "m15"), labelled(30, "m30"), labelled(60, "m60"), labelled(1440, "m1440")];
+/** Mon…Sun in the chosen language (Jan 1, 2024 was a Monday). */
+export const weekNames = () => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(i18next.language, { weekday: "short" }));
 
 // Side-by-side lanes for items that overlap in time, so nothing is drawn on top of anything else.
 // items: [{ start, end, ... }] in minutes. Returns the same items with lane and lanes (number of lanes in their group).

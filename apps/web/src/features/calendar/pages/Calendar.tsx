@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import i18next from "i18next";
 import More from "../../../components/More.tsx";
 import { useNavigate } from "@tanstack/react-router";
 import { studyMins } from "../../../api.ts";
@@ -17,6 +18,7 @@ import {
   type Upcoming,
   addDays,
   blankEvent,
+  CATEGORIES,
   fmtDay,
   monthGrid,
   parseDay,
@@ -47,11 +49,11 @@ const write = (k: string, v: unknown) => {
 };
 
 const LAYERS: [string, string][] = [
-  ["events", "Events"],
-  ["tasks", "Tasks"],
-  ["study", "Study log"],
-  ["posts", "Posts"],
-  ["goals", "Goals"],
+  ["events", "events"],
+  ["tasks", "tasks"],
+  ["study", "study"],
+  ["posts", "posts"],
+  ["goals", "goals"],
 ];
 const localDayOf = (iso: string | null) => ymd(new Date(iso ?? 0));
 
@@ -133,7 +135,7 @@ export default function Calendar() {
         key: `g${g.id}`,
         day: g.day,
         time: "",
-        title: `Goal deadline: ${g.title}`,
+        title: i18next.t("cal.goalDeadline", { title: g.title }),
         cls: "goal",
       })),
       ...agenda.posts
@@ -141,8 +143,8 @@ export default function Calendar() {
         .map((p) => ({
           key: `p${p.id}`,
           day: localDayOf(p.at),
-          time: new Date(p.at ?? 0).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }),
-          title: "LinkedIn post goes live",
+          time: new Date(p.at ?? 0).toLocaleTimeString(i18next.language, { hour: "2-digit", minute: "2-digit", hour12: false }),
+          title: i18next.t("cal.postLive"),
           cls: "post",
         })),
     ];
@@ -174,7 +176,7 @@ export default function Calendar() {
   const shiftSelected = (dir: number) => pickDay(addDays(selected, dir));
   const title =
     view === "month"
-      ? parseDay(anchor).toLocaleDateString([], { month: "long", year: "numeric" })
+      ? parseDay(anchor).toLocaleDateString(i18next.language, { month: "long", year: "numeric" })
       : view === "week"
         ? `${fmtDay(days[0] ?? anchor, { day: "numeric", month: "short" })} – ${fmtDay(days[6] ?? anchor, { day: "numeric", month: "short", year: "numeric" })}`
         : fmtDay(anchor, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -204,7 +206,7 @@ export default function Calendar() {
       {
         onSuccess: () => {
           setEditor(null);
-          toast(editor.id ? "Event updated" : "Event added");
+          toast(editor.id ? i18next.t("cal.updated") : i18next.t("cal.added"));
           setSelected(form.day);
         },
       },
@@ -217,7 +219,7 @@ export default function Calendar() {
       {
         onSuccess: () => {
           setEditor(null);
-          toast("Event deleted");
+          toast(i18next.t("cal.deleted"));
         },
       },
     );
@@ -270,7 +272,7 @@ export default function Calendar() {
   const addAllBlocks = async () => {
     try {
       for (const b of [...(plan?.blocks ?? [])]) await addBlock(b);
-      toast("Study blocks added to your calendar");
+      toast(i18next.t("cal.blocksAdded"));
       setPlan(null);
     } catch {
       /* the error is already shown; the blocks not added yet stay in the list */
@@ -283,22 +285,22 @@ export default function Calendar() {
     <div className="cal">
       <div className="cal-toolbar">
         <div className="row tb-nav">
-          <button className="icon-btn" onClick={() => step(-1)} aria-label="Previous">
+          <button className="icon-btn" onClick={() => step(-1)} aria-label={i18next.t("cal.previous")}>
             ‹
           </button>
-          <button className="icon-btn" onClick={() => step(1)} aria-label="Next">
+          <button className="icon-btn" onClick={() => step(1)} aria-label={i18next.t("cal.next")}>
             ›
           </button>
-          <button onClick={goToday}>Today</button>
+          <button onClick={goToday}>{i18next.t("cal.today")}</button>
           <h1 className="cal-title">{title}</h1>
         </div>
         <div className="row tb-tools">
-          <div className="seg" role="tablist" aria-label="Calendar view">
+          <div className="seg" role="tablist" aria-label={i18next.t("cal.view")}>
             {(
               [
-                ["month", "Month"],
-                ["week", "Week"],
-                ["day", "Day"],
+                ["month", i18next.t("cal.month")],
+                ["week", i18next.t("cal.week")],
+                ["day", i18next.t("cal.day")],
               ] as [string, string][]
             ).map(([k, l]) => (
               <button
@@ -316,41 +318,41 @@ export default function Calendar() {
             ))}
           </div>
           <button className="primary" onClick={() => openNew(selected)}>
-            + Event
+            {i18next.t("cal.newEvent")}
           </button>
         </div>
       </div>
 
-      <More label="Quick add, plan my week, export" open={window.innerWidth >= 900} className="cal-more">
+      <More label={i18next.t("cal.tools")} open={window.innerWidth >= 900} className="cal-more">
         <div className="cal-bar2">
           <form className="quick" onSubmit={quickAdd}>
             <input
               id="quick-add"
-              placeholder="Quick add: study Friday 3pm for 2h, dentist next Tuesday…"
+              placeholder={i18next.t("cal.quickPlaceholder")}
               value={quick}
               onChange={(e) => setQuick(e.target.value)}
-              aria-label="Quick add an event in your own words"
+              aria-label={i18next.t("cal.quickLabel")}
             />
-            <button disabled={!quick.trim() || quickBusy}>{quickBusy ? "Reading…" : "Add with AI"}</button>
+            <button disabled={!quick.trim() || quickBusy}>{quickBusy ? i18next.t("cal.reading") : i18next.t("cal.addAi")}</button>
           </form>
           <div className="row">
             <button onClick={makePlan} disabled={planBusy}>
-              {planBusy ? "Planning…" : "Plan my study week"}
+              {planBusy ? i18next.t("cal.planning") : i18next.t("cal.plan")}
             </button>
             <a
               className="btn"
               href="/api/calendar.ics"
               download="thought-studio.ics"
-              title="Import into Google Calendar, Apple Calendar or Outlook"
+              title={i18next.t("cal.exportHint")}
             >
-              Export .ics
+              {i18next.t("cal.export")}
             </a>
           </div>
         </div>
       </More>
 
-      <More label="What to show" open={window.innerWidth >= 900} className="cal-more">
-        <div className="layer-row" role="group" aria-label="What to show">
+      <More label={i18next.t("cal.show")} open={window.innerWidth >= 900} className="cal-more">
+        <div className="layer-row" role="group" aria-label={i18next.t("cal.show")}>
           {LAYERS.map(([k, l]) => (
             <button
               key={k}
@@ -358,14 +360,14 @@ export default function Calendar() {
               aria-pressed={layers[k]}
               onClick={() => setLayers({ ...layers, [k]: !layers[k] })}
             >
-              {l}
+              {i18next.t(`cal.${l as "events"}`)}
             </button>
           ))}
           <span className="legend">
             {["event", "study", "work", "personal", "health"].map((c) => (
               <span key={c} className={`cat-${c}`}>
                 <i className="cat-dot" />
-                {c === "event" ? "general" : c}
+                {CATEGORIES.find((x) => x.id === c)?.label ?? c}
               </span>
             ))}
           </span>
@@ -374,7 +376,7 @@ export default function Calendar() {
 
       <div className="cal-layout">
         <div className="card cal-main">
-          {!data && <div className="empty">Loading your calendar…</div>}
+          {!data && <div className="empty">{i18next.t("cal.loading")}</div>}
           {data && view === "month" && (
             <MonthView
               days={days}
@@ -436,8 +438,8 @@ export default function Calendar() {
         <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && setPlan(null)}>
           <div className="modal card sheet">
             <div className="row between">
-              <h2>Suggested study blocks</h2>
-              <button className="ghost icon-btn" onClick={() => setPlan(null)} aria-label="Close">
+              <h2>{i18next.t("cal.suggested")}</h2>
+              <button className="ghost icon-btn" onClick={() => setPlan(null)} aria-label={i18next.t("cal.close")}>
                 ✕
               </button>
             </div>
@@ -445,23 +447,23 @@ export default function Calendar() {
               Picked from your free time in the next 7 days, using your goals and skill gaps. Add the ones that feel
               doable.
             </p>
-            {plan.blocks.length === 0 && <p className="muted">{plan.note || "Nothing left to suggest."}</p>}
+            {plan.blocks.length === 0 && <p className="muted">{plan.note || i18next.t("cal.nothingLeft")}</p>}
             {plan.blocks.map((b) => (
               <div className="plan-row" key={b.day + b.startTime}>
                 <div className="grow">
                   <b>{b.title}</b>
                   <div className="muted tiny">
                     {fmtDay(b.day, { weekday: "short", day: "numeric", month: "short" })} · {b.startTime} – {b.endTime}{" "}
-                    ({b.minutes} min)
+                    {i18next.t("cal.minutes", { n: b.minutes })}
                   </div>
                   <div className="muted tiny">{b.why}</div>
                 </div>
                 <button className="primary" onClick={() => addBlock(b)}>
-                  Add
+                  {i18next.t("cal.add")}
                 </button>
               </div>
             ))}
-            {plan.blocks.length > 1 && <button onClick={addAllBlocks}>Add all</button>}
+            {plan.blocks.length > 1 && <button onClick={addAllBlocks}>{i18next.t("cal.addAll")}</button>}
           </div>
         </div>
       )}

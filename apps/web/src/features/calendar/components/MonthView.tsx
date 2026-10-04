@@ -1,6 +1,7 @@
 import type { DragEvent } from "react";
+import i18next from "i18next";
 import type { Occurrence } from "../../../types.ts";
-import { type DayInfo, type DragPayload, type MoveEvent, fmtMins, parseDay } from "./cal.ts";
+import { type DayInfo, type DragPayload, type MoveEvent, fmtMins, parseDay, weekNames } from "./cal.ts";
 
 type Chip = { k: string; cls: string; label: string; title: string; ev?: Occurrence; task?: DayInfo["tasks"][number] };
 type Props = {
@@ -9,7 +10,6 @@ type Props = {
   onMoveEvent: (d: MoveEvent, day: string) => void; onMoveTask: (id: number, day: string) => void;
 };
 
-const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_CHIPS = 4;
 
 // Month grid. `byDay[day]` holds what happens on each day (built by Calendar.tsx).
@@ -27,16 +27,16 @@ export default function MonthView({ days, month, byDay, today, selected, onSelec
 
   return (
     <div className="mview">
-      <div className="mhead">{WEEK.map((w) => <div key={w}>{w}</div>)}</div>
+      <div className="mhead">{weekNames().map((w) => <div key={w}>{w}</div>)}</div>
       <div className="mgrid" style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(112px, 1fr))` }}>
         {days.map((day) => {
           const d: Partial<DayInfo> = byDay[day] || {};
           const dt = parseDay(day);
           const chips: Chip[] = [
-            ...(d.goals || []).map((g) => ({ k: `g${g.id}`, cls: "goal", label: `Goal: ${g.title}`, title: g.title })),
+            ...(d.goals || []).map((g) => ({ k: `g${g.id}`, cls: "goal", label: i18next.t("cal.goal", { title: g.title }), title: g.title })),
             ...(d.events || []).map((o) => ({ k: o.occId, cls: `cat-${o.category} ev`, label: `${o.startTime && !o.allDay ? o.startTime + " " : ""}${o.title}`, title: o.title, ev: o })),
             ...(d.tasks || []).map((t) => ({ k: `t${t.id}`, cls: "task" + (t.done ? " done" : ""), label: t.title, title: t.title, task: t })),
-            ...(d.posts || []).map((p) => ({ k: `p${p.id}`, cls: "post", label: p.status === "scheduled" ? "Post goes live" : "Post published", title: p.title })),
+            ...(d.posts || []).map((p) => ({ k: `p${p.id}`, cls: "post", label: p.status === "scheduled" ? i18next.t("cal.postGoesLive") : i18next.t("cal.postPublished"), title: p.title })),
           ];
           const shown = chips.slice(0, d.studyMins ? MAX_CHIPS - 1 : MAX_CHIPS);
           const more = chips.length - shown.length;
@@ -54,7 +54,7 @@ export default function MonthView({ days, month, byDay, today, selected, onSelec
               <div className="mchips">
                 {shown.map(({ ev, ...c }) =>
                   ev ? (
-                    <button key={c.k} className={"chipx " + c.cls} title={c.title + (ev.repeat !== "none" ? " (repeats)" : "")}
+                    <button key={c.k} className={"chipx " + c.cls} title={c.title + (ev.repeat !== "none" ? i18next.t("cal.repeats") : "")}
                       draggable={ev.repeat === "none"}
                       onDragStart={(e) => drag(e, { type: "event", id: ev.id, startTime: ev.startTime })}
                       onClick={(e) => { e.stopPropagation(); onOpenEvent(ev); }}>
@@ -68,8 +68,8 @@ export default function MonthView({ days, month, byDay, today, selected, onSelec
                     </div>
                   ),
                 )}
-                {(d.studyMins ?? 0) > 0 && d.studyMins && <div className="chipx studylog" title="Study time logged">Studied {fmtMins(d.studyMins)}</div>}
-                {more > 0 && <div className="more-chip">+{more} more</div>}
+                {(d.studyMins ?? 0) > 0 && d.studyMins && <div className="chipx studylog" title={i18next.t("cal.studyLogged")}>{i18next.t("cal.studied", { time: fmtMins(d.studyMins) })}</div>}
+                {more > 0 && <div className="more-chip">{i18next.t("cal.moreN", { n: more })}</div>}
               </div>
             </div>
           );
