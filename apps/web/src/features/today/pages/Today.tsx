@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MyReminders } from "../../reminders/index.ts";
 import { Link } from "@tanstack/react-router";
 import { KINDS } from "../../../api.ts";
@@ -28,6 +29,7 @@ export default function Today() {
 
 function TodayPage() {
   const toast = useToast();
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const [kind, setKind] = useState("thought");
   const [sorted, setSorted] = useState<OrganizedItem[] | null>(null);
@@ -50,7 +52,7 @@ function TodayPage() {
       {
         onSuccess: () => {
           setText("");
-          toast("Saved. It's out of your head now 💜");
+          toast(t("today.savedToast"));
         },
       },
     );
@@ -64,49 +66,46 @@ function TodayPage() {
     }
     setSorted(null);
     setText("");
-    toast(`Saved ${sorted.length} items`);
+    toast(t("today.savedMany", { count: sorted.length }));
   };
 
-  const complete = (t: Task) =>
-    update.mutate({ id: t.id, change: { done: true } }, { onSuccess: () => toast("Done! 🎉") });
+  const complete = (task: Task) =>
+    update.mutate({ id: task.id, change: { done: true } }, { onSuccess: () => toast(t("today.doneToast")) });
 
   const hour = new Date().getHours();
-  const hello = hour < 12 ? "Good morning" : hour < 18 ? "Hey" : "Good evening";
+  const hello = t(`today.hello.${hour < 12 ? "morning" : hour < 18 ? "day" : "evening"}`);
   const first = (useProfile()?.name || "").trim().split(" ")[0];
 
   return (
     <>
-      <h1>
-        {hello}
-        {first ? `, ${first}` : ""}
-      </h1>
-      <p className="sub">One thing at a time. Dump first, sort later.</p>
+      <h1>{first ? t("today.helloName", { hello, name: first }) : hello}</h1>
+      <p className="sub">{t("today.sub")}</p>
       <div className="row" style={{ marginBottom: "var(--s-3)" }}>
-        <Link className="btn primary big" to="/study">📚 Study</Link>
+        <Link className="btn primary big" to="/study">{t("today.study")}</Link>
       </div>
 
       <div className="grid2">
         <div className="card">
-          <h2>Today</h2>
+          <h2>{t("today.card")}</h2>
           {tasks.length === 0 && (
             <div className="empty">
-              Nothing picked for today. <Link to="/tasks">Choose up to 3</Link>
+              {t("today.none")} <Link to="/tasks">{t("today.choose")}</Link>
             </div>
           )}
-          {tasks.map((t) => (
-            <div className="item" key={t.id}>
-              <input type="checkbox" className="check" aria-label={`Done: ${t.title}`} onChange={() => complete(t)} />
-              <div>{t.title}</div>
+          {tasks.map((task) => (
+            <div className="item" key={task.id}>
+              <input type="checkbox" className="check" aria-label={t("today.doneLabel", { title: task.title })} onChange={() => complete(task)} />
+              <div>{task.title}</div>
             </div>
           ))}
-          <h3 style={{ marginTop: "var(--s-3)" }}>On your calendar today</h3>
+          <h3 style={{ marginTop: "var(--s-3)" }}>{t("today.calendar")}</h3>
           {events.length === 0 ? (
-            <p className="muted">Nothing scheduled. <Link to="/calendar">Open the calendar</Link></p>
+            <p className="muted">{t("today.nothing")} <Link to="/calendar">{t("today.openCalendar")}</Link></p>
           ) : (
-            <ul className="plain" aria-label="On your calendar today">
+            <ul className="plain" aria-label={t("today.calendar")}>
               {events.map((e) => (
                 <li key={e.occId} className="item">
-                  <span className="chip">{e.allDay ? "All day" : `${e.startTime}${e.endTime ? `–${e.endTime}` : ""}`}</span>
+                  <span className="chip">{e.allDay ? t("today.allDay") : `${e.startTime}${e.endTime ? `–${e.endTime}` : ""}`}</span>
                   <div>{e.title}{e.location && <span className="muted"> · {e.location}</span>}</div>
                 </li>
               ))}
@@ -119,20 +118,20 @@ function TodayPage() {
       <MyReminders compact />
 
       <div className="card">
-        <h2>Brain dump</h2>
+        <h2>{t("today.dump")}</h2>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Whatever is in your head right now. Messy is fine."
+          placeholder={t("today.dumpPlaceholder")}
         />
         <div className="row" style={{ marginTop: "var(--s-3)" }}>
           <button className="primary" disabled={!text.trim()} onClick={save}>
-            Save
+            {t("today.save")}
           </button>
         </div>
-        <More label="More ways to save" className="in-card">
+        <More label={t("today.moreWays")} className="in-card">
           <div className="row">
-            <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="What kind of thing is this?">
+            <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label={t("today.kindLabel")}>
               {Object.entries(KINDS).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}
@@ -140,16 +139,16 @@ function TodayPage() {
               ))}
             </select>
             <button disabled={!text.trim() || busy} onClick={sortIt}>
-              {busy ? "Sorting…" : "Sort it for me (AI)"}
+              {busy ? t("today.sorting") : t("today.sort")}
             </button>
           </div>
         </More>
         {sorted && (
           <div style={{ marginTop: "var(--s-4)" }}>
-            <p className="muted">AI split it into {sorted.length} items. Save them all, or dismiss.</p>
+            <p className="muted">{t("today.split", { count: sorted.length })}</p>
             {sorted.map((it, i) => (
               <div className="item" key={i}>
-                <span className="chip">{it.kind === "task" ? "✅ Task" : KINDS[it.kind] || it.kind}</span>
+                <span className="chip">{it.kind === "task" ? t("today.task") : KINDS[it.kind] || it.kind}</span>
                 <div>
                   <b>{it.title}</b>
                   <div className="muted">{it.body}</div>
@@ -158,10 +157,10 @@ function TodayPage() {
             ))}
             <div className="row" style={{ marginTop: "var(--s-3)" }}>
               <button className="primary" onClick={saveSorted}>
-                Save all
+                {t("today.saveAll")}
               </button>
               <button className="ghost" onClick={() => setSorted(null)}>
-                Dismiss
+                {t("today.dismiss")}
               </button>
             </div>
           </div>
@@ -169,8 +168,8 @@ function TodayPage() {
       </div>
 
       <div className="card">
-        <More label="Recently saved" className="plain">
-          {recent.length === 0 && <div className="empty">Nothing yet.</div>}
+        <More label={t("today.recent")} className="plain">
+          {recent.length === 0 && <div className="empty">{t("today.nothingYet")}</div>}
           {recent.map((n) => (
             <div className="item" key={n.id}>
               <span className="chip">{KINDS[n.kind]}</span>

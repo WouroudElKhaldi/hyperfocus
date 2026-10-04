@@ -21,3 +21,4 @@ apps/web/dist-e2e
 
 # open datasets downloaded for the taxonomy import (P6-04): big, and fetched again any time
 /data/
+review-screens/

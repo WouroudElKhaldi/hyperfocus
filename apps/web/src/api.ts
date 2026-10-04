@@ -1,4 +1,5 @@
 import { NOTE_KINDS, type NoteKind } from "@hyperfocus/shared/constants";
+import i18next from "i18next";
 import type { ApiUrl, BodyOf, Method, NeedsBody, ResponseOf } from "./api/typed.ts";
 
 /** An error from the API: `status` is the HTTP status, `code` the raw error text (some callers branch on it). */
@@ -44,14 +45,10 @@ export const api = {
   del: <const U extends string>(u: U & ApiUrl<"delete", U>) => req<ResponseOf<"delete", U>>("DELETE", u),
 };
 
-// The kinds come from @hyperfocus/shared (the same list the API uses); only the labels live here.
-const KIND_LABELS: Record<NoteKind, string> = {
-  thought: "💭 Thought",
-  note: "📝 Note",
-  post_idea: "✨ Post idea",
-  project_idea: "🚀 Project idea",
-};
-export const KINDS: Record<string, string> = Object.fromEntries(NOTE_KINDS.map((k) => [k, KIND_LABELS[k]]));
+// The kinds come from @hyperfocus/shared (the same list the API uses); their labels are in the language files (P3-28),
+// read each time, so they follow the chosen language.
+export const KINDS: Record<string, string> = {};
+for (const k of NOTE_KINDS) Object.defineProperty(KINDS, k, { enumerable: true, get: () => i18next.t(`kinds.${k as NoteKind}`) });
 
 // Study time excludes breaks. A running session counts up to now, or to the moment it was paused.
 type Timed = { startedAt: string; endedAt: string | null; pausedAt: string | null; breakMs?: number };

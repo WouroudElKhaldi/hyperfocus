@@ -1,15 +1,18 @@
 import { REMINDER_REPEATS, type ReminderRepeat } from "@hyperfocus/shared/constants";
+import i18next from "i18next";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { oneOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
 import More from "../../../components/More.tsx";
 import { useAddReminder, useDeleteReminder, useMoveReminder, useReminders } from "../api.ts";
 
-const REPEATS: [string, string][] = [
-  ["none", "Just once"],
-  ["daily", "Every day"],
-  ["weekdays", "Weekdays"],
-  ["weekly", "Every week"],
+// (labels are word keys: the words are in the language files, P3-28)
+const REPEATS: [string, "once" | "daily" | "weekdays" | "weekly"][] = [
+  ["none", "once"],
+  ["daily", "daily"],
+  ["weekdays", "weekdays"],
+  ["weekly", "weekly"],
 ];
 const pad = (n: number) => String(n).padStart(2, "0");
 const toInput = (d: Date) =>
@@ -22,13 +25,13 @@ const nextAt = (h: number, plusDay = 0) => {
   if (d <= new Date()) d.setDate(d.getDate() + 1);
   return d;
 };
-const QUICK: [string, () => Date][] = [
-  ["In 10 min", () => inMin(10)],
-  ["In 30 min", () => inMin(30)],
-  ["In 1 hour", () => inMin(60)],
-  ["This evening", () => nextAt(19)],
+const QUICK: ["in10" | "in30" | "in60" | "evening" | "tomorrowMorning", () => Date][] = [
+  ["in10", () => inMin(10)],
+  ["in30", () => inMin(30)],
+  ["in60", () => inMin(60)],
+  ["evening", () => nextAt(19)],
   [
-    "Tomorrow morning",
+    "tomorrowMorning",
     () => {
       const d = new Date();
       d.setDate(d.getDate() + 1);
@@ -43,16 +46,18 @@ function whenLabel(iso: string | Date) {
     n = new Date(),
     t = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((t(d) - t(n)) / 864e5);
-  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (days === 0) return `Today, ${time}`;
-  if (days === 1) return `Tomorrow, ${time}`;
-  if (days === -1) return `Yesterday, ${time}`;
-  return `${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
+  const lang = i18next.language;
+  const time = d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
+  if (days === 0) return i18next.t("reminders.todayAt", { time });
+  if (days === 1) return i18next.t("reminders.tomorrowAt", { time });
+  if (days === -1) return i18next.t("reminders.yesterdayAt", { time });
+  return `${d.toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
 }
 
 // Reminders she writes herself. `compact` is the small version on the Today page.
 export default function MyReminders({ compact = false }: { compact?: boolean }) {
   const toast = useToast();
+  const { t } = useTranslation();
   const list = useReminders().data ?? null;
   const [title, setTitle] = useState("");
   const [at, setAt] = useState(() => toInput(inMin(60)));
@@ -68,7 +73,7 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
       { title, at: when.toISOString(), repeat },
       {
         onSuccess: () => {
-          toast(`I'll remind you ${whenLabel(when).toLowerCase()}.`);
+          toast(t("reminders.willRemind", { when: whenLabel(when) }));
           setTitle("");
           setRepeat("none");
         },
@@ -77,7 +82,7 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
   };
   const remove = (r: { id: number }) => deleteReminder.mutate(r.id);
   const again = (r: { id: number }) =>
-    move.mutate({ id: r.id, at: inMin(10).toISOString() }, { onSuccess: () => toast("Okay, in 10 minutes.") });
+    move.mutate({ id: r.id, at: inMin(10).toISOString() }, { onSuccess: () => toast(t("reminders.snoozed")) });
 
   const upcoming = (list || []).filter((r) => !r.done);
   const past = (list || []).filter((r) => r.done);
@@ -85,13 +90,8 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
 
   return (
     <div className="card my-rem">
-      <h2>{compact ? "Reminders" : "My reminders"}</h2>
-      {!compact && (
-        <p className="muted">
-          Write what you want to be reminded about, then pick when. A Windows notification pops up (the app needs to be
-          running).
-        </p>
-      )}
+      <h2>{compact ? t("reminders.title") : t("reminders.mine")}</h2>
+      {!compact && <p className="muted">{t("reminders.intro")}</p>}
 
       <form
         className="rem-add"
@@ -105,10 +105,10 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
           value={title}
           maxLength={120}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Remind me to…"
-          aria-label="What should I remind you about?"
+          placeholder={t("reminders.placeholder")}
+          aria-label={t("reminders.about")}
         />
-        <div className="chip-row" role="group" aria-label="When">
+        <div className="chip-row" role="group" aria-label={t("reminders.when")}>
           {QUICK.map(([label, fn]) => (
             <button
               type="button"
@@ -117,30 +117,30 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
               disabled={!title.trim() || busy}
               onClick={() => create(fn())}
             >
-              {label}
+              {t(`reminders.${label}`)}
             </button>
           ))}
         </div>
-        <More label="Pick an exact time or repeat" className="inline">
-          <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Date and time" />
+        <More label={t("reminders.exact")} className="inline">
+          <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} aria-label={t("reminders.dateTime")} />
           <select
             value={repeat}
             onChange={(e) => setRepeat(oneOf(REMINDER_REPEATS, e.target.value, "none"))}
-            aria-label="Repeat"
+            aria-label={t("reminders.repeat")}
           >
             {REPEATS.map(([k, l]) => (
               <option key={k} value={k}>
-                {l}
+                {t(`reminders.${l}`)}
               </option>
             ))}
           </select>
           <button className="primary" disabled={!title.trim() || !at || busy}>
-            Add reminder
+            {t("reminders.add")}
           </button>
         </More>
       </form>
 
-      {list !== null && shown.length === 0 && <p className="muted rem-empty">No reminders waiting.</p>}
+      {list !== null && shown.length === 0 && <p className="muted rem-empty">{t("reminders.none")}</p>}
       {shown.length > 0 && (
         <ul className="rem-list">
           {shown.map((r) => (
@@ -149,32 +149,32 @@ export default function MyReminders({ compact = false }: { compact?: boolean }) 
                 <b>{r.title}</b>
                 <div className="muted tiny">
                   {whenLabel(r.at)}
-                  {r.repeat !== "none" ? ` · ${REPEATS.find(([k]) => k === r.repeat)?.[1].toLowerCase()}` : ""}
+                  {r.repeat !== "none" ? ` · ${t(`reminders.${REPEATS.find(([k]) => k === r.repeat)?.[1] ?? "once"}`)}` : ""}
                 </div>
               </div>
-              <button className="ghost danger" onClick={() => remove(r)} aria-label={`Delete reminder ${r.title}`}>
-                Delete
+              <button className="ghost danger" onClick={() => remove(r)} aria-label={t("reminders.deleteNamed", { title: r.title })}>
+                {t("reminders.delete")}
               </button>
             </li>
           ))}
         </ul>
       )}
-      {compact && upcoming.length > 3 && <p className="muted tiny">And {upcoming.length - 3} more in Settings.</p>}
+      {compact && upcoming.length > 3 && <p className="muted tiny">{t("reminders.more", { count: upcoming.length - 3 })}</p>}
 
       {!compact && past.length > 0 && (
-        <More label={`Recently sent (${past.length})`} className="in-card">
+        <More label={t("reminders.recent", { count: past.length })} className="in-card">
           <ul className="rem-list">
             {past.map((r) => (
               <li key={r.id}>
                 <div className="grow">
                   <b>{r.title}</b>
-                  <div className="muted tiny">Sent {whenLabel(r.lastFiredAt || r.at)}</div>
+                  <div className="muted tiny">{t("reminders.sent", { when: whenLabel(r.lastFiredAt || r.at) })}</div>
                 </div>
                 <button className="ghost" onClick={() => again(r)}>
-                  Remind me again
+                  {t("reminders.again")}
                 </button>
-                <button className="ghost danger" onClick={() => remove(r)} aria-label={`Delete ${r.title}`}>
-                  Delete
+                <button className="ghost danger" onClick={() => remove(r)} aria-label={t("reminders.deleteNamed", { title: r.title })}>
+                  {t("reminders.delete")}
                 </button>
               </li>
             ))}

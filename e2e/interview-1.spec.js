@@ -90,3 +90,16 @@ test("four languages: French, standard and Lebanese Arabic (right to left), back
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(sidebar.getByRole("link", { name: "Study log" })).toBeVisible();
 });
+
+test("the Today page in French and Lebanese Arabic (P3-28: pages)", async ({ page }) => {
+  await page.goto("/?lang=fr");
+  await expect(page.getByRole("heading", { name: "Vide-tête" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Session de concentration" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "📚 Étudier" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dans 10 min" })).toBeVisible();
+  await page.goto("/?lang=ar-LB");
+  await expect(page.getByRole("heading", { name: "فضّي راسك" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "عالرزنامة اليوم" })).toBeVisible();
+  await page.goto("/?lang=en");
+  await expect(page.getByRole("heading", { name: "Brain dump" })).toBeVisible();
+});

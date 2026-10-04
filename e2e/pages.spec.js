@@ -406,7 +406,7 @@ test.describe("Calendar and Reminders share their data", () => {
     await page.goto("/");
     await page.getByPlaceholder("Remind me to…").fill("E2E drink water");
     await page.getByRole("button", { name: "In 1 hour" }).click();
-    await expect(page.getByText(/I'll remind you today|I'll remind you tomorrow/)).toBeVisible();
+    await expect(page.getByText(/I'll remind you: (Today|Tomorrow)/)).toBeVisible();
     await expect(page.locator(".rem-list").getByText("E2E drink water")).toBeVisible();
     await page.goto("/backup");
     await expect(page.locator(".rem-list").getByText("E2E drink water")).toBeVisible();
