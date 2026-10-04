@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Icon from "./components/Icon.tsx";
 import { ALL, arrange, type NavItem } from "./nav.ts";
 import Stuck from "./components/Stuck.tsx";
+import LanguageSwitch from "./components/LanguageSwitch.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import { PetCelebration, PetWidget } from "./features/pet/index.ts";
 import { useA11y, useSettings } from "./features/settings/index.ts";
@@ -210,6 +211,7 @@ function Shell() {
                 ))}
               </div>
               <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-surface-2 px-3 py-2 font-semibold text-ink-2"><span>{t("shell.lightOrDark")}</span><ThemeSwitch /></div>
+              <div className="flex items-center justify-between gap-3 rounded-[12px] border border-line bg-surface-2 px-3 py-2 font-semibold text-ink-2"><LanguageSwitch id="lang-sheet" /></div>
               <Stuck inline />
             </div>
           </div>

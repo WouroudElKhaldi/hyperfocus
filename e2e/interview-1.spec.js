@@ -71,3 +71,22 @@ test("your menu: hide a page, make a group and move a page into it, then back to
   await expect(sidebar.getByRole("link", { name: "Books" })).toBeVisible();
   await expect(sidebar.getByRole("button", { name: /Work/ })).toHaveCount(0);
 });
+
+test("four languages: French, standard and Lebanese Arabic (right to left), back to English (P3-28)", async ({ page }) => {
+  await page.goto("/backup");
+  const sidebar = page.getByRole("navigation").first();
+  await page.locator("#lang-settings").selectOption("fr");
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(sidebar.getByRole("link", { name: "Aujourd'hui" })).toBeVisible();
+  await page.reload(); // remembered
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+  await page.locator("#lang-top").selectOption("ar-LB");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(sidebar.getByRole("link", { name: "دفتر الدرس" })).toBeVisible(); // Lebanese: "Study log"
+  await page.locator("#lang-top").selectOption("ar");
+  await expect(sidebar.getByRole("link", { name: "سجلّ الدراسة" })).toBeVisible(); // standard Arabic
+  await page.locator("#lang-top").selectOption("en");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(sidebar.getByRole("link", { name: "Study log" })).toBeVisible();
+});

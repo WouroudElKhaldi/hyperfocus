@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import LanguageSwitch from "../../../components/LanguageSwitch.tsx";
 import MenuEditor from "../components/MenuEditor.tsx";
 import { Link } from "@tanstack/react-router";
 import { signOut, useMe } from "../../account/index.ts";
@@ -120,6 +121,7 @@ export default function Backup() {
               <button key={k} role="radio" aria-checked={theme === k} className={theme === k ? "on" : ""} onClick={() => pickTheme(k)}>{l}</button>
             ))}
           </div>
+          <div style={{ marginTop: "var(--s-3)" }}><LanguageSwitch id="lang-settings" /></div>
         </div>
 
         <div className="card">

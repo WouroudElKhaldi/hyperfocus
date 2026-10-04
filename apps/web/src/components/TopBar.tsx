@@ -6,6 +6,7 @@ import { useA11y, useSaveSettings } from "../features/settings/index.ts";
 import { effectiveTheme, isMono, setTheme } from "../theme.ts";
 import { useTranslation } from "react-i18next";
 import Icon from "./Icon.tsx";
+import LanguageSwitch from "./LanguageSwitch.tsx";
 import NotificationBell from "./NotificationBell.tsx";
 
 const greetingKey = () => { const h = new Date().getHours(); return h < 5 ? "night" : h < 12 ? "morning" : h < 18 ? "afternoon" : "evening"; };
@@ -92,6 +93,7 @@ export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: bool
           <Link activeProps={{ className: "active" }} to="/pet" className="pet-chip empty"><span aria-hidden="true">🥚</span><span className="pc-text"><b>{t("topbar.getPet")}</b></span></Link>
         ))}
         <NotificationBell />
+        <span className="phone:hidden"><LanguageSwitch id="lang-top" compact /></span>
         <ThemeSwitch />
         <Link activeProps={{ className: "active" }} to="/profile" className="avatar" style={{ background: profile?.avatar || "#7447e6" }} title={name ? t("topbar.namedProfile", { name }) : t("topbar.yourProfile")} aria-label={t("topbar.yourProfile")}>
           {initialsOf(name)}

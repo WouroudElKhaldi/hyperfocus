@@ -10,7 +10,7 @@ export const en = {
   shell: {
     skip: "Skip to content", sidebar: "Sidebar", main: "Main", foldAll: "Fold all", unfoldAll: "Unfold all",
     resize: "Resize the sidebar (arrow keys, double-click to reset)", loading: "Loading…",
-    quickMenu: "Quick menu", more: "More", allPages: "All pages", lightOrDark: "Light or dark",
+    quickMenu: "Quick menu", more: "More", allPages: "All pages", lightOrDark: "Light or dark", language: "Language",
     demo: "You're looking at a demo with sample data. The AI, LinkedIn posting and backups are switched off.",
     status: {
       serverOn: "Server running", serverOff: "Server offline", aiOn: "AI connected", aiOff: "No DeepSeek key",
