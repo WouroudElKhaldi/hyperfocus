@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../../../api.ts";
@@ -14,31 +16,32 @@ const GUIDE = { deepseek: "ai", gmail: "gmail", "linkedin-app": "linkedin", n8n:
 type Field = { name: string; label: string; type?: string; placeholder: string; hint?: string };
 const KINDS: { id: "deepseek" | "linkedin-app" | "n8n" | "gmail"; title: string; what: string; fields: Field[] }[] = [
   {
-    id: "deepseek", title: "AI (DeepSeek)", what: "Rewrites, coaching, chat and everything else the AI does for you.",
-    fields: [{ name: "apiKey", label: "DeepSeek API key", type: "password", placeholder: "sk-…", hint: "From platform.deepseek.com → API keys." }],
+    id: "deepseek", title: i18next.t("settings.aiDeepseek"), what: i18next.t("settings.rewritesCoachingChatAnd"),
+    fields: [{ name: "apiKey", label: i18next.t("settings.deepseekApiKey"), type: "password", placeholder: "sk-…", hint: i18next.t("settings.fromPlatformDeepseekCom") }],
   },
   {
     // P5-09: your own free LinkedIn app, then "Connect LinkedIn"
-    id: "linkedin-app", title: "LinkedIn posting", what: "Publishing your posts to your LinkedIn, now or scheduled, through your own (free) LinkedIn app.",
+    id: "linkedin-app", title: i18next.t("settings.linkedinPosting"), what: i18next.t("settings.publishingYourPostsTo"),
     fields: [
-      { name: "clientId", label: "LinkedIn app Client ID", placeholder: "86abc123xyz", hint: "Your app at linkedin.com/developers/apps → Auth tab." },
-      { name: "clientSecret", label: "LinkedIn app Client Secret", type: "password", placeholder: "Primary Client Secret", hint: "Same tab: Primary Client Secret (click the eye to show it)." },
+      { name: "clientId", label: i18next.t("settings.linkedinAppClientId"), placeholder: "86abc123xyz", hint: i18next.t("settings.yourAppAtLinkedin") },
+      { name: "clientSecret", label: i18next.t("settings.linkedinAppClientSecret"), type: "password", placeholder: i18next.t("settings.primaryClientSecret"), hint: i18next.t("settings.sameTabPrimaryClient") },
     ],
   },
   {
-    id: "n8n", title: "LinkedIn through n8n (optional)", what: "Instead of the LinkedIn app: your own n8n, at a public https address.",
-    fields: [{ name: "webhookUrl", label: "n8n webhook address", type: "url", placeholder: "https://your-n8n.example/webhook/…", hint: "The production URL of the Webhook node in your LinkedIn workflow." }],
+    id: "n8n", title: i18next.t("settings.linkedinThroughN8nOptional"), what: i18next.t("settings.insteadOfTheLinkedin"),
+    fields: [{ name: "webhookUrl", label: "n8n webhook address", type: "url", placeholder: "https://your-n8n.example/webhook/…", hint: i18next.t("settings.theProductionUrlOf") }],
   },
   {
-    id: "gmail", title: "Email (Gmail)", what: "Sending emails from your own Gmail address.",
+    id: "gmail", title: i18next.t("settings.emailGmail"), what: i18next.t("settings.sendingEmailsFromYour"),
     fields: [
-      { name: "user", label: "Gmail address", type: "email", placeholder: "you@gmail.com" },
-      { name: "appKey", label: "Gmail App Password", type: "password", placeholder: "abcd efgh ijkl mnop", hint: "16 letters, from myaccount.google.com/apppasswords (needs 2-Step Verification)." },
+      { name: "user", label: i18next.t("settings.gmailAddress"), type: "email", placeholder: "you@gmail.com" },
+      { name: "appKey", label: i18next.t("settings.gmailAppPassword"), type: "password", placeholder: "abcd efgh ijkl mnop", hint: "16 letters, from myaccount.google.com/apppasswords (needs 2-Step Verification)." },
     ],
   },
 ];
 
 export default function Connections() {
+  useTranslation(); // (re-renders this page when the language changes)
   const client = useQueryClient();
   const saved = useApi("/integrations").data ?? [];
   const usage = useApi("/ai/usage").data; // P5-10: today's AI requests on the app's key
@@ -64,7 +67,7 @@ export default function Connections() {
   const connectLinkedIn = (id: string) =>
     api.get("/integrations/linkedin/start").then(
       ({ url }) => window.location.assign(url),
-      (err) => setError({ id, message: err instanceof Error ? err.message : "That didn't work." }),
+      (err) => setError({ id, message: err instanceof Error ? err.message : i18next.t("settings.thatDidnTWork") }),
     );
 
   const submit = (id: string) => (e: FormEvent<HTMLFormElement>) => {
@@ -73,14 +76,14 @@ export default function Connections() {
     setError(null);
     save.mutate({ id, values }, {
       onSuccess: () => setEditing(null),
-      onError: (err) => setError({ id, message: err instanceof Error ? err.message : "That didn't work." }),
+      onError: (err) => setError({ id, message: err instanceof Error ? err.message : i18next.t("settings.thatDidnTWork") }),
     });
   };
 
   return (
     <div className="card">
-      <h2>Your connections</h2>
-      <p className="muted">Your own keys for the AI, LinkedIn and email. They are locked (encrypted) when saved and never shown again. Not sure how? <Link to="/help/connections">Step-by-step guides</Link>.</p>
+      <h2>{i18next.t("settings.yourConnections")}</h2>
+      <p className="muted">{i18next.t("settings.yourOwnKeysFor")} <Link to="/help/connections">{i18next.t("settings.stepByStepGuides")}</Link>.</p>
       {notice && <p role="status">{notice}</p>}
       {KINDS.map((k) => {
         const have = saved.find((s) => s.provider === k.id);
@@ -90,13 +93,13 @@ export default function Connections() {
             <div className="row" style={{ justifyContent: "space-between" }}>
               <div>
                 <b>{k.title}</b>
-                <Link className="tiny" to="/help/connections" hash={GUIDE[k.id]}>How do I get this?</Link>
-                <div className="muted">{have ? <>✅ {k.id === "linkedin-app" ? "App saved" : "Connected"}: {have.account}</> : k.what}</div>
+                <Link className="tiny" to="/help/connections" hash={GUIDE[k.id]}>{i18next.t("settings.howDoIGet")}</Link>
+                <div className="muted">{have ? <>✅ {k.id === "linkedin-app" ? i18next.t("settings.appSaved") : i18next.t("settings.connected")}: {have.account}</> : k.what}</div>
               </div>
               {have && editing !== k.id && (
                 <div className="row">
-                  <button onClick={() => setEditing(k.id)}>Change</button>
-                  <button onClick={() => remove.mutate(k.id)}>Disconnect</button>
+                  <button onClick={() => setEditing(k.id)}>{i18next.t("settings.change")}</button>
+                  <button onClick={() => remove.mutate(k.id)}>{i18next.t("settings.disconnect")}</button>
                 </div>
               )}
             </div>
@@ -105,14 +108,14 @@ export default function Connections() {
             )}
             {k.id === "linkedin-app" && (
               <>
-                <p className="muted tiny">In your LinkedIn app, add this as an authorised redirect URL: <code>{`${window.location.origin}/api/integrations/linkedin/callback`}</code></p>
+                <p className="muted tiny">{i18next.t("settings.inYourLinkedinApp")} <code>{`${window.location.origin}/api/integrations/linkedin/callback`}</code></p>
                 {have && (directLinkedIn ? (
                   <div className="row">
                     <span>✅ Posting as {directLinkedIn.account}</span>
-                    <button onClick={() => remove.mutate("linkedin")}>Disconnect LinkedIn</button>
+                    <button onClick={() => remove.mutate("linkedin")}>{i18next.t("settings.disconnectLinkedin")}</button>
                   </div>
                 ) : (
-                  <p><button type="button" className="primary" onClick={() => void connectLinkedIn("linkedin-app")}>Connect LinkedIn</button> <span className="muted tiny">LinkedIn asks you to allow posting; you come back here.</span></p>
+                  <p><button type="button" className="primary" onClick={() => void connectLinkedIn("linkedin-app")}>{i18next.t("settings.connectLinkedin")}</button> <span className="muted tiny">{i18next.t("settings.linkedinAsksYouTo")}</span></p>
                 ))}
                 {!open && error?.id === k.id && <p role="alert" className="error">{error.message}</p>}
               </>
@@ -129,7 +132,7 @@ export default function Connections() {
                 {error?.id === k.id && <p role="alert" className="error">{error.message}</p>}
                 <div className="row">
                   <button className="primary" type="submit" disabled={save.isPending}>Save {k.title}</button>
-                  {have && <button type="button" onClick={() => setEditing(null)}>Cancel</button>}
+                  {have && <button type="button" onClick={() => setEditing(null)}>{i18next.t("settings.cancel")}</button>}
                 </div>
               </form>
             )}

@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "../../../api.ts";
@@ -15,6 +17,7 @@ const urlKey = (b64: string) => {
 const supported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
 export default function DevicePush() {
+  useTranslation(); // (re-renders this page when the language changes)
   const client = useQueryClient();
   const [state, setState] = useState<State>("checking");
   const [error, setError] = useState("");
@@ -43,7 +46,7 @@ export default function DevicePush() {
       await client.invalidateQueries({ queryKey: keyOf("/settings") });
       setState("on");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "That didn't work.");
+      setError(e instanceof Error ? e.message : i18next.t("settings.thatDidnTWork"));
       setState("off");
     }
   };
@@ -62,7 +65,7 @@ export default function DevicePush() {
   return (
     <div className="row" style={{ justifyContent: "space-between", marginTop: "var(--s-2)" }}>
       <div>
-        <b>On this device</b>
+        <b>{i18next.t("settings.onThisDevice")}</b>
         <div className="muted tiny" role="status">
           {state === "checking" && "Checking…"}
           {state === "unsupported" && "This browser can't show notifications from Hyperfocus. On iPhone, add Hyperfocus to the Home Screen first."}
@@ -74,8 +77,8 @@ export default function DevicePush() {
         </div>
         {error && <p role="alert" className="error tiny">{error}</p>}
       </div>
-      {state === "off" && <button onClick={() => void turnOn()}>Turn on for this device</button>}
-      {state === "on" && <button onClick={() => void turnOff()}>Turn off for this device</button>}
+      {state === "off" && <button onClick={() => void turnOn()}>{i18next.t("settings.turnOnForThis")}</button>}
+      {state === "on" && <button onClick={() => void turnOff()}>{i18next.t("settings.turnOffForThis")}</button>}
     </div>
   );
 }

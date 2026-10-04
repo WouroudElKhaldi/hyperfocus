@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
@@ -11,6 +13,7 @@ import { useSaveSettings, useSettings } from "../api.ts";
 const KEEP: [number, string][] = [[0, "Keep them"], [30, "30 days"], [90, "90 days"], [365, "1 year"]];
 
 export default function YourData() {
+  useTranslation(); // (re-renders this page when the language changes)
   const me = useMe().data;
   const prefs = useSettings().data;
   const save = useSaveSettings();
@@ -29,7 +32,7 @@ export default function YourData() {
       client.removeQueries({ predicate: (q) => JSON.stringify(q.queryKey) !== JSON.stringify(keyOf("/me")) });
       await client.refetchQueries({ queryKey: keyOf("/me") });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "That didn't work.");
+      setError(err instanceof Error ? err.message : i18next.t("settings.thatDidnTWork"));
     } finally {
       setBusy(false);
     }
@@ -37,45 +40,45 @@ export default function YourData() {
 
   return (
     <div className="card" aria-labelledby="data-title">
-      <h2 id="data-title" style={{ marginTop: 0 }}>Your data and privacy</h2>
+      <h2 id="data-title" style={{ marginTop: 0 }}>{i18next.t("settings.yourDataAndPrivacy")}</h2>
       <p className="muted">
-        Everything you put in Hyperfocus is yours. <Link to="/privacy">Read what we keep and why</Link>.
+        {i18next.t("settings.everythingYouPutIn")} <Link to="/privacy">{i18next.t("settings.readWhatWeKeep")}</Link>.
       </p>
       <div className="row" style={{ marginTop: "var(--s-2)" }}>
-        <a className="btn" href="/api/export" download>⬇ Export my data</a>
-        <span className="muted tiny">Everything you saved, as one zip you can open: each list as readable JSON, plus your email files. Yours to keep or take elsewhere.</span>
+        <a className="btn" href="/api/export" download>{i18next.t("settings.exportMyData")}</a>
+        <span className="muted tiny">{i18next.t("settings.everythingYouSavedAs")}</span>
       </div>
       {prefs && (
         <div className="field" style={{ marginTop: "var(--s-3)" }}>
-          <div className="field-label" id="keep-chats">Delete AI chats older than</div>
+          <div className="field-label" id="keep-chats">{i18next.t("settings.deleteAiChatsOlder")}</div>
           <div className="seg" role="radiogroup" aria-labelledby="keep-chats">
             {KEEP.map(([days, label]) => (
               <button key={days} role="radio" aria-checked={prefs.chatKeepDays === days} className={prefs.chatKeepDays === days ? "on" : ""} onClick={() => save.mutate({ chatKeepDays: days })}>{label}</button>
             ))}
           </div>
-          <p className="muted tiny">Your conversations on Talk and your questions about books. Checked a few times a day.</p>
+          <p className="muted tiny">{i18next.t("settings.yourConversationsOnTalk")}</p>
         </div>
       )}
       {me?.mode === "cloud" && (
         <div style={{ marginTop: "var(--s-3)" }}>
           {!deleting ? (
-            <button className="ghost danger" onClick={() => setDeleting(true)}>Delete my account</button>
+            <button className="ghost danger" onClick={() => setDeleting(true)}>{i18next.t("settings.deleteMyAccount")}</button>
           ) : (
-            <form className="card warn-card" onSubmit={remove} aria-label="Delete my account">
-              <p><b>This deletes your account and everything in it, for good.</b> Your tasks, notes, posts, emails, files, chats, pet and settings. It can't be undone. Export your data first if you want to keep a copy.</p>
+            <form className="card warn-card" onSubmit={remove} aria-label={i18next.t("settings.deleteMyAccount")}>
+              <p><b>{i18next.t("settings.thisDeletesYourAccount")}</b> {i18next.t("settings.yourTasksNotesPosts")}</p>
               <div className="field">
-                <label htmlFor="del-confirm">Type DELETE to confirm</label>
+                <label htmlFor="del-confirm">{i18next.t("settings.typeDeleteToConfirm")}</label>
                 <input id="del-confirm" name="confirm" autoComplete="off" required />
               </div>
               <div className="field">
-                <label htmlFor="del-password">Your password</label>
+                <label htmlFor="del-password">{i18next.t("settings.yourPassword")}</label>
                 <input id="del-password" name="password" type="password" autoComplete="current-password" />
-                <p className="muted tiny">Made your account with Google? Leave this empty; you need to have signed in within the last 10 minutes.</p>
+                <p className="muted tiny">{i18next.t("settings.madeYourAccountWith")}</p>
               </div>
               {error && <p role="alert" className="error">{error}</p>}
               <div className="row">
-                <button className="danger" type="submit" disabled={busy}>{busy ? "Deleting…" : "Delete everything"}</button>
-                <button type="button" onClick={() => { setDeleting(false); setError(""); }}>Keep my account</button>
+                <button className="danger" type="submit" disabled={busy}>{busy ? i18next.t("settings.deleting") : i18next.t("settings.deleteEverything")}</button>
+                <button type="button" onClick={() => { setDeleting(false); setError(""); }}>{i18next.t("settings.keepMyAccount")}</button>
               </div>
             </form>
           )}

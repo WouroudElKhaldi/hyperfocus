@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import LanguageSwitch from "../../../components/LanguageSwitch.tsx";
 import MenuEditor from "../components/MenuEditor.tsx";
@@ -17,9 +19,9 @@ import YourData from "../components/YourData.tsx";
 
 // the choices for each accessibility setting, in the order they are shown (P3-18)
 const A11Y_OPTIONS: { key: Exclude<keyof A11y, "focusMode">; label: string; hint: string; choices: [string, string][] }[] = [
-  { key: "motion", label: "Movement", hint: "Always calm turns off every animation, whatever your computer is set to.", choices: [["auto", "Follow my computer"], ["reduce", "Always calm"]] },
-  { key: "font", label: "Font", hint: "Easy to read uses Atkinson Hyperlegible: letters that are hard to mix up.", choices: [["default", "Usual"], ["readable", "Easy to read"]] },
-  { key: "textSize", label: "Text size", hint: "Makes all the text bigger, on every page.", choices: [["normal", "Normal"], ["large", "Large"], ["larger", "Larger"]] },
+  { key: "motion", label: i18next.t("settings.movement"), hint: i18next.t("settings.alwaysCalmTurnsOff"), choices: [["auto", "Follow my computer"], ["reduce", "Always calm"]] },
+  { key: "font", label: i18next.t("settings.font"), hint: i18next.t("settings.easyToReadUses"), choices: [["default", "Usual"], ["readable", "Easy to read"]] },
+  { key: "textSize", label: i18next.t("settings.textSize"), hint: i18next.t("settings.makesAllTheText"), choices: [["normal", "Normal"], ["large", "Large"], ["larger", "Larger"]] },
 ];
 import { type QuoteSettings, readQuoteSettings, writeQuoteSettings } from "../../../components/Quotes.tsx";
 import { QUOTE_CATEGORIES } from "../../../data/quotes.ts";
@@ -28,6 +30,7 @@ const kb = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${
 const when = (d: string) => new Date(d).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export default function Backup() {
+  useTranslation(); // (re-renders this page when the language changes)
   const toast = useToast();
   const data = useBackups().data ?? { backups: [], folder: "" };
   const backup = useBackupNow();
@@ -47,11 +50,11 @@ export default function Backup() {
   }, []);
 
   const savePrefs = (patch: Parameters<typeof saveSettings.mutate>[0]) => saveSettings.mutate(patch);
-  const testNotification = () => notifyTest.mutate(undefined, { onSuccess: () => toast("Sent. Look at the corner of your screen 🔔") });
+  const testNotification = () => notifyTest.mutate(undefined, { onSuccess: () => toast(i18next.t("settings.sentLookAtThe")) });
   // cloud mode (P5-04): who is signed in, and signing out
   const me = useMe().data;
   const client = useQueryClient();
-  const backupNow = () => backup.mutate(undefined, { onSuccess: () => toast("Backup saved 💾 Everything you have right now is safe.") });
+  const backupNow = () => backup.mutate(undefined, { onSuccess: () => toast(i18next.t("settings.backupSavedEverythingYou")) });
 
   // your time zone, from this device, the first time (P5-11: quiet hours and the morning note use your clock)
   useEffect(() => {
@@ -63,14 +66,14 @@ export default function Backup() {
 
   return (
     <>
-      <h1>Settings</h1>
-      <p className="sub">Your reminders, plus a few things most people never need to change.</p>
+      <h1>{i18next.t("settings.settings")}</h1>
+      <p className="sub">{i18next.t("settings.yourRemindersPlusA")}</p>
 
       {me?.mode === "cloud" && me.user && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
             <div><b>Signed in as {me.user.name}</b><div className="muted">{me.user.email}</div></div>
-            <button onClick={() => void signOut(client)}>Sign out</button>
+            <button onClick={() => void signOut(client)}>{i18next.t("settings.signOut")}</button>
           </div>
         </div>
       )}
@@ -82,15 +85,15 @@ export default function Backup() {
       {me?.user?.role === "admin" && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <div><b>You are an admin</b><div className="muted">Services, people and feature flags for the whole app.</div></div>
-            <Link className="btn" to="/admin">Open the admin area</Link>
+            <div><b>{i18next.t("settings.youAreAnAdmin")}</b><div className="muted">{i18next.t("settings.servicesPeopleAndFeature")}</div></div>
+            <Link className="btn" to="/admin">{i18next.t("settings.openTheAdminArea")}</Link>
           </div>
         </div>
       )}
 
       <div className="card">
-        <h2>Easier to use</h2>
-        <p className="muted">Saved with your settings, so they stay the same next time.</p>
+        <h2>{i18next.t("settings.easierToUse")}</h2>
+        <p className="muted">{i18next.t("settings.savedWithYourSettings")}</p>
         <div className="form-grid">
           {A11Y_OPTIONS.map((o) => (
             <div key={o.key} className="field">
@@ -105,7 +108,7 @@ export default function Backup() {
           ))}
           <label className="row" style={{ gap: "var(--s-2)", cursor: "pointer" }}>
             <input type="checkbox" className="check" checked={!!prefs?.focusMode} disabled={!prefs} onChange={(e) => savePrefs({ focusMode: e.target.checked })} />
-            <span><b>Focus mode</b><span className="muted tiny" style={{ display: "block" }}>Hides the sidebar, so only the page is on screen. The top bar keeps an Exit button.</span></span>
+            <span><b>{i18next.t("settings.focusMode")}</b><span className="muted tiny" style={{ display: "block" }}>{i18next.t("settings.hidesTheSidebarSo")}</span></span>
           </label>
         </div>
       </div>
@@ -114,9 +117,9 @@ export default function Backup() {
 
       <div className="grid2">
         <div className="card">
-          <h2>Appearance</h2>
-          <p className="muted">Light, dark, all white, all black, or follow your device.</p>
-          <div className="seg" role="radiogroup" aria-label="Theme">
+          <h2>{i18next.t("settings.appearance")}</h2>
+          <p className="muted">{i18next.t("settings.lightDarkAllWhite")}</p>
+          <div className="seg" role="radiogroup" aria-label={i18next.t("settings.theme")}>
             {([["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["white", "All white"], ["black", "All black"]] as [ThemeMode, string][]).map(([k, l]) => (
               <button key={k} role="radio" aria-checked={theme === k} className={theme === k ? "on" : ""} onClick={() => pickTheme(k)}>{l}</button>
             ))}
@@ -126,21 +129,21 @@ export default function Backup() {
 
         <div className="card">
           <div className="row between">
-            <h2 style={{ margin: 0 }}>Gentle lines</h2>
+            <h2 style={{ margin: 0 }}>{i18next.t("settings.gentleLines")}</h2>
             <label className="row" style={{ gap: "var(--s-1)", cursor: "pointer" }}>
               <input type="checkbox" className="check" checked={quotes.on} onChange={(e) => saveQuotes({ on: e.target.checked })} />
-              <b>{quotes.on ? "On" : "Off"}</b>
+              <b>{quotes.on ? i18next.t("settings.on") : i18next.t("settings.off")}</b>
             </label>
           </div>
-          <p className="muted">A short kind line now and then while the app is open. It never steals focus.</p>
-          <More label="Customize" className="in-card">
+          <p className="muted">{i18next.t("settings.aShortKindLine")}</p>
+          <More label={i18next.t("settings.customize")} className="in-card">
           <div className="row">
-            <label className="muted">Every
+            <label className="muted">{i18next.t("settings.every")}
               <select style={{ margin: "0 var(--s-2)" }} value={quotes.everyMin} onChange={(e) => saveQuotes({ everyMin: Number(e.target.value) })}>
                 {[2, 3, 5, 10, 15, 30].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select> minutes
+              </select> {i18next.t("settings.minutes")}
             </label>
-            <button onClick={() => window.dispatchEvent(new Event("quote-now"))}>Show one now</button>
+            <button onClick={() => window.dispatchEvent(new Event("quote-now"))}>{i18next.t("settings.showOneNow")}</button>
           </div>
           <div className="chip-row" style={{ marginTop: "var(--s-2)" }}>
             {QUOTE_CATEGORIES.map((c) => (
@@ -159,99 +162,99 @@ export default function Backup() {
       {prefs && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2 style={{ margin: 0 }}>Automatic nudges</h2>
+            <h2 style={{ margin: 0 }}>{i18next.t("settings.automaticNudges")}</h2>
             <label className="row" style={{ gap: "var(--s-1)", cursor: "pointer" }}>
               <input type="checkbox" className="check" checked={prefs.reminders} onChange={(e) => savePrefs({ reminders: e.target.checked })} />
-              <b>{prefs.reminders ? "On" : "Off"}</b>
+              <b>{prefs.reminders ? i18next.t("settings.on") : i18next.t("settings.off")}</b>
             </label>
           </div>
-          <p className="muted">Gentle notifications the app sends by itself: breaks, scheduled posts and your morning plan. Your own reminders above always work.</p>
-          <More label="What and when" className="in-card">
+          <p className="muted">{i18next.t("settings.gentleNotificationsTheApp")}</p>
+          <More label={i18next.t("settings.whatAndWhen")} className="in-card">
           <ul className="muted" style={{ margin: "0 0 var(--s-2)", paddingLeft: "var(--s-4)" }}>
-            <li>A gentle nudge to take a break when you've been studying a long time</li>
-            <li>A heads-up 10 minutes before a scheduled post goes live</li>
-            <li>When a scheduled post went out, or didn't</li>
-            <li>A morning note about what's on for today</li>
+            <li>{i18next.t("settings.aGentleNudgeTo")}</li>
+            <li>{i18next.t("settings.aHeadsUp10")}</li>
+            <li>{i18next.t("settings.whenAScheduledPost")}</li>
+            <li>{i18next.t("settings.aMorningNoteAbout")}</li>
           </ul>
           <div className="row">
-            <label className="muted">Break nudge after
+            <label className="muted">{i18next.t("settings.breakNudgeAfter")}
               <input type="number" min="15" max="180" style={{ width: 70, margin: "0 var(--s-2)" }} value={breakEvery ?? prefs.breakEveryMin}
                 onChange={(e) => setBreakEvery(Number(e.target.value))}
-                onBlur={() => { if (breakEvery !== null) savePrefs({ breakEveryMin: breakEvery }); setBreakEvery(null); }} /> min of studying
+                onBlur={() => { if (breakEvery !== null) savePrefs({ breakEveryMin: breakEvery }); setBreakEvery(null); }} /> {i18next.t("settings.minOfStudying")}
             </label>
-            <label className="muted">Morning note at
+            <label className="muted">{i18next.t("settings.morningNoteAt")}
               <input type="time" style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.morningAt} onChange={(e) => savePrefs({ morningAt: e.target.value })} />
             </label>
-            <button onClick={testNotification}>Send a test notification</button>
+            <button onClick={testNotification}>{i18next.t("settings.sendATestNotification")}</button>
           </div>
-          {me?.mode !== "cloud" && <p className="muted tiny" style={{ marginTop: "var(--s-2)" }}>Don't see the pop-up? Check that Windows "Do not disturb" or "Focus" is off and that notifications are allowed in Windows settings.</p>}
+          {me?.mode !== "cloud" && <p className="muted tiny" style={{ marginTop: "var(--s-2)" }}>{i18next.t("settings.donTSeeThe")}</p>}
           </More>
         </div>
       )}
 
       {prefs && (
         <div className="card" aria-labelledby="notif-title">
-          <h2 id="notif-title" style={{ marginTop: 0 }}>Where notifications go</h2>
-          <p className="muted">Every notification is in the bell 🔔 at the top. These decide what also pops up.</p>
+          <h2 id="notif-title" style={{ marginTop: 0 }}>{i18next.t("settings.whereNotificationsGo")}</h2>
+          <p className="muted">{i18next.t("settings.everyNotificationIsIn")}</p>
           {me?.mode !== "cloud" && (
             <label className="row" style={{ gap: "var(--s-1)" }}>
               <input type="checkbox" className="check" checked={prefs.desktop} onChange={(e) => savePrefs({ desktop: e.target.checked })} />
-              Pop-ups on this computer
+              {i18next.t("settings.popUpsOnThis")}
             </label>
           )}
           <DevicePush />
           <div className="row" style={{ marginTop: "var(--s-2)" }}>
             <label className="row" style={{ gap: "var(--s-1)" }}>
               <input type="checkbox" className="check" checked={prefs.emailDigest} onChange={(e) => savePrefs({ emailDigest: e.target.checked })} />
-              A daily email with what you haven't seen
+              {i18next.t("settings.aDailyEmailWith")}
             </label>
             {prefs.emailDigest && (
-              <label className="muted">at
-                <input type="time" aria-label="Daily email time" style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.digestAt} onChange={(e) => savePrefs({ digestAt: e.target.value })} />
+              <label className="muted">{i18next.t("settings.at")}
+                <input type="time" aria-label={i18next.t("settings.dailyEmailTime")} style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.digestAt} onChange={(e) => savePrefs({ digestAt: e.target.value })} />
               </label>
             )}
           </div>
           {prefs.emailDigest && <p className="muted tiny">Sent to {me?.user?.email || "the email in your Profile"}, only on days with something unread.</p>}
           <div className="row" style={{ marginTop: "var(--s-2)" }}>
-            <label className="muted">Quiet from
-              <input type="time" aria-label="Quiet hours start" style={{ width: "auto", margin: "0 var(--s-1)" }} value={prefs.quietFrom} onChange={(e) => savePrefs({ quietFrom: e.target.value })} />
+            <label className="muted">{i18next.t("settings.quietFrom")}
+              <input type="time" aria-label={i18next.t("settings.quietHoursStart")} style={{ width: "auto", margin: "0 var(--s-1)" }} value={prefs.quietFrom} onChange={(e) => savePrefs({ quietFrom: e.target.value })} />
             </label>
-            <label className="muted">to
-              <input type="time" aria-label="Quiet hours end" style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.quietTo} onChange={(e) => savePrefs({ quietTo: e.target.value })} />
+            <label className="muted">{i18next.t("settings.to")}
+              <input type="time" aria-label={i18next.t("settings.quietHoursEnd")} style={{ width: "auto", marginLeft: "var(--s-1)" }} value={prefs.quietTo} onChange={(e) => savePrefs({ quietTo: e.target.value })} />
             </label>
-            {(prefs.quietFrom || prefs.quietTo) && <button className="ghost" onClick={() => savePrefs({ quietFrom: "", quietTo: "" })}>No quiet hours</button>}
+            {(prefs.quietFrom || prefs.quietTo) && <button className="ghost" onClick={() => savePrefs({ quietFrom: "", quietTo: "" })}>{i18next.t("settings.noQuietHours")}</button>}
           </div>
           <p className="muted tiny">During quiet hours nothing pops up; it all waits in the bell. Times are in your time zone: {prefs.timeZone || "this computer's"}.</p>
         </div>
       )}
 
-      <h2 style={{ marginTop: "var(--s-4)" }}>Backup</h2>
-      <p className="sub">Everything you save lives in the database on this computer. Backups keep copies of it.</p>
+      <h2 style={{ marginTop: "var(--s-4)" }}>{i18next.t("settings.backup")}</h2>
+      <p className="sub">{i18next.t("settings.everythingYouSaveLives")}</p>
 
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div>
-            <b>{newest ? `Last backup: ${when(newest.createdAt)}` : "No backup yet"}</b>
-            <div className="muted">The app also backs up by itself once a day and keeps the newest 30.</div>
+            <b>{newest ? `Last backup: ${when(newest.createdAt)}` : i18next.t("settings.noBackupYet")}</b>
+            <div className="muted">{i18next.t("settings.theAppAlsoBacks")}</div>
           </div>
-          <button className="primary big" disabled={busy} onClick={backupNow}>{busy ? "Saving…" : "Back up now"}</button>
+          <button className="primary big" disabled={busy} onClick={backupNow}>{busy ? i18next.t("settings.saving") : i18next.t("settings.backUpNow")}</button>
         </div>
       </div>
 
 
       <div className="card plain-more">
         <More label={`All my backups (${data.backups.length})`}>
-        {data.backups.length === 0 && <div className="empty">Nothing here yet.</div>}
+        {data.backups.length === 0 && <div className="empty">{i18next.t("settings.nothingHereYet")}</div>}
         {data.backups.length > 0 && (
           <table className="ptable">
-            <thead><tr><th>Date</th><th className="num">Size</th><th /></tr></thead>
+            <thead><tr><th>{i18next.t("settings.date")}</th><th className="num">{i18next.t("settings.size")}</th><th /></tr></thead>
             <tbody>
               {data.backups.map((b) => (
                 <tr key={b.name} style={{ cursor: "default" }}>
                   <td>{when(b.createdAt)}</td>
                   <td className="num muted">{kb(b.size)}</td>
                   <td className="nowrap" style={{ textAlign: "right" }}>
-                    <a href={`/api/backups/${b.name}/download`} download={b.name}>⬇ Download a copy</a>
+                    <a href={`/api/backups/${b.name}/download`} download={b.name}>{i18next.t("settings.downloadACopy")}</a>
                   </td>
                 </tr>
               ))}
@@ -263,18 +266,18 @@ export default function Backup() {
       </div>
 
       <div className="card plain-more">
-        <More label="Keeping backups safe, and how to restore">
-        <p className="muted">These backups live on the same computer. If the computer breaks, they go with it. Once in a while, use “Download a copy” and put the file on a USB stick or in cloud storage.</p>
-        <h3>Not included in a backup</h3>
+        <More label={i18next.t("settings.keepingBackupsSafeAnd")}>
+        <p className="muted">{i18next.t("settings.theseBackupsLiveOn")}</p>
+        <h3>{i18next.t("settings.notIncludedInA")}</h3>
         <ul className="muted" style={{ margin: "0 0 var(--s-2)", paddingLeft: "var(--s-4)" }}>
-          <li>Your secret keys (DeepSeek and others) in the <code>.env</code> files. Keep them in a password manager.</li>
-          <li>Your n8n workflow and LinkedIn connection. The workflow is also saved in the project's <code>n8n</code> folder; you would only need to sign in to LinkedIn again.</li>
+          <li>{i18next.t("settings.yourSecretKeysDeepseek")} <code>{i18next.t("settings.env")}</code> {i18next.t("settings.filesKeepThemIn")}</li>
+          <li>{i18next.t("settings.yourN8nWorkflowAnd")} <code>n8n</code> {i18next.t("settings.folderYouWouldOnly")}</li>
         </ul>
-        <h3>How to restore a backup</h3>
+        <h3>{i18next.t("settings.howToRestoreA")}</h3>
         <ol className="muted" style={{ margin: 0, paddingLeft: "var(--s-4)" }}>
-          <li>Close the app (run <code>scripts\stop-all.ps1</code>, or restart the computer and stop it before it starts).</li>
-          <li>In the project folder, run <code>pnpm db:restore backups\</code> followed by the backup's file name.</li>
-          <li>Start the app again. Or ask me and I'll do it with you.</li>
+          <li>{i18next.t("settings.closeTheAppRun")} <code>{i18next.t("settings.scriptsStopAllPs1")}</code>{i18next.t("settings.orRestartTheComputer")}</li>
+          <li>{i18next.t("settings.inTheProjectFolder")} <code>{i18next.t("settings.pnpmDbRestoreBackups")}</code> {i18next.t("settings.followedByTheBackup")}</li>
+          <li>{i18next.t("settings.startTheAppAgain")}</li>
         </ol>
         </More>
       </div>

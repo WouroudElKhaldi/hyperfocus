@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import type { MenuLayout } from "@hyperfocus/shared";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -67,19 +68,19 @@ export default function MenuEditor() {
 
   return (
     <section className="card" aria-labelledby="menu-editor">
-      <h2 id="menu-editor">Your menu</h2>
-      <p className="muted">Hide pages you don't need, put them in the order you like, and make your own groups. Saved with your account, on all your devices.</p>
+      <h2 id="menu-editor">{i18next.t("settings.yourMenu")}</h2>
+      <p className="muted">{i18next.t("settings.hidePagesYouDon")}</p>
       {layout.groups.map((g, gi) => (
         <fieldset key={g.id} className="menu-group" style={{ border: "1px solid var(--line)", borderRadius: 12, padding: "var(--s-2)", marginBottom: "var(--s-2)" }}>
           <legend className="sr-only">{groupName(g)}</legend>
           <div className="row" style={{ gap: 6 }}>
-            <label htmlFor={`grp-${g.id}`} className="sr-only">Name of the group {groupName(g)}</label>
+            <label htmlFor={`grp-${g.id}`} className="sr-only">{t("settings.menuGroupName", { name: groupName(g) })}</label>
             <input id={`grp-${g.id}`} className="grow" defaultValue={g.name} placeholder={groupName(g)} onBlur={(e) => { if (e.target.value !== g.name) rename(g.id, e.target.value); }} />
-            <button type="button" className="ghost" aria-label={`Move group ${groupName(g)} up`} disabled={gi === 0} onClick={() => moveGroup(gi, -1)}>↑</button>
-            <button type="button" className="ghost" aria-label={`Move group ${groupName(g)} down`} disabled={gi === layout.groups.length - 1} onClick={() => moveGroup(gi, 1)}>↓</button>
-            {g.items.length === 0 && <button type="button" className="ghost" onClick={() => removeGroup(g.id)}>Remove group</button>}
+            <button type="button" className="ghost" aria-label={t("settings.menuGroupUp", { name: groupName(g) })} disabled={gi === 0} onClick={() => moveGroup(gi, -1)}>↑</button>
+            <button type="button" className="ghost" aria-label={t("settings.menuGroupDown", { name: groupName(g) })} disabled={gi === layout.groups.length - 1} onClick={() => moveGroup(gi, 1)}>↓</button>
+            {g.items.length === 0 && <button type="button" className="ghost" onClick={() => removeGroup(g.id)}>{i18next.t("settings.removeGroup")}</button>}
           </div>
-          <ul className="plain" aria-label={`Pages in ${groupName(g)}`}>
+          <ul className="plain" aria-label={t("settings.menuPagesIn", { name: groupName(g) })}>
             {g.items.map((p, ii) => {
               const item = byPath.get(p);
               if (!item) return null;
@@ -87,14 +88,14 @@ export default function MenuEditor() {
               return (
                 <li key={p} className="row" style={{ gap: 6, opacity: off ? 0.55 : 1 }}>
                   <Icon name={item.icon} size={16} />
-                  <span className="grow">{label(item)}{off ? " (hidden)" : ""}</span>
-                  <button type="button" className="ghost" aria-label={`Move ${label(item)} up`} disabled={ii === 0} onClick={() => move(gi, ii, -1)}>↑</button>
-                  <button type="button" className="ghost" aria-label={`Move ${label(item)} down`} disabled={ii === g.items.length - 1} onClick={() => move(gi, ii, 1)}>↓</button>
-                  <label className="sr-only" htmlFor={`to-${p}`}>Group for {label(item)}</label>
+                  <span className="grow">{label(item)}{off ? t("settings.menuHidden") : ""}</span>
+                  <button type="button" className="ghost" aria-label={t("settings.menuItemUp", { name: label(item) })} disabled={ii === 0} onClick={() => move(gi, ii, -1)}>↑</button>
+                  <button type="button" className="ghost" aria-label={t("settings.menuItemDown", { name: label(item) })} disabled={ii === g.items.length - 1} onClick={() => move(gi, ii, 1)}>↓</button>
+                  <label className="sr-only" htmlFor={`to-${p}`}>{t("settings.menuGroupFor", { name: label(item) })}</label>
                   <select id={`to-${p}`} value={g.id} onChange={(e) => moveTo(p, e.target.value)}>
                     {layout.groups.map((x) => <option key={x.id} value={x.id}>{groupName(x)}</option>)}
                   </select>
-                  {p !== "/" && <button type="button" className="ghost" aria-pressed={off} onClick={() => toggle(p)}>{off ? `Show ${label(item)}` : `Hide ${label(item)}`}</button>}
+                  {p !== "/" && <button type="button" className="ghost" aria-pressed={off} onClick={() => toggle(p)}>{off ? t("settings.menuShow", { name: label(item) }) : t("settings.menuHide", { name: label(item) })}</button>}
                 </li>
               );
             })}
@@ -102,10 +103,10 @@ export default function MenuEditor() {
         </fieldset>
       ))}
       <form className="row" onSubmit={(e) => { e.preventDefault(); addGroup(); }}>
-        <label htmlFor="new-group" className="sr-only">New group</label>
-        <input id="new-group" className="grow" placeholder="New group, e.g. Work" maxLength={30} value={newGroup} onChange={(e) => setNewGroup(e.target.value)} />
-        <button type="submit" disabled={!newGroup.trim() || layout.groups.length >= 10}>Add group</button>
-        <button type="button" className="ghost" onClick={() => save.mutate({ menu: null })}>Back to the standard menu</button>
+        <label htmlFor="new-group" className="sr-only">{i18next.t("settings.newGroup")}</label>
+        <input id="new-group" className="grow" placeholder={i18next.t("settings.newGroupEG")} maxLength={30} value={newGroup} onChange={(e) => setNewGroup(e.target.value)} />
+        <button type="submit" disabled={!newGroup.trim() || layout.groups.length >= 10}>{i18next.t("settings.addGroup")}</button>
+        <button type="button" className="ghost" onClick={() => save.mutate({ menu: null })}>{i18next.t("settings.backToTheStandard")}</button>
       </form>
     </section>
   );
