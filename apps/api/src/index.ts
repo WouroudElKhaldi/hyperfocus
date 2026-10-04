@@ -20,7 +20,7 @@ import { backgroundJobs } from "./jobs/index.ts";
 import { pgBossScheduler } from "./jobs/pgboss.ts";
 import { createServer } from "./server.ts";
 import { log } from "./log.ts";
-import { ai as sharedAi, aiReady } from "./ai.ts";
+import { ai as sharedAi, aiReady, usePersonSource } from "./ai.ts";
 import { limitedAi } from "./ai-quota.ts";
 
 // DEMO_MODE is for showing the app to someone else. config.ts blanks every secret in the demo, and they are also removed
@@ -57,6 +57,8 @@ const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: accoun
 // The key that seals each person's tokens (P5-07): SECRETS_KEYS, or in local mode a key file made once next to the API.
 const secrets = config.secretsKeys ? keyRing(config.secretsKeys) : localKeyRing(fileURLToPath(new URL("../secrets.key", import.meta.url)));
 // AI daily limits on the app's own key (P5-10)
+// the AI's prompts describe whoever is asking, from their own profile (their job title, what they wrote about themselves)
+usePersonSource(async () => await prisma.profile.findFirst({ select: { name: true, role: true, location: true, about: true, helps: true } }));
 const ai = limitedAi(sharedAi, prisma, config.aiDailyLimit);
 // Web push keys (P5-11): from the settings, or in local mode a pair made once next to the API
 const vapid = DEMO ? null : vapidFrom(config.vapid, config.mode === "local" ? fileURLToPath(new URL("../vapid.json", import.meta.url)) : null);

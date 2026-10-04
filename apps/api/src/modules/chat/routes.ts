@@ -30,21 +30,18 @@ async function adoptOldMessages(prisma: Db) {
   await prisma.chatMessage.updateMany({ where: { threadId: null }, data: { threadId: th.id } });
 }
 
-/** A little context about her day, so the replies fit. It is used lightly and never shown back. */
+/** A little context about their day, so the replies fit. It is used lightly and never shown back. (Who they are, from
+ * their profile, reaches the prompt through the AI gateway.) */
 async function dayContext(prisma: Db) {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
-  const [tasks, today, running, prof] = await Promise.all([
+  const [tasks, today, running] = await Promise.all([
     prisma.task.findMany({ where: { done: false, OR: [{ today: true }, { dueDay: new Date().toISOString().slice(0, 10) }] }, take: 5 }),
     prisma.studySession.findMany({ where: { startedAt: { gte: start }, endedAt: { not: null } } }),
     prisma.studySession.findFirst({ where: { endedAt: null } }),
-    prisma.profile.findFirst(),
   ]);
   const studied = Math.round(today.reduce((t, x) => t + activeMs(x) / 60000, 0));
-  const about = prof
-    ? `. Her name is ${prof.name || "(not given)"}${prof.role ? `; she works as ${prof.role}` : ""}${prof.about ? `; about her: ${prof.about}` : ""}${prof.helps ? `; what helps her, in her own words: ${prof.helps}` : ""}`
-    : "";
-  return `it is ${new Date().toLocaleString("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit" })}; studied today: ${studied} min${running ? " (a study session is running now)" : ""}; tasks for today: ${tasks.map((t) => t.title).join("; ") || "none listed"}${about}`;
+  return `it is ${new Date().toLocaleString("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit" })}; studied today: ${studied} min${running ? " (a study session is running now)" : ""}; tasks for today: ${tasks.map((t) => t.title).join("; ") || "none listed"}`;
 }
 
 const ChatReply = z

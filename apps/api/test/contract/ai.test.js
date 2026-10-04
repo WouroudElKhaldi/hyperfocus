@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { fake, ok, post } from "../support/api.js";
+import { fake, get, ok, post, put } from "../support/api.js";
 
 describe("AI helpers", () => {
   afterEach(() => fake.reset("ai"));
@@ -16,6 +16,21 @@ describe("AI helpers", () => {
     expect(req.headers.authorization).toBe("Bearer test-key");
     expect(req.body.response_format).toEqual({ type: "json_object" });
     expect(req.body.model).toEqual(expect.any(String));
+  });
+
+  it("the prompt describes whoever is asking, from their profile (their job title), never a fixed person", async () => {
+    const before = await ok(get("/api/profile"));
+    await ok(put("/api/profile", { role: "Pharmacy student", location: "Saida" }));
+    try {
+      await ok(post("/api/ai/rewrite", { thought: "x" }));
+      const [req] = await fake.requests("ai");
+      const system = req.body.messages[0].content;
+      expect(system).toContain('"Pharmacy student"');
+      expect(system).toContain("based in Saida");
+      expect(system).not.toMatch(/software engineer|SE Square|21-year-old|{{PERSON}}/i);
+    } finally {
+      await ok(put("/api/profile", { role: before.role, location: before.location }));
+    }
   });
 
   it("edits a draft with an instruction, keeping the original thought in the prompt", async () => {

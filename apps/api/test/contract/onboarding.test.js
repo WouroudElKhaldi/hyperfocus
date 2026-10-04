@@ -27,6 +27,8 @@ describe("welcome guide", () => {
     expect(done).toEqual({ filterId: expect.any(Number), next: "/radar" });
     const me = await ana.json("GET", "/api/me");
     expect(me).toMatchObject({ onboarded: true, user: { name: "Ana María" } });
+    // what they study becomes their title (the AI fits its help to it)
+    expect(await ana.json("GET", "/api/profile")).toMatchObject({ name: "Ana María", role: "Computer Science student" });
     const filters = await ana.json("GET", "/api/job-filters");
     expect(filters).toHaveLength(1);
     expect(filters[0].name).toBe("Computer Science jobs");

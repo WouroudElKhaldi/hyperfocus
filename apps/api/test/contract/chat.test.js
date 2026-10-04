@@ -60,7 +60,7 @@ describe("support chat: crisis safeguard", () => {
   it("sends the AI the instructions for this moment, including the lifeline", async () => {
     await ok(post("/api/chat", { message: "I don't want to be alive anymore" }));
     const [req] = (await fake.requests("ai")).slice(-1);
-    expect(req.body.messages[0].content).toMatch(/hurting herself[\s\S]*1564/);
+    expect(req.body.messages[0].content).toMatch(/hurting themselves[\s\S]*1564/);
   });
 
   it("flags a temporary chat too", async () => {

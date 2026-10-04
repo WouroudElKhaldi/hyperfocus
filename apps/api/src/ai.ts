@@ -1,4 +1,4 @@
-import { type AiGateway, type AiProvider, createAiGateway, deepSeek } from "@hyperfocus/ai";
+import { type AiGateway, type AiProvider, createAiGateway, deepSeek, type Person } from "@hyperfocus/ai";
 import { appAi, own } from "./credentials.ts";
 import { config } from "./config.ts";
 import { log } from "./log.ts";
@@ -25,7 +25,15 @@ function personalDeepSeek(): AiProvider {
 /** Is the AI usable for the person asking (their key or the app's)? */
 export const aiReady = () => !personalDeepSeek().unavailable();
 
+/** Who is asking, for the prompts: their own profile (set once at start-up; read inside their request, so the
+ * tenancy guard returns their row). Without it the prompts describe them in general terms. */
+let personSource: (() => Promise<Person | null>) | null = null;
+export const usePersonSource = (source: (() => Promise<Person | null>) | null) => {
+  personSource = source;
+};
+
 export const ai: AiGateway = createAiGateway({
+  person: async () => (personSource ? await personSource() : null),
   provider: personalDeepSeek(), // DEEPSEEK_URL overrides the address only for tests
   disabled: config.demo ? "The AI is switched off in this demo, so nobody can spend someone else's credits." : undefined,
   onRetry: ({ template, attempt, error }) => log.warn({ template, attempt, err: error.message }, "AI call failed, trying again"),

@@ -1,3 +1,4 @@
+import { describePerson, fillPerson, PERSON, type Person } from "./person.ts";
 import type { JsonTemplate, TextTemplate } from "./template.ts";
 import { AiError, type AiMessage, type AiProvider } from "./types.ts";
 
@@ -17,6 +18,8 @@ export type GatewayOptions = {
   retryDelayMs?: number;
   /** Told about each failed attempt that will be retried. */
   onRetry?: (info: { template: string; attempt: number; error: AiError }) => void;
+  /** Who is asking (their profile), for the prompts' PERSON slot; missing = described in general terms. */
+  person?: () => Promise<Person | null>;
 };
 
 export type CallOptions = { temperature?: number; name?: string };
@@ -32,11 +35,13 @@ export type AiGateway = {
 const UNREADABLE = "AI returned something I couldn't read. Try again.";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function createAiGateway({ provider, disabled, timeoutMs = 90_000, retries = 2, retryDelayMs = 500, onRetry }: GatewayOptions): AiGateway {
-  async function complete(name: string, messages: AiMessage[], temperature: number, json: boolean): Promise<string> {
+export function createAiGateway({ provider, disabled, timeoutMs = 90_000, retries = 2, retryDelayMs = 500, onRetry, person }: GatewayOptions): AiGateway {
+  async function complete(name: string, given: AiMessage[], temperature: number, json: boolean): Promise<string> {
     if (disabled) throw new AiError(403, disabled);
     const why = provider.unavailable();
     if (why) throw new AiError(400, why);
+    // the person the prompt is about: whoever is asking, from their own profile
+    const messages = given.some((m) => m.content.includes(PERSON)) ? fillPerson(given, describePerson(await person?.().catch(() => null))) : given;
     for (let attempt = 0; ; attempt++) {
       const signal = AbortSignal.timeout(timeoutMs);
       try {

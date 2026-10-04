@@ -41,6 +41,12 @@ export function onboardingRouter({ prisma, events }: AppDeps) {
         }
       }
       await prisma.user.update({ where: { id }, data: { name, helpWith: [...new Set(helpWith)], onboardedAt: new Date() } });
+      // their profile: the name, and what they study as their title when they haven't given one (the AI fits its help to it)
+      const field = fieldCode ? await prisma.fieldOfStudy.findUnique({ where: { code: fieldCode }, select: { title: true } }) : null;
+      const profile = await prisma.profile.findFirst();
+      const role = !profile?.role && field ? `${field.title} student` : undefined;
+      if (profile) await prisma.profile.update({ where: { id: profile.id }, data: { name, ...(role ? { role } : {}) } });
+      else await prisma.profile.create({ data: { name, ...(role ? { role } : {}) } });
       const first = ORDER.find((h) => helpWith.includes(h));
       return c.json({ filterId, next: first ? START[first] : "/" }, 200);
     },
