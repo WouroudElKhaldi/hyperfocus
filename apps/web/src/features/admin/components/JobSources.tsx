@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../../../api.ts";
@@ -7,10 +9,11 @@ import { keyOf } from "../../../api/query.ts";
 // Job sources (P6-18): how each one is doing, switch it off or on, check it soon, add a company's Greenhouse or Lever
 // job board. A board read from its web pages (no API) needs its written permission recorded before it can be switched on.
 
-const STATUS = { ok: "✅ working", failing: "⚠️ failing", waiting: "⏳ not checked yet", off: "⏸ off" } as const;
+const STATUS = { ok: i18next.t("admin.working"), failing: i18next.t("admin.failing"), waiting: i18next.t("admin.notCheckedYet"), off: i18next.t("admin.off") } as const;
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "never");
 
 export default function JobSources() {
+  useTranslation(); // (re-renders this page when the language changes)
   const sources = useApi("/admin/job-sources").data ?? [];
   const client = useQueryClient();
   const refresh = () => client.invalidateQueries({ queryKey: keyOf("/admin/job-sources") });
@@ -25,10 +28,10 @@ export default function JobSources() {
 
   return (
     <div className="card">
-      <h2>Job sources</h2>
-      <p className="muted">Where Job Radar gets its postings. Each is checked by itself, as often as its terms allow.</p>
+      <h2>{i18next.t("admin.jobSources")}</h2>
+      <p className="muted">{i18next.t("admin.whereJobRadarGets")}</p>
       <table className="table">
-        <thead><tr><th>Source</th><th>State</th><th>Last check</th><th>Shown now</th><th>New this week</th><th /></tr></thead>
+        <thead><tr><th>{i18next.t("admin.source")}</th><th>{i18next.t("admin.state")}</th><th>{i18next.t("admin.lastCheck")}</th><th>{i18next.t("admin.shownNow")}</th><th>{i18next.t("admin.newThisWeek")}</th><th /></tr></thead>
         <tbody>
           {sources.map((s) => (
             <tr key={s.id}>
@@ -42,8 +45,8 @@ export default function JobSources() {
                   ) : (
                     <form className="row" onSubmit={(e) => { e.preventDefault(); const p = (allowed[s.id] ?? "").trim(); if (p) change.mutate({ id: s.id, permission: p }); }}>
                       <label htmlFor={`perm-${s.id}`} className="sr-only">Permission for {s.name}</label>
-                      <input id={`perm-${s.id}`} placeholder="Who allowed it, and when" value={allowed[s.id] ?? ""} onChange={(e) => setAllowed({ ...allowed, [s.id]: e.target.value })} />
-                      <button type="submit">Record permission</button>
+                      <input id={`perm-${s.id}`} placeholder={i18next.t("admin.whoAllowedItAnd")} value={allowed[s.id] ?? ""} onChange={(e) => setAllowed({ ...allowed, [s.id]: e.target.value })} />
+                      <button type="submit">{i18next.t("admin.recordPermission")}</button>
                     </form>
                   )
                 )}
@@ -52,8 +55,8 @@ export default function JobSources() {
               <td>{s.postings}</td>
               <td>{s.newThisWeek}</td>
               <td className="row">
-                <button disabled={change.isPending || (s.permission === "" && !s.enabled)} title={s.permission === "" ? "Record the board's permission first" : undefined} onClick={() => change.mutate({ id: s.id, enabled: !s.enabled })}>{s.enabled ? "Switch off" : "Switch on"}</button>
-                {s.enabled && <button className="ghost" disabled={change.isPending} onClick={() => change.mutate({ id: s.id, checkSoon: true })}>Check soon</button>}
+                <button disabled={change.isPending || (s.permission === "" && !s.enabled)} title={s.permission === "" ? i18next.t("admin.recordTheBoardS") : undefined} onClick={() => change.mutate({ id: s.id, enabled: !s.enabled })}>{s.enabled ? i18next.t("admin.switchOff") : i18next.t("admin.switchOn")}</button>
+                {s.enabled && <button className="ghost" disabled={change.isPending} onClick={() => change.mutate({ id: s.id, checkSoon: true })}>{i18next.t("admin.checkSoon")}</button>}
               </td>
             </tr>
           ))}
@@ -66,14 +69,14 @@ export default function JobSources() {
           if (board.trim()) add.mutate({ kind, board: board.trim() }, { onSuccess: () => setBoard("") });
         }}
       >
-        <label htmlFor="src-kind" className="sr-only">Kind of job board</label>
+        <label htmlFor="src-kind" className="sr-only">{i18next.t("admin.kindOfJobBoard")}</label>
         <select id="src-kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
           <option value="greenhouse">Greenhouse</option>
           <option value="lever">Lever</option>
         </select>
-        <label htmlFor="src-board" className="sr-only">Board name</label>
+        <label htmlFor="src-board" className="sr-only">{i18next.t("admin.boardName")}</label>
         <input id="src-board" placeholder={kind === "greenhouse" ? "name in boards.greenhouse.io/<name>" : "name in jobs.lever.co/<name>"} value={board} onChange={(e) => setBoard(e.target.value)} />
-        <button type="submit" disabled={add.isPending}>Add job board</button>
+        <button type="submit" disabled={add.isPending}>{i18next.t("admin.addJobBoard")}</button>
       </form>
     </div>
   );

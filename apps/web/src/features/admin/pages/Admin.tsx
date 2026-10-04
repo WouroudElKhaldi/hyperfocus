@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -11,9 +13,10 @@ import JobSources from "../components/JobSources.tsx";
 // The admin area (P5-06): which outside services are connected, the people with accounts (make someone an admin), and
 // feature flags switched on or off for everyone, the job sources (P6-18) and the job list (P6-09). Only admins see the link; the API says 403 to anyone else anyway.
 
-const yes = (on: boolean) => (on ? "✅ connected" : "— not set up");
+const yes = (on: boolean) => (on ? i18next.t("admin.connected") : i18next.t("admin.notSetUp"));
 
 export default function Admin() {
+  useTranslation(); // (re-renders this page when the language changes)
   const me = useMe().data;
   const admin = me?.user?.role === "admin";
   const providers = useApi("/admin/providers", { enabled: admin }).data;
@@ -37,37 +40,37 @@ export default function Admin() {
   if (me && !admin) {
     return (
       <>
-        <h1>Admin</h1>
-        <p className="sub">Only admins can open this page.</p>
-        <Link className="btn primary" to="/">Back to Today</Link>
+        <h1>{i18next.t("admin.admin")}</h1>
+        <p className="sub">{i18next.t("admin.onlyAdminsCanOpen")}</p>
+        <Link className="btn primary" to="/">{i18next.t("admin.backToToday")}</Link>
       </>
     );
   }
 
   return (
     <>
-      <h1>Admin</h1>
-      <p className="sub">The whole app: connected services, people, and features switched on for everyone.</p>
+      <h1>{i18next.t("admin.admin")}</h1>
+      <p className="sub">{i18next.t("admin.theWholeAppConnected")}</p>
 
       <div className="card">
-        <h2>Services</h2>
+        <h2>{i18next.t("admin.services")}</h2>
         {providers && (
           <ul className="plain">
-            <li>Mode: <b>{providers.mode}</b></li>
-            <li>AI: {yes(providers.ai)}</li>
-            <li>LinkedIn posting: {yes(providers.linkedin)}</li>
-            <li>Email: {yes(providers.email)}</li>
-            <li>Sign in with Google: {yes(providers.google)}</li>
-            <li>Uploaded files are kept in: <b>{providers.fileStorage}</b></li>
-            <li>Accounts: <b>{providers.people}</b></li>
+            <li>{i18next.t("admin.mode")} <b>{providers.mode}</b></li>
+            <li>{i18next.t("admin.ai")} {yes(providers.ai)}</li>
+            <li>{i18next.t("admin.linkedinPosting")} {yes(providers.linkedin)}</li>
+            <li>{i18next.t("admin.emailLine")} {yes(providers.email)}</li>
+            <li>{i18next.t("admin.googleSignIn")} {yes(providers.google)}</li>
+            <li>{i18next.t("admin.uploadedFilesAreKept")} <b>{providers.fileStorage}</b></li>
+            <li>{i18next.t("admin.accounts")} <b>{providers.people}</b></li>
           </ul>
         )}
       </div>
 
       <div className="card">
-        <h2>People</h2>
+        <h2>{i18next.t("admin.people")}</h2>
         <table className="table">
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th /></tr></thead>
+          <thead><tr><th>{i18next.t("admin.name")}</th><th>{i18next.t("admin.email")}</th><th>{i18next.t("admin.role")}</th><th /></tr></thead>
           <tbody>
             {people.map((p) => (
               <tr key={p.id}>
@@ -77,7 +80,7 @@ export default function Admin() {
                 <td>
                   {p.id !== me?.user?.id && (
                     <button disabled={setRole.isPending} onClick={() => setRole.mutate({ id: p.id, role: p.role === "admin" ? "user" : "admin" })}>
-                      {p.role === "admin" ? "Make a user" : "Make an admin"}
+                      {p.role === "admin" ? i18next.t("admin.makeAUser") : i18next.t("admin.makeAnAdmin")}
                     </button>
                   )}
                 </td>
@@ -88,8 +91,8 @@ export default function Admin() {
       </div>
 
       <div className="card">
-        <h2>Feature flags</h2>
-        <p className="muted">A feature that is switched on here is on for everyone.</p>
+        <h2>{i18next.t("admin.featureFlags")}</h2>
+        <p className="muted">{i18next.t("admin.aFeatureThatIs")}</p>
         {flags.map((f) => (
           <label key={f.key} className="row">
             <input type="checkbox" checked={f.enabled} onChange={(e) => setFlag.mutate({ key: f.key, enabled: e.target.checked })} />
@@ -105,9 +108,9 @@ export default function Admin() {
             if (key) setFlag.mutate({ key, enabled: true }, { onSuccess: () => setNewFlag("") });
           }}
         >
-          <label htmlFor="new-flag" className="sr-only">New flag</label>
-          <input id="new-flag" placeholder="new-feature-name" value={newFlag} pattern="[a-z0-9][a-z0-9\-]*" onChange={(e) => setNewFlag(e.target.value)} />
-          <button type="submit">Add and switch on</button>
+          <label htmlFor="new-flag" className="sr-only">{i18next.t("admin.newFlag")}</label>
+          <input id="new-flag" placeholder={i18next.t("admin.newFeatureName")} value={newFlag} pattern="[a-z0-9][a-z0-9\-]*" onChange={(e) => setNewFlag(e.target.value)} />
+          <button type="submit">{i18next.t("admin.addAndSwitchOn")}</button>
         </form>
       </div>
 

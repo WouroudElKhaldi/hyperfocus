@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -7,20 +9,22 @@ import { useMajors } from "../../radar/index.ts";
 import { useMe } from "../api.ts";
 
 // The welcome guide (P5-05): three short screens for someone new. One question each, big buttons, skippable at any
-// point, and everything can be changed later. Finishing it sets things up: "Find jobs" makes their Job Radar filter
+// point, and everything can be changed later. Finishing it sets things up: i18next.t("account.findJobs") makes their Job Radar filter
 // from what they study, their job title (or the job they want) brings the skills it needs to their Skills page, and
 // they land on the page that fits what they picked.
 
+// (labels in the language files: the label key is beside each choice)
 const HELP = [
-  ["focus", "🎯 Getting started and staying focused"],
-  ["tasks", "✅ Keeping track of what to do"],
-  ["study", "📚 Studying and exams"],
-  ["jobs", "💼 Finding internships and jobs"],
-  ["habits", "🌱 Building habits and goals"],
+  ["focus", "h1"],
+  ["tasks", "h2"],
+  ["study", "h3"],
+  ["jobs", "h4"],
+  ["habits", "h5"],
 ] as const;
 type Help = (typeof HELP)[number][0];
 
 export default function Welcome() {
+  useTranslation(); // (re-renders this page when the language changes)
   const me = useMe().data;
   const majors = useMajors().data ?? [];
   const client = useQueryClient();
@@ -36,7 +40,7 @@ export default function Welcome() {
   };
   const finish = useMutation({
     mutationFn: async () => {
-      const done = (await api.post("/onboarding", { name: name.trim() || (me?.user?.name ?? "Me"), fieldCode: field?.code ?? null, helpWith: help })) as { next: string };
+      const done = (await api.post("/onboarding", { name: name.trim() || (me?.user?.name ?? i18next.t("account.me")), fieldCode: field?.code ?? null, helpWith: help })) as { next: string };
       if (job) await api.put("/skills/job", { code: job.code }); // the skills their job needs, on the Skills page
       return done;
     },
@@ -50,59 +54,59 @@ export default function Welcome() {
       <p className="muted" aria-live="polite">Step {step} of 3</p>
       {step === 1 && (
         <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
-          <h1 id="welcome-title">Welcome! What should we call you?</h1>
+          <h1 id="welcome-title">{i18next.t("account.welcomeWhatShouldWe")}</h1>
           <div className="field">
-            <label htmlFor="welcome-name">Your name</label>
+            <label htmlFor="welcome-name">{i18next.t("account.yourName")}</label>
             <input id="welcome-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <button className="primary" type="submit" disabled={!name.trim()}>Next</button>
+          <button className="primary" type="submit" disabled={!name.trim()}>{i18next.t("account.next")}</button>
         </form>
       )}
       {step === 2 && (
         <>
-          <h1 id="welcome-title">What do you study, or what's your job?</h1>
-          <p className="muted">It helps us suggest internships, jobs and the skills they need. Fill in one, both, or skip.</p>
+          <h1 id="welcome-title">{i18next.t("account.whatDoYouStudy")}</h1>
+          <p className="muted">{i18next.t("account.itHelpsUsSuggest")}</p>
           <fieldset className="row" style={{ gap: 6, flexWrap: "wrap", border: 0, padding: 0 }}>
-            <legend className="sr-only">Majors</legend>
+            <legend className="sr-only">{i18next.t("account.majors")}</legend>
             {majors.map((m) => (
               <button key={m.code} type="button" className={`chip ${field?.code === m.code ? "on" : ""}`} aria-pressed={field?.code === m.code} onClick={() => setField(field?.code === m.code ? null : { code: m.code, label: m.label })}>{m.label}</button>
             ))}
           </fieldset>
           <div style={{ margin: "12px 0" }}>
-            <TaxonomyPicker kind="field" label="Another field of study" placeholder="Not listed? Type it…" onPick={(it) => setField({ code: it.code, label: it.label })} />
+            <TaxonomyPicker kind="field" label={i18next.t("account.anotherFieldOfStudy")} placeholder={i18next.t("account.notListedTypeIt")} onPick={(it) => setField({ code: it.code, label: it.label })} />
           </div>
-          {field && <p>Picked: <b>{field.label}</b></p>}
+          {field && <p>{i18next.t("account.picked")} <b>{field.label}</b></p>}
           <div style={{ margin: "12px 0" }}>
-            <TaxonomyPicker kind="occupation" label="Your job, or the job you want" placeholder="Type a job: nurse, accountant, developer…" onPick={(it) => setJob({ code: it.code, label: it.label })} />
+            <TaxonomyPicker kind="occupation" label={i18next.t("account.yourJobOrThe")} placeholder={i18next.t("account.typeAJobNurse")} onPick={(it) => setJob({ code: it.code, label: it.label })} />
           </div>
-          {job && <p>Your job: <b>{job.label}</b></p>}
+          {job && <p>{i18next.t("account.yourJob")} <b>{job.label}</b></p>}
           <div className="row">
-            <button type="button" onClick={() => setStep(1)}>Back</button>
-            <button type="button" className="primary" onClick={() => setStep(3)}>{field || job ? "Next" : "Skip this"}</button>
+            <button type="button" onClick={() => setStep(1)}>{i18next.t("account.back")}</button>
+            <button type="button" className="primary" onClick={() => setStep(3)}>{field || job ? i18next.t("account.next") : i18next.t("account.skipThis")}</button>
           </div>
         </>
       )}
       {step === 3 && (
         <>
-          <h1 id="welcome-title">What do you want help with?</h1>
-          <p className="muted">Pick any. You can use everything anyway.</p>
+          <h1 id="welcome-title">{i18next.t("account.whatDoYouWant")}</h1>
+          <p className="muted">{i18next.t("account.pickAnyYouCan")}</p>
           <fieldset style={{ border: 0, padding: 0 }}>
-            <legend className="sr-only">Help with</legend>
+            <legend className="sr-only">{i18next.t("account.helpWith")}</legend>
             {HELP.map(([key, label]) => (
               <label key={key} className="row" style={{ padding: "6px 0" }}>
                 <input type="checkbox" checked={help.includes(key)} onChange={() => toggle(key)} />
-                <span>{label}</span>
+                <span>{i18next.t(`account.${label}`)}</span>
               </label>
             ))}
           </fieldset>
-          {help.includes("jobs") && field && me?.radar && <p className="muted">We'll start Job Radar with {field.label} jobs for you.</p>}
+          {help.includes("jobs") && field && me?.radar && <p className="muted">{i18next.t("account.startJobRadar", { field: field.label })}</p>}
           <div className="row">
-            <button type="button" onClick={() => setStep(2)}>Back</button>
-            <button type="button" className="primary" disabled={finish.isPending} onClick={() => finish.mutate()}>Let's go</button>
+            <button type="button" onClick={() => setStep(2)}>{i18next.t("account.back")}</button>
+            <button type="button" className="primary" disabled={finish.isPending} onClick={() => finish.mutate()}>{i18next.t("account.letSGo")}</button>
           </div>
         </>
       )}
-      <p style={{ marginTop: 16 }}><button type="button" className="ghost" disabled={skip.isPending} onClick={() => skip.mutate()}>Skip the welcome</button></p>
+      <p style={{ marginTop: 16 }}><button type="button" className="ghost" disabled={skip.isPending} onClick={() => skip.mutate()}>{i18next.t("account.skipTheWelcome")}</button></p>
     </section>
   );
 }

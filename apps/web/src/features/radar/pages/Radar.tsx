@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMe } from "../../account/index.ts";
@@ -8,7 +10,7 @@ import MatchCard from "../components/MatchCard.tsx";
 import { type Filter, useFilters, useMajors, useMatches, useRadarActions, useRadarStatus, useSaved } from "../api.ts";
 
 // Job Radar (P6-27, P6-28, P6-31), ADHD-first: today's top 5 and nothing else until you ask for more. No filter yet?
-// One question: "I study ___" (one click), or build your own. Empty and edge states say what to do, not just "nothing".
+// One question: i18next.t("radar.iStudy") (one click), or build your own. Empty and edge states say what to do, not just "nothing".
 
 const TOP = 5;
 
@@ -18,12 +20,12 @@ function Start() {
   const { fromPreset, create } = useRadarActions();
   const [building, setBuilding] = useState(false);
   const groups = [...new Set(majors.map((m) => m.group))];
-  const start = (code: string, label: string) => fromPreset.mutate(code, { onSuccess: () => toast(`Looking for ${label} jobs for you 📡`) });
+  const start = (code: string, label: string) => fromPreset.mutate(code, { onSuccess: () => toast(i18next.t("radar.lookingFor", { label })) });
   if (building) return <FilterBuilder onSave={(name, spec) => create.mutate({ name, spec }, { onSuccess: () => setBuilding(false) })} onCancel={() => setBuilding(false)} busy={create.isPending} />;
   return (
     <div className="card" aria-labelledby="radar-start">
-      <h2 id="radar-start" style={{ marginTop: 0 }}>What do you study?</h2>
-      <p className="muted">Pick it, and Job Radar looks for internships and first jobs it leads to, with the skills they ask for. You can change everything later.</p>
+      <h2 id="radar-start" style={{ marginTop: 0 }}>{i18next.t("radar.whatDoYouStudy")}</h2>
+      <p className="muted">{i18next.t("radar.pickItAndJob")}</p>
       {groups.map((g) => (
         <section key={g} aria-label={g}>
           <div className="field-label">{g}</div>
@@ -35,8 +37,8 @@ function Start() {
         </section>
       ))}
       <div className="row" style={{ marginTop: 8 }}>
-        <TaxonomyPicker kind="field" label="Another field of study" placeholder="Not listed? Type your field of study…" onPick={(it) => start(it.code, it.label)} />
-        <button onClick={() => setBuilding(true)}>Build my own filter</button>
+        <TaxonomyPicker kind="field" label={i18next.t("radar.anotherFieldOfStudy")} placeholder={i18next.t("radar.notListedTypeYour")} onPick={(it) => start(it.code, it.label)} />
+        <button onClick={() => setBuilding(true)}>{i18next.t("radar.buildMyOwnFilter")}</button>
       </div>
     </div>
   );
@@ -57,8 +59,8 @@ function FilterRow({ f }: { f: Filter }) {
         <span><b>{f.name}</b>{what && <small className="muted"> · {what}</small>}</span>
       </label>
       <span className="row" style={{ gap: 4 }}>
-        <button className="ghost" onClick={() => setEditing(true)}>Change</button>
-        <button className="ghost" onClick={() => remove.mutate(f.id)} aria-label={`Delete ${f.name}`}>Delete</button>
+        <button className="ghost" onClick={() => setEditing(true)}>{i18next.t("radar.change")}</button>
+        <button className="ghost" onClick={() => remove.mutate(f.id)} aria-label={`Delete ${f.name}`}>{i18next.t("radar.delete")}</button>
       </span>
     </li>
   );
@@ -69,9 +71,9 @@ function Empty() {
   const when = status?.lastCheckedAt ? new Date(status.lastCheckedAt).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : null;
   return (
     <div className="card empty-state" role="status">
-      <b>No matches yet.</b>
+      <b>{i18next.t("radar.noMatchesYet")}</b>
       {status && status.sources === 0 ? (
-        <p className="muted">No job sources are switched on. An admin adds them in the admin area.</p>
+        <p className="muted">{i18next.t("radar.noJobSourcesAre")}</p>
       ) : status && status.trouble.length > 0 ? (
         <p className="muted">{status.trouble.join(", ")} had trouble on the last check; Job Radar tries again by itself.</p>
       ) : (
@@ -82,12 +84,13 @@ function Empty() {
 }
 
 export default function Radar() {
+  useTranslation(); // (re-renders this page when the language changes)
   const me = useMe().data;
   if (me && !me.radar) {
     return (
       <>
-        <h1>Job Radar</h1>
-        <p className="sub">Job Radar is still being tested. For now, add the jobs you find in <Link to="/jobs">Job applications</Link>.</p>
+        <h1>{i18next.t("radar.jobRadar")}</h1>
+        <p className="sub">{i18next.t("radar.jobRadarIsStill")} <Link to="/jobs">{i18next.t("radar.jobApplications")}</Link>.</p>
       </>
     );
   }
@@ -102,7 +105,7 @@ function RadarPage() {
   const [more, setMore] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  if (filters.isPending) return <div className="empty" role="status">Loading…</div>;
+  if (filters.isPending) return <div className="empty" role="status">{i18next.t("radar.loading")}</div>;
   const list = filters.data ?? [];
   const items = matches?.items ?? [];
   const top = items.slice(0, TOP);
@@ -110,36 +113,36 @@ function RadarPage() {
 
   return (
     <>
-      <h1>Job Radar</h1>
-      <p className="sub">Jobs that fit you, from free job sites, with why they fit. Apply in one click: it goes to your Job applications.</p>
+      <h1>{i18next.t("radar.jobRadar")}</h1>
+      <p className="sub">{i18next.t("radar.jobsThatFitYou")}</p>
       {list.length === 0 ? (
         <Start />
       ) : (
         <>
-          <h2>Top picks today</h2>
+          <h2>{i18next.t("radar.topPicksToday")}</h2>
           {top.length === 0 ? <Empty /> : top.map((m) => <MatchCard key={m.id} match={m} />)}
           {rest.length > 0 && (
             <>
-              <button className="ghost" aria-expanded={more} onClick={() => setMore(!more)}>{more ? "Show fewer" : `More (${rest.length})`}</button>
+              <button className="ghost" aria-expanded={more} onClick={() => setMore(!more)}>{more ? i18next.t("radar.showFewer") : `More (${rest.length})`}</button>
               {more && rest.map((m) => <MatchCard key={m.id} match={m} />)}
             </>
           )}
           {saved.length > 0 && (
             <details className="card plain-more">
-              <summary>Saved for later ({saved.length})</summary>
+              <summary>{i18next.t("radar.savedForLater", { count: saved.length })}</summary>
               {saved.map((m) => <MatchCard key={m.id} match={m} />)}
             </details>
           )}
           <section className="card" aria-labelledby="radar-filters">
-            <h2 id="radar-filters" style={{ marginTop: 0 }}>Your filters</h2>
+            <h2 id="radar-filters" style={{ marginTop: 0 }}>{i18next.t("radar.yourFilters")}</h2>
             <ul className="plain">{list.map((f) => <FilterRow key={f.id} f={f} />)}</ul>
             {adding ? (
               <FilterBuilder busy={create.isPending} onCancel={() => setAdding(false)} onSave={(name, spec) => create.mutate({ name, spec }, { onSuccess: () => setAdding(false) })} />
             ) : (
-              <button onClick={() => setAdding(true)}>Add a filter</button>
+              <button onClick={() => setAdding(true)}>{i18next.t("radar.addAFilter")}</button>
             )}
           </section>
-          <p className="muted tiny">Jobs come from Arbeitnow and company job boards (Greenhouse, Lever); each card names its source and links to the original.</p>
+          <p className="muted tiny">{i18next.t("radar.jobsComeFromArbeitnow")}</p>
         </>
       )}
     </>
