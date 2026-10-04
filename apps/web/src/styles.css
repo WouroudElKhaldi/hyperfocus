@@ -609,3 +609,23 @@ select.chip { width: auto; border: 0; padding: var(--s-1) var(--s-3); cursor: po
 .aboutme-q > legend { font-weight: 600; margin-bottom: var(--s-1); padding: 0; }
 .aboutme-q .chip-row .trait { min-height: 40px; }
 .aboutme-private { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: var(--s-2) var(--s-3); font-size: .85rem; color: var(--ink-2); }
+
+/* Tabs (Settings, Profile, the connections guide): one idea at a time, big targets, the open one clearly marked */
+.tab-row { display: flex; gap: var(--s-1); flex-wrap: wrap; margin: var(--s-2) 0 var(--s-3); padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; }
+.tab-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 var(--s-3); border-radius: 10px; background: transparent; color: var(--ink-2); font-weight: 600; border: 0; }
+.tab-btn.on { background: var(--surface); color: var(--accent-strong); box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+.tab-btn:hover:not(.on) { background: var(--accent-soft); transform: none; }
+.tab-hint { margin: 0 0 var(--s-3); }
+@media (max-width: 640px) { .tab-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .tab-btn { flex: none; } }
+/* the "set this up first" note at the top of a page */
+.setup-note { display: flex; gap: var(--s-2); align-items: flex-start; background: var(--warn-soft, #fff6e0); color: var(--ink); border: 1px solid var(--warn, #f0c36a); border-radius: 14px; padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
+.setup-note ul { margin: var(--s-1) 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.setup-note a.btn { min-height: 36px; }
+/* the connections guide's step diagram */
+.flow { margin: var(--s-2) 0 var(--s-3); }
+.flow ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: stretch; }
+.flow li { position: relative; display: flex; align-items: center; gap: 8px; background: var(--accent-soft); color: var(--ink); border-radius: 12px; padding: 10px 14px; font-weight: 600; flex: 1 1 140px; max-width: 220px; }
+.flow li:not(:last-child)::after { content: "→"; position: absolute; inset-inline-end: -19px; color: var(--accent-strong); font-weight: 800; font-size: 1.1rem; }
+[dir="rtl"] .flow li:not(:last-child)::after { content: "←"; }
+.flow-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-size: .8rem; }
+.flow figcaption { margin-top: var(--s-2); }

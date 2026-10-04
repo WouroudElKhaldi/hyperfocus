@@ -1,4 +1,5 @@
 import i18next from "i18next";
+import { Tabs, useHashTab } from "../../../components/Tabs.tsx";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import LanguageSwitch from "../../../components/LanguageSwitch.tsx";
@@ -29,6 +30,9 @@ import { QUOTE_CATEGORIES } from "../../../data/quotes.ts";
 const kb = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 const when = (d: string) => new Date(d).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
+// the tabs, in the order they show (their labels are built in the page, in the chosen language)
+const TAB_IDS = [{ id: "account", label: "" }, { id: "connections", label: "" }, { id: "look", label: "" }, { id: "notify", label: "" }, { id: "backup", label: "" }];
+
 export default function Backup() {
   useTranslation(); // (re-renders this page when the language changes)
   const toast = useToast();
@@ -41,6 +45,7 @@ export default function Backup() {
   const [breakEvery, setBreakEvery] = useState<number | null>(null); // while typing; saved when you leave the box
   const [theme, setThemeState] = useState(getTheme());
   const [quotes, setQuotes] = useState(readQuoteSettings());
+  const [tab, setTab] = useHashTab(TAB_IDS, "account");
   const saveQuotes = (patch: Partial<QuoteSettings>) => { const next = { ...quotes, ...patch }; setQuotes(next); writeQuoteSettings(next); };
   const pickTheme = (t: ThemeMode) => { setThemeState(t); setTheme(t); };
   useEffect(() => {
@@ -64,11 +69,21 @@ export default function Backup() {
 
   const newest = data.backups[0];
 
+  const tabs = [
+    { id: "account", icon: "👤", label: i18next.t("settings.tabAccount"), hint: i18next.t("settings.tabAccountHint") },
+    { id: "connections", icon: "🔌", label: i18next.t("settings.tabConnections"), hint: i18next.t("settings.tabConnectionsHint") },
+    { id: "look", icon: "🎨", label: i18next.t("settings.tabLook"), hint: i18next.t("settings.tabLookHint") },
+    { id: "notify", icon: "🔔", label: i18next.t("settings.tabNotify"), hint: i18next.t("settings.tabNotifyHint") },
+    { id: "backup", icon: "💾", label: i18next.t("settings.tabBackup"), hint: i18next.t("settings.tabBackupHint") },
+  ];
   return (
     <>
       <h1>{i18next.t("settings.settings")}</h1>
       <p className="sub">{i18next.t("settings.yourRemindersPlusA")}</p>
 
+      <Tabs label={i18next.t("settings.settings")} tabs={tabs} value={tab} onChange={setTab}>
+      {tab === "account" && (
+        <>
       {me?.mode === "cloud" && me.user && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
@@ -78,10 +93,7 @@ export default function Backup() {
         </div>
       )}
 
-      <Connections />
-
       <YourData />
-
       {me?.user?.role === "admin" && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
@@ -91,30 +103,15 @@ export default function Backup() {
         </div>
       )}
 
-      <div className="card">
-        <h2>{i18next.t("settings.easierToUse")}</h2>
-        <p className="muted">{i18next.t("settings.savedWithYourSettings")}</p>
-        <div className="form-grid">
-          {A11Y_OPTIONS.map((o) => (
-            <div key={o.key} className="field">
-              <div className="field-label" id={`a11y-${o.key}`}>{o.label}</div>
-              <div className="seg" role="radiogroup" aria-labelledby={`a11y-${o.key}`}>
-                {o.choices.map(([v, l]) => (
-                  <button key={v} role="radio" aria-checked={prefs?.[o.key] === v} className={prefs?.[o.key] === v ? "on" : ""} disabled={!prefs} onClick={() => savePrefs({ [o.key]: v })}>{l}</button>
-                ))}
-              </div>
-              <p className="muted tiny">{o.hint}</p>
-            </div>
-          ))}
-          <label className="row" style={{ gap: "var(--s-2)", cursor: "pointer" }}>
-            <input type="checkbox" className="check" checked={!!prefs?.focusMode} disabled={!prefs} onChange={(e) => savePrefs({ focusMode: e.target.checked })} />
-            <span><b>{i18next.t("settings.focusMode")}</b><span className="muted tiny" style={{ display: "block" }}>{i18next.t("settings.hidesTheSidebarSo")}</span></span>
-          </label>
-        </div>
-      </div>
-
-      <MenuEditor />
-
+        </>
+      )}
+      {tab === "connections" && (
+        <>
+      <Connections />
+        </>
+      )}
+      {tab === "look" && (
+        <>
       <div className="grid2">
         <div className="card">
           <h2>{i18next.t("settings.appearance")}</h2>
@@ -157,6 +154,33 @@ export default function Backup() {
         </div>
       </div>
 
+      <div className="card">
+        <h2>{i18next.t("settings.easierToUse")}</h2>
+        <p className="muted">{i18next.t("settings.savedWithYourSettings")}</p>
+        <div className="form-grid">
+          {A11Y_OPTIONS.map((o) => (
+            <div key={o.key} className="field">
+              <div className="field-label" id={`a11y-${o.key}`}>{o.label}</div>
+              <div className="seg" role="radiogroup" aria-labelledby={`a11y-${o.key}`}>
+                {o.choices.map(([v, l]) => (
+                  <button key={v} role="radio" aria-checked={prefs?.[o.key] === v} className={prefs?.[o.key] === v ? "on" : ""} disabled={!prefs} onClick={() => savePrefs({ [o.key]: v })}>{l}</button>
+                ))}
+              </div>
+              <p className="muted tiny">{o.hint}</p>
+            </div>
+          ))}
+          <label className="row" style={{ gap: "var(--s-2)", cursor: "pointer" }}>
+            <input type="checkbox" className="check" checked={!!prefs?.focusMode} disabled={!prefs} onChange={(e) => savePrefs({ focusMode: e.target.checked })} />
+            <span><b>{i18next.t("settings.focusMode")}</b><span className="muted tiny" style={{ display: "block" }}>{i18next.t("settings.hidesTheSidebarSo")}</span></span>
+          </label>
+        </div>
+      </div>
+
+      <MenuEditor />
+        </>
+      )}
+      {tab === "notify" && (
+        <>
       <MyReminders />
 
       {prefs && (
@@ -228,6 +252,10 @@ export default function Backup() {
         </div>
       )}
 
+        </>
+      )}
+      {tab === "backup" && (
+        <>
       <h2 style={{ marginTop: "var(--s-4)" }}>{i18next.t("settings.backup")}</h2>
       <p className="sub">{i18next.t("settings.everythingYouSaveLives")}</p>
 
@@ -281,6 +309,9 @@ export default function Backup() {
         </ol>
         </More>
       </div>
+        </>
+      )}
+      </Tabs>
     </>
   );
 }

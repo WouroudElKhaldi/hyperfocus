@@ -1,7 +1,7 @@
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { Link } from "@tanstack/react-router";
+import { Tabs, useHashTab } from "../../../components/Tabs.tsx";
 
 // "How do I get this?" (P5-07c, at your request): step-by-step guides for the three connections, written for people
 // who don't work in tech. Each part of Settings → Your connections links to its section here (#ai, #gmail, #linkedin).
@@ -10,15 +10,33 @@ function Steps({ children }: { children: React.ReactNode }) {
   return <ol className="guide-steps">{children}</ol>;
 }
 
+/** The whole path at a glance, before the details: numbered boxes joined by arrows (they wrap on a phone). */
+function Flow({ steps, time, cost }: { steps: string[]; time: string; cost: string }) {
+  return (
+    <figure className="flow" aria-label={i18next.t("help.flowLabel")}>
+      <ol>
+        {steps.map((st, i) => (
+          <li key={st}><span className="flow-n" aria-hidden="true">{i + 1}</span><span>{st}</span></li>
+        ))}
+      </ol>
+      <figcaption className="row" style={{ gap: "var(--s-2)" }}><span className="chip">⏱ {time}</span><span className="chip">💳 {cost}</span></figcaption>
+    </figure>
+  );
+}
+
+const TAB_IDS = [{ id: "ai", label: "" }, { id: "gmail", label: "" }, { id: "linkedin", label: "" }, { id: "linkedin-n8n", label: "" }];
+const t = (k: string) => i18next.t(`help.${k}` as "help.flowLabel");
+
 export default function ConnectionsHelp() {
   useTranslation(); // (re-renders this page when the language changes)
-  const hash = useRouterState({ select: (s) => s.location.hash });
-  // open at the section you came for (after the page's own "back to the top" when it opens)
-  useEffect(() => {
-    if (!hash) return;
-    const t = setTimeout(() => document.getElementById(hash)?.scrollIntoView({ block: "start" }), 50);
-    return () => clearTimeout(t);
-  }, [hash]);
+  // one guide at a time; the address's #part opens the one you came for (Settings links to #ai, #gmail, …)
+  const [tab, setTab] = useHashTab(TAB_IDS, "ai");
+  const tabs = [
+    { id: "ai", icon: "🤖", label: t("tabAi") },
+    { id: "gmail", icon: "✉️", label: t("tabGmail") },
+    { id: "linkedin", icon: "💼", label: t("tabLinkedin") },
+    { id: "linkedin-n8n", icon: "🔁", label: t("tabN8n") },
+  ];
 
   return (
     <div className="guide">
@@ -26,12 +44,12 @@ export default function ConnectionsHelp() {
       <p className="sub">
         {i18next.t("settings.threeShortGuidesOne")} <Link to="/backup">{i18next.t("settings.settingsYourConnections")}</Link>{i18next.t("settings.noTechnicalKnowledgeNeeded")}
       </p>
-      <nav className="card" aria-label={i18next.t("settings.guides")}>
-        <b>{i18next.t("settings.jumpTo")}</b> <a href="#ai">{i18next.t("settings.theAiDeepseekKey")}</a> · <a href="#gmail">{i18next.t("settings.emailGmail")}</a> · <a href="#linkedin">{i18next.t("settings.linkedinPosting")}</a> · <a href="#linkedin-n8n">{i18next.t("settings.linkedinThroughN8n")}</a>
-      </nav>
+      <Tabs label={i18next.t("settings.guides")} tabs={tabs} value={tab} onChange={setTab}>
 
+      {tab === "ai" && (
       <section id="ai" className="card" aria-labelledby="ai-title">
         <h2 id="ai-title">{i18next.t("settings.n1TheAiYour")}</h2>
+        <Flow steps={[t("aiS1"), t("aiS2"), t("aiS3"), t("aiS4"), t("aiS5")]} time={t("aiTime")} cost={t("aiCost")} />
         <p>
           {i18next.t("settings.theAiWritesAnd")} <b>{i18next.t("settings.timeNeededAbout5")}</b> {i18next.t("settings.deepseekChargesVeryLittle")}
         </p>
@@ -46,9 +64,12 @@ export default function ConnectionsHelp() {
         </Steps>
         <p className="muted">{i18next.t("settings.doneWhenItSays")} <i>{i18next.t("settings.connectedKeyEndingIn")}</i>{i18next.t("settings.toStopUsingIt")} <b>{i18next.t("settings.disconnect")}</b>{i18next.t("settings.youCanAlsoDelete")}</p>
       </section>
+      )}
 
+      {tab === "gmail" && (
       <section id="gmail" className="card" aria-labelledby="gmail-title">
         <h2 id="gmail-title">{i18next.t("settings.n2EmailSendFrom")}</h2>
+        <Flow steps={[t("gmS1"), t("gmS2"), t("gmS3"), t("gmS4")]} time={t("gmTime")} cost={t("free")} />
         <p>
           {i18next.t("settings.soTheEmailsYou")}
         </p>
@@ -74,9 +95,12 @@ export default function ConnectionsHelp() {
         </details>
         <p className="muted">{i18next.t("settings.toStopClick")} <b>{i18next.t("settings.disconnect")}</b> {i18next.t("settings.inHyperfocusAndYou")}</p>
       </section>
+      )}
 
+      {tab === "linkedin" && (
       <section id="linkedin" className="card" aria-labelledby="linkedin-title">
         <h2 id="linkedin-title">{i18next.t("settings.n3LinkedinPostingYour")}</h2>
+        <Flow steps={[t("liS1"), t("liS2"), t("liS3"), t("liS4"), t("liS5")]} time={t("liTime")} cost={t("free")} />
         <p>
           {i18next.t("settings.soHyperfocusCanPublish")} <b>{i18next.t("settings.timeNeededAbout10")}</b>
         </p>
@@ -113,9 +137,12 @@ export default function ConnectionsHelp() {
           {i18next.t("settings.linkedinAsksYouTo3")}
         </p>
       </section>
+      )}
 
+      {tab === "linkedin-n8n" && (
       <section id="linkedin-n8n" className="card" aria-labelledby="linkedin-n8n-title">
         <h2 id="linkedin-n8n-title">{i18next.t("settings.n4OrLinkedinThrough")}</h2>
+        <Flow steps={[t("n8S1"), t("n8S2"), t("n8S3"), t("n8S4"), t("n8S5")]} time={t("n8Time")} cost={t("free")} />
         <p className="muted">
           {i18next.t("settings.onlyIfYouAlready")} <code>{i18next.t("settings.https")}</code> {i18next.t("settings.addressOneRunningOnly")}
         </p>
@@ -168,7 +195,9 @@ export default function ConnectionsHelp() {
           </ul>
         </details>
       </section>
+      )}
 
+      </Tabs>
       <p className="muted">
         {i18next.t("settings.stuckAnywayEverythingStill")}
       </p>

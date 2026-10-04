@@ -1,3 +1,4 @@
+import { useMissing } from "../../../components/SetupNotice.tsx";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
@@ -32,6 +33,7 @@ async function uploadFile(emailId: string | undefined, file: File, inline: boole
 
 export default function EmailEditor() {
   const { t } = useTranslation();
+  const gmailReady = useMissing(["gmail"]).length === 0; // (the note at the top says what to set up)
   const { id } = useParams({ from: "/emails/$id" });
   const nav = useNavigate();
   const toast = useToast();
@@ -222,7 +224,7 @@ export default function EmailEditor() {
         {!locked && (
           <>
             <div className="row email-actions">
-              <button className="primary big" disabled={!!busy} onClick={send}>{busy === "send" ? t("email.sending") : t("email.send")}</button>
+              <button className="primary big" disabled={!!busy || !gmailReady} onClick={send}>{busy === "send" ? t("email.sending") : t("email.send")}</button>
               <button disabled={!!busy} onClick={polish} title={t("email.fixHint")}>{busy === "polish" ? t("email.working") : t("email.fix")}</button>
               <button className="ghost" disabled={!history.length} onClick={undoPolish}>{t("email.undoFix")}</button>
               <span className="tabs-gap" />

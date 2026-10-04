@@ -174,7 +174,7 @@ test.describe("app-wide", () => {
   });
 
   test("the theme can be switched to dark and back to light", async ({ page }) => {
-    await page.goto("/backup");
+    await page.goto("/backup#look");
     await page.getByRole("radiogroup", { name: "Theme" }).getByRole("radio", { name: "Dark" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await page.getByRole("radiogroup", { name: "Theme" }).getByRole("radio", { name: "Light" }).click();
@@ -234,7 +234,7 @@ test.describe("main action on each page", () => {
   });
 
   test("Settings: make a backup", async ({ page }) => {
-    await page.goto("/backup");
+    await page.goto("/backup#backup");
     await page
       .getByRole("button", { name: /Back up/ })
       .first()
@@ -411,7 +411,7 @@ test.describe("Calendar and Reminders share their data", () => {
     await page.getByRole("button", { name: "In 1 hour" }).click();
     await expect(page.getByText(/I'll remind you: (Today|Tomorrow)/)).toBeVisible();
     await expect(page.locator(".rem-list").getByText("E2E drink water")).toBeVisible();
-    await page.goto("/backup");
+    await page.goto("/backup#notify");
     await expect(page.locator(".rem-list").getByText("E2E drink water")).toBeVisible();
     await page.getByRole("button", { name: "Delete reminder E2E drink water" }).click();
     await expect(page.getByText("E2E drink water")).toHaveCount(0);
@@ -629,7 +629,7 @@ test.describe("Emails keep their data", () => {
 
   test.describe(() => {
     test.use({ allowedConsoleErrors: [/status of 400/] });
-    test("a draft autosaves, a refused send says why and keeps the text", async ({ page }) => {
+    test("a draft autosaves; without Gmail the page says so up front and Send waits (owner, 2026-10-04)", async ({ page }) => {
       await page.goto("/emails");
       await page.getByRole("button", { name: "+ New email" }).click();
       await expect(page).toHaveURL(/\/emails\/\d+/);
@@ -639,8 +639,11 @@ test.describe("Emails keep their data", () => {
       await page.waitForTimeout(1200); // autosave runs 800 ms after typing stops
       await page.reload();
       await expect(page.getByPlaceholder("What is it about?")).toHaveValue("E2E subject");
-      await page.getByRole("button", { name: /Send/ }).first().click();
-      await expect(page.getByText(/^Gmail isn't set up: add your Gmail address and App Password in Settings → Connections./)).toBeVisible();
+      // told before pressing anything, with the one place to fix it; Send can't be pressed yet
+      const note = page.getByRole("note").filter({ hasText: "Before some buttons here work" });
+      await expect(note).toContainText("Connect your Gmail");
+      await expect(note.getByRole("link", { name: "Connect Gmail" })).toHaveAttribute("href", "/backup#connections");
+      await expect(page.getByRole("button", { name: "✉️ Send" })).toBeDisabled();
       await expect(page.getByPlaceholder("What is it about?")).toHaveValue("E2E subject");
       await expect(page.getByPlaceholder("What is it about?")).toBeEnabled(); // still a draft
     });
@@ -746,7 +749,7 @@ test.describe("Chat, Wins, Profile and Settings keep their data", () => {
   });
 
   test("a setting is kept after a reload", async ({ page }) => {
-    await page.goto("/backup");
+    await page.goto("/backup#notify");
     await page.getByText("What and when").click();
     const morning = page.locator("label").filter({ hasText: "Morning note at" }).locator("input");
     await morning.fill("07:45");
@@ -868,7 +871,7 @@ test.describe("accessibility settings", () => {
   test.afterEach(({ request }) => request.patch("/api/settings", { data: DEFAULTS })); // never leak into other tests
 
   test("calm motion, easy-read font, larger text and focus mode apply at once and follow you to a new browser", async ({ page, browser }) => {
-    await page.goto("/backup");
+    await page.goto("/backup#look");
     const html = page.locator("html");
     await page.getByRole("radiogroup", { name: "Movement" }).getByRole("radio", { name: "Always calm" }).click();
     await expect(html).toHaveAttribute("data-motion", "reduce");

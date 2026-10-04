@@ -34,6 +34,7 @@ export const usePersonSource = (source: (() => Promise<Person | null>) | null) =
 
 export const ai: AiGateway = createAiGateway({
   person: async () => (personSource ? await personSource() : null),
+  requireProfile: config.mode === "cloud", // (local mode: the owner alone, as before)
   provider: personalDeepSeek(), // DEEPSEEK_URL overrides the address only for tests
   disabled: config.demo ? "The AI is switched off in this demo, so nobody can spend someone else's credits." : undefined,
   onRetry: ({ template, attempt, error }) => log.warn({ template, attempt, err: error.message }, "AI call failed, trying again"),

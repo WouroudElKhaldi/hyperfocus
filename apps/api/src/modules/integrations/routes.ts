@@ -65,7 +65,7 @@ export function integrationsRouter({ prisma, secrets, config, log }: AppDeps) {
       responses: { 302: { description: "Back to Settings, with ?connected=linkedin or ?connect-error=…" } },
     }),
     async (c) => {
-      const back = (q: string) => c.redirect(`/backup?${q}`, 302);
+      const back = (q: string) => c.redirect(`/backup?${q}#connections`, 302);
       const fail = (m: string) => back(`connect-error=${encodeURIComponent(m)}&for=linkedin`);
       const { code, state, error } = c.req.valid("query");
       const nonce = getCookie(c, LI_NONCE);

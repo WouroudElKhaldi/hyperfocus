@@ -33,7 +33,7 @@ test("Today: tasks for today (picked or due today), today's events, and a Study 
 });
 
 test("two more themes: all white and all black, from Settings; the top-bar switch flips between them (P3-26)", async ({ page }) => {
-  await page.goto("/backup");
+  await page.goto("/backup#look");
   const themes = page.getByRole("radiogroup", { name: "Theme" });
   const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
@@ -54,7 +54,7 @@ test("two more themes: all white and all black, from Settings; the top-bar switc
 });
 
 test("your menu: hide a page, make a group and move a page into it, then back to the standard menu (P3-27)", async ({ page }) => {
-  await page.goto("/backup");
+  await page.goto("/backup#look");
   const editor = page.getByRole("region", { name: "Your menu" });
   const sidebar = page.getByRole("navigation", { name: /main/i }).first();
   await expect(sidebar.getByRole("link", { name: "Books" })).toBeVisible();
@@ -73,7 +73,7 @@ test("your menu: hide a page, make a group and move a page into it, then back to
 });
 
 test("four languages: French, standard and Lebanese Arabic (right to left), back to English (P3-28)", async ({ page }) => {
-  await page.goto("/backup");
+  await page.goto("/backup#look");
   const sidebar = page.getByRole("navigation").first();
   await page.locator("#lang-settings").selectOption("fr");
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");

@@ -2,11 +2,14 @@ import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { type FormEvent, useEffect, useState } from "react";
 import { useToast } from "../../../App.tsx";
+import { Tabs, useHashTab } from "../../../components/Tabs.tsx";
 import { type AboutMe, aboutMeOf, BrainQuestions, PronounsQuestion, SituationQuestion, StudyQuestions, StyleQuestions } from "../../../components/AboutMe.tsx";
 import { initialsOf, useProfile, useSaveProfile } from "../hooks/useProfile.ts";
 import { PALETTE_GROUPS, type Palette, paletteTokens } from "../../../palettes.ts";
 import type { Profile as ProfileData } from "../../../types.ts";
 import { getPalette, setPalette } from "../../../theme.ts";
+
+const TAB_IDS = [{ id: "you", label: "" }, { id: "about-me", label: "" }, { id: "colors", label: "" }];
 
 const FIELDS = ["name", "role", "location", "email", "linkedin", "about", "helps", "avatar"] as const;
 type Form = Record<(typeof FIELDS)[number], string>;
@@ -41,6 +44,7 @@ export default function Profile() {
   const saveProfile = useSaveProfile();
   const busy = saveProfile.isPending;
   const [palette, setPal] = useState(getPalette());
+  const [tab, setTab] = useHashTab(TAB_IDS, "you");
 
   useEffect(() => { if (saved && !f) setF(formOf(saved)); }, [saved]);
 
@@ -64,6 +68,12 @@ export default function Profile() {
       <h1>{i18next.t("profile.yourProfile")}</h1>
       <p className="sub">{i18next.t("profile.yourInfoSavedOn")}</p>
 
+      <Tabs label={i18next.t("profile.yourProfile")} tabs={[
+        { id: "you", icon: "👤", label: i18next.t("profile.tabYou"), hint: i18next.t("profile.tabYouHint") },
+        { id: "about-me", icon: "🧠", label: i18next.t("profile.tabAboutMe"), hint: i18next.t("profile.tabAboutMeHint") },
+        { id: "colors", icon: "🎨", label: i18next.t("profile.tabColors") },
+      ]} value={tab} onChange={setTab}>
+      {tab === "you" && (
       <form className="profile-grid" onSubmit={save}>
         <div className="card profile-card">
           <div className="avatar big-avatar" style={{ background: f.avatar }} aria-hidden="true">{initialsOf(f.name)}</div>
@@ -92,9 +102,11 @@ export default function Profile() {
           </div>
         </div>
       </form>
+      )}
 
-      {saved && <AboutMeCard saved={saved} />}
+      {tab === "about-me" && saved && <AboutMeCard saved={saved} />}
 
+      {tab === "colors" && (
       <section className="card theme-card" aria-labelledby="theme-h">
         <h2 id="theme-h">{i18next.t("profile.siteColor")}</h2>
         <p className="muted">{i18next.t("profile.pickTheMainColor")}</p>
@@ -112,6 +124,8 @@ export default function Profile() {
           </div>
         ))}
       </section>
+      )}
+      </Tabs>
     </>
   );
 }

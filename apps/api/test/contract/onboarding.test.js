@@ -70,6 +70,17 @@ describe("welcome guide", () => {
     expect((await ana.json("GET", "/api/profile")).neuro).toEqual([]);
   });
 
+  it("the AI waits for a filled-in profile: /api/me says so, and an AI call explains what to do (owner, 2026-10-04)", async () => {
+    const lee = await signUp(api, `lee-${stamp}@example.com`, "Lee", { profile: false });
+    expect((await lee.json("GET", "/api/me")).profileReady).toBe(false);
+    await lee.json("PUT", "/api/integrations/deepseek", { apiKey: "sk-lee-own-key-123456" }); // (their own key: only the profile is missing)
+    const refused = await lee.call("POST", "/api/ai/steps", { task: "Plan my week" });
+    expect(refused.status).toBe(400);
+    expect((await refused.json()).error).toMatch(/^Fill in your profile first/);
+    await lee.json("PUT", "/api/profile", { name: "Lee", studyLevel: "master" });
+    expect((await lee.json("GET", "/api/me")).profileReady).toBe(true);
+  });
+
   it("without jobs no filter is made; skipping works; a wrong field is refused", async () => {
     expect((await sam.call("POST", "/api/onboarding", { name: "Sam", fieldCode: "physics", helpWith: [] })).status).toBe(400);
     expect((await sam.call("POST", "/api/onboarding", { name: "", helpWith: [] })).status).toBe(400);

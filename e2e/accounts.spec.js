@@ -47,12 +47,13 @@ test.describe("accounts @cloud", () => {
     await expect(page.getByText("Only admins can open this page.")).toBeVisible();
 
     // sign out from Settings
-    await page.goto("/backup");
-    await expect(page.getByText("Signed in as Robin Example")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open the admin area" })).toHaveCount(0);
     // the owner's AI key isn't shared (the default): no shared-key line, the AI asks for your own key
+    await page.goto("/backup#connections");
     await expect(page.getByTestId("ai-usage")).toHaveCount(0);
     await expect(page.getByRole("region", { name: "AI (DeepSeek)" }).getByLabel("DeepSeek API key")).toBeVisible();
+    await page.getByRole("tab", { name: /Account/ }).click();
+    await expect(page.getByText("Signed in as Robin Example")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Open the admin area" })).toHaveCount(0);
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 
@@ -151,7 +152,7 @@ test.describe("privacy @cloud", () => {
     await expect(page.getByRole("heading", { name: /What should we call you/ })).toHaveCount(0);
     // they answered, so Today doesn't ask again; Profile shows the answers, to change any time
     await expect(page.getByRole("heading", { name: /Tell the app a bit about you/ })).toHaveCount(0);
-    await page.goto("/profile");
+    await page.goto("/profile#about-me");
     const aboutMe = page.getByRole("form", { name: "About me, for better help" });
     await expect(aboutMe.getByRole("button", { name: "ADHD" })).toHaveAttribute("aria-pressed", "true");
     await expect(aboutMe.getByRole("button", { name: "Short and direct" })).toHaveAttribute("aria-pressed", "true");

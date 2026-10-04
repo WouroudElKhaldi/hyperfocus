@@ -33,7 +33,9 @@ export function browser(base) {
 }
 
 /** Signs a person up and in (confirming the email from the log). */
-export async function signUp(api, email, name) {
+// `profile: false` leaves their profile empty; by default it says who they are (a name and a study level), as after
+// the welcome guide, because the AI waits for that in cloud mode
+export async function signUp(api, email, name, { profile = true } = {}) {
   const b = browser(() => api.url);
   await b.json("POST", "/api/auth/sign-up/email", { email, password: `pass-${name}-12345`, name, phone: "+961 70 123 456" });
   let link;
@@ -44,5 +46,6 @@ export async function signUp(api, email, name) {
   }
   if (!link) throw new Error(`No confirmation email for ${email}`);
   await b.open(link);
+  if (profile) await b.json("PUT", "/api/profile", { name, studyLevel: "bachelor" });
   return b;
 }

@@ -7,6 +7,7 @@ import { useApi, useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import { aboutMeOf, saidAnything } from "../../../components/AboutMe.tsx";
 import FocusTimer from "../../../components/FocusTimer.tsx";
+import { useAiReady } from "../../../components/SetupNotice.tsx";
 import More from "../../../components/More.tsx";
 import { useAddNote, useNotes } from "../../notes/index.ts";
 import { useProfile } from "../../profile/index.ts";
@@ -51,6 +52,7 @@ function AboutMeNudge() {
 }
 
 function TodayPage() {
+  const aiReady = useAiReady(); // (the note at the top says what to set up)
   const toast = useToast();
   const { t } = useTranslation();
   const [text, setText] = useState("");
@@ -162,7 +164,7 @@ function TodayPage() {
                 </option>
               ))}
             </select>
-            <button disabled={!text.trim() || busy} onClick={sortIt}>
+            <button disabled={!text.trim() || busy || !aiReady} onClick={sortIt}>
               {busy ? t("today.sorting") : t("today.sort")}
             </button>
           </div>

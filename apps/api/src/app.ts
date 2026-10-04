@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
-import type { AiGateway } from "@hyperfocus/ai";
+import { type AiGateway, profileReady } from "@hyperfocus/ai";
 import type { ApiConfig } from "@hyperfocus/shared/config";
 import { requestId } from "hono/request-id";
 import type { Logger } from "pino";
@@ -107,6 +107,7 @@ const Me = z
     google: z.boolean().openapi({ description: "Sign in with Google is offered" }),
     onboarded: z.boolean().openapi({ description: "They finished or skipped the welcome guide (P5-05); always true in local mode" }),
     radar: z.boolean().openapi({ description: "Job Radar is open to you (admins while it is tested; everyone once the job-radar flag is on)" }),
+    profileReady: z.boolean().openapi({ description: "Their profile says enough for the AI (a name, and what they do or study); the AI waits for it in cloud mode. Always true in local mode" }),
   })
   .openapi("Me");
 const meRoute = createRoute({
@@ -207,7 +208,10 @@ export function createApp(deps: AppDeps) {
       : await asUser(who.id, () => withCredentials(deps.prisma, deps.secrets, async () => ({ ai: aiReady(), linkedin: deps.publisher.configured(), email: !deps.mail.unavailable() }), appAiFor(deps, who.email)));
     // P5-05: someone new sees the welcome guide once (the owner in local mode never does)
     const onboarded = !deps.auth || !who || !!(await deps.prisma.user.findUnique({ where: { id: who.id }, select: { onboardedAt: true } }))?.onboardedAt;
-    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google, onboarded, radar: await mayUseRadar(deps.prisma, who?.role) }, 200);
+    // the AI waits for a filled-in profile in cloud mode, so the pages can say so before anyone presses an AI button
+    const profile = deps.auth && who ? await asUser(who.id, async () => await deps.prisma.profile.findFirst({ select: { name: true, role: true, major: true, studyLevel: true, situation: true } })) : null;
+    const ready = !deps.auth || profileReady(profile);
+    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google, onboarded, radar: await mayUseRadar(deps.prisma, who?.role), profileReady: ready }, 200);
   });
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));

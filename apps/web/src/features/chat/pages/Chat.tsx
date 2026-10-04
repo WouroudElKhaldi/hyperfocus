@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteThreads, useOpenThread, useRenameThread, useSendChat, useThreads } from "../api.ts";
 import { useToast } from "../../../App.tsx";
+import { useAiReady } from "../../../components/SetupNotice.tsx";
 import type { ChatMessage, ChatReply, ChatThread } from "../../../types.ts";
 
 /** A message on screen. One being sent has a temporary id and no date yet. */
@@ -94,6 +95,7 @@ function History({ threads, activeId, mode, onOpen, onRename, onDelete, onDelete
 
 export default function Chat() {
   useTranslation(); // (re-renders this page when the language changes)
+  const aiReady = useAiReady(); // (the note at the top says what to set up)
   const toast = useToast();
   const threads = useThreads().data ?? null;
   const sendChat = useSendChat();
@@ -199,7 +201,7 @@ export default function Chat() {
               <textarea ref={box} id="chat-text" rows={1} placeholder={i18next.t("chat.writeHereEnterTo")} value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-              <button className="primary" disabled={!text.trim() || busy}>{i18next.t("chat.send")}</button>
+              <button className="primary" disabled={!text.trim() || busy || !aiReady}>{i18next.t("chat.send")}</button>
             </form>
           </div>
           <p className="muted tiny">{i18next.t("chat.thisIsAnAi")}</p>

@@ -14,6 +14,7 @@ import { useA11y, useSettings } from "./features/settings/index.ts";
 import { AccountPages, useMe } from "./features/account/index.ts";
 import { Privacy } from "./features/settings/index.ts";
 import Quotes from "./components/Quotes.tsx";
+import SetupNotice from "./components/SetupNotice.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import type { Health } from "./types.ts";
 
@@ -183,6 +184,7 @@ function Shell() {
           <TopBar collapsed={collapsed} onToggleSidebar={() => setCollapsed((c) => !c)} />
           <main className="main" id="main">
             <div className="page" key={location.pathname}>
+              <SetupNotice path={location.pathname} />
               <Suspense fallback={<div className="empty">{t("shell.loading")}</div>}>
               <Outlet />
               </Suspense>

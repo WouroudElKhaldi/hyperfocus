@@ -19,7 +19,7 @@ test("a notification shows in the bell, unread, and can be marked read", async (
 });
 
 test("quiet hours are saved, and can be cleared", async ({ page }) => {
-  await page.goto("/backup");
+  await page.goto("/backup#notify");
   const card = page.locator(".card", { has: page.getByRole("heading", { name: "Where notifications go" }) });
   await card.getByLabel("Quiet hours start").fill("22:00");
   await card.getByLabel("Quiet hours end").fill("07:00");
@@ -45,7 +45,7 @@ test("turn notifications on and off for this device", async ({ page, context }) 
     PushManager.prototype.subscribe = async () => { localStorage.setItem("e2e-sub", "1"); return make(); };
     PushManager.prototype.getSubscription = async () => (localStorage.getItem("e2e-sub") ? make() : null);
   });
-  await page.goto("/backup");
+  await page.goto("/backup#notify");
   const card = page.locator(".card", { has: page.getByRole("heading", { name: "Where notifications go" }) });
   await expect(card.getByText("Off: reminders only show in the bell while Hyperfocus is open.")).toBeVisible();
   await card.getByRole("button", { name: "Turn on for this device" }).click();
@@ -61,7 +61,7 @@ test("turn notifications on and off for this device", async ({ page, context }) 
 
 // P5-11 part 4: the daily email digest is switched on with a time, and stays so
 test("the daily email can be switched on, with its time", async ({ page }) => {
-  await page.goto("/backup");
+  await page.goto("/backup#notify");
   const card = page.locator(".card", { has: page.getByRole("heading", { name: "Where notifications go" }) });
   const box = card.getByRole("checkbox", { name: "A daily email with what you haven't seen" });
   if (await box.isChecked()) { await box.click(); await expect(box).not.toBeChecked(); }
@@ -78,7 +78,7 @@ test("the daily email can be switched on, with its time", async ({ page }) => {
 
 // P5-12: how long AI chats are kept; local mode has no account to delete
 test("your data: choose how long AI chats are kept; no account deletion in local mode", async ({ page }) => {
-  await page.goto("/backup");
+  await page.goto("/backup#account");
   const card = page.locator(".card", { has: page.getByRole("heading", { name: "Your data and privacy" }) });
   await card.getByRole("radio", { name: "90 days" }).click();
   await expect(card.getByRole("radio", { name: "90 days" })).toHaveAttribute("aria-checked", "true");

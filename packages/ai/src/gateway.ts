@@ -20,7 +20,13 @@ export type GatewayOptions = {
   onRetry?: (info: { template: string; attempt: number; error: AiError }) => void;
   /** Who is asking (their profile), for the prompts' PERSON slot; missing = described in general terms. */
   person?: () => Promise<Person | null>;
+  /** Cloud mode: no AI until the person has told us who they are (a name and what they do or study), so every answer fits them. */
+  requireProfile?: boolean;
 };
+
+/** Enough about them for the AI to fit its help: a name, and what they do or study. */
+export const profileReady = (p: Person | null | undefined) => !!p?.name?.trim() && !!(p.role?.trim() || p.major?.trim() || p.studyLevel || p.situation);
+export const PROFILE_FIRST = "Fill in your profile first (Profile → your name, and what you do or study), so the AI can fit its help to you.";
 
 export type CallOptions = { temperature?: number; name?: string };
 
@@ -35,13 +41,15 @@ export type AiGateway = {
 const UNREADABLE = "AI returned something I couldn't read. Try again.";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function createAiGateway({ provider, disabled, timeoutMs = 90_000, retries = 2, retryDelayMs = 500, onRetry, person }: GatewayOptions): AiGateway {
+export function createAiGateway({ provider, disabled, timeoutMs = 90_000, retries = 2, retryDelayMs = 500, onRetry, person, requireProfile }: GatewayOptions): AiGateway {
   async function complete(name: string, given: AiMessage[], temperature: number, json: boolean): Promise<string> {
     if (disabled) throw new AiError(403, disabled);
     const why = provider.unavailable();
     if (why) throw new AiError(400, why);
     // the person the prompt is about: whoever is asking, from their own profile
-    const messages = given.some((m) => m.content.includes(PERSON)) ? fillPerson(given, describePerson(await person?.().catch(() => null))) : given;
+    const who = await person?.().catch(() => null);
+    if (requireProfile && !profileReady(who)) throw new AiError(400, PROFILE_FIRST);
+    const messages = given.some((m) => m.content.includes(PERSON)) ? fillPerson(given, describePerson(who)) : given;
     for (let attempt = 0; ; attempt++) {
       const signal = AbortSignal.timeout(timeoutMs);
       try {

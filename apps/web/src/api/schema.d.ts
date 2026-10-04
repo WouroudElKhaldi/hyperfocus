@@ -6430,7 +6430,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         /**
-                         * @description P5-12: studies, situation, how their brain works, what helps, tone (all optional)
+                         * @description P5-14: studies, situation, how their brain works, what helps, tone (all optional)
                          * @default {}
                          */
                         about?: {
@@ -11298,6 +11298,8 @@ export interface components {
             mode: "local" | "cloud";
             /** @description They finished or skipped the welcome guide (P5-05); always true in local mode */
             onboarded: boolean;
+            /** @description Their profile says enough for the AI (a name, and what they do or study); the AI waits for it in cloud mode. Always true in local mode */
+            profileReady: boolean;
             /** @description Job Radar is open to you (admins while it is tested; everyone once the job-radar flag is on) */
             radar: boolean;
             /** @description Who is signed in (in local mode, the owner); null = nobody */

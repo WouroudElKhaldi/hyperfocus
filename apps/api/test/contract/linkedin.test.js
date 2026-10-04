@@ -83,15 +83,15 @@ describe("Connect LinkedIn", () => {
   });
 
   it("refuses a way back that isn't genuine, cancelled, or with a bad code", async () => {
-    expect(await connect(bob, "code-bob", "x.y")).toBe("/backup?connect-error=That link isn't from Hyperfocus.&for=linkedin");
-    expect(decodeURIComponent((await bob.call("GET", "/api/integrations/linkedin/callback?error=user_cancelled_authorize")).headers.get("location"))).toBe("/backup?connect-error=You didn't allow it, so nothing changed.&for=linkedin");
-    expect(await connect(bob, "nonsense")).toBe("/backup?connect-error=The code is no good.&for=linkedin");
+    expect(await connect(bob, "code-bob", "x.y")).toBe("/backup?connect-error=That link isn't from Hyperfocus.&for=linkedin#connections");
+    expect(decodeURIComponent((await bob.call("GET", "/api/integrations/linkedin/callback?error=user_cancelled_authorize")).headers.get("location"))).toBe("/backup?connect-error=You didn't allow it, so nothing changed.&for=linkedin#connections");
+    expect(await connect(bob, "nonsense")).toBe("/backup?connect-error=The code is no good.&for=linkedin#connections");
     expect((await bob.json("GET", "/api/integrations")).map((i) => i.provider)).toEqual(["linkedin-app"]);
   });
 
   it("two people each post on their own LinkedIn, as themselves; it comes before their n8n webhook", async () => {
-    expect(await connect(bob, "code-bob")).toBe("/backup?connected=linkedin");
-    expect(await connect(ann, "code-ann")).toBe("/backup?connected=linkedin");
+    expect(await connect(bob, "code-bob")).toBe("/backup?connected=linkedin#connections");
+    expect(await connect(ann, "code-ann")).toBe("/backup?connected=linkedin#connections");
     // each came in through their own app
     expect(tokenRequests.filter((t) => ["code-bob", "code-ann"].includes(t.code)).map((t) => [t.code, t.client])).toEqual([["code-bob", "bobsapp001"], ["code-ann", "annsapp002"]]);
     await bob.json("PUT", "/api/integrations/n8n", { webhookUrl: `${n8n}/bobs-n8n` });
