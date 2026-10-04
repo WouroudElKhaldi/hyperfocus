@@ -9,7 +9,11 @@ export const TASK_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 /** Pet points for finishing a task, by priority. The API awards these and the website shows them. */
-export const TASK_PRIORITY_POINTS = { low: 2, normal: 4, high: 8, urgent: 14 } as const satisfies Record<TaskPriority, number>;
+// (P3-24, interview 1: simple tasks earned too much) a small base by importance, and the effort on top: each of the
+// task's steps done adds STEP_POINT, up to MAX_STEP_POINTS
+export const TASK_PRIORITY_POINTS = { low: 1, normal: 3, high: 6, urgent: 10 } as const satisfies Record<TaskPriority, number>;
+export const STEP_POINT = 1;
+export const MAX_STEP_POINTS = 6;
 
 /** How a reminder you write yourself can repeat. */
 export const REMINDER_REPEATS = ["none", "daily", "weekdays", "weekly"] as const;

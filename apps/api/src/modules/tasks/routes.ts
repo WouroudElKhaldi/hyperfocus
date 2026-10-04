@@ -35,7 +35,7 @@ export function tasksRouter({ prisma, events }: AppDeps) {
           data.doneAt = done ? new Date() : null;
         }
         const task = await orNull(prisma.task.update({ where: { id }, data, include: taskInclude }));
-        if (task && done === true) await events.publish("TaskCompleted", { taskId: task.id, title: task.title, priority: task.priority });
+        if (task && done === true) await events.publish("TaskCompleted", { taskId: task.id, title: task.title, priority: task.priority, stepsDone: task.steps.filter((s) => s.done).length });
         return task;
       },
       remove: async (id) => (await prisma.task.deleteMany({ where: { id } })).count > 0, // its steps go with it (cascade)

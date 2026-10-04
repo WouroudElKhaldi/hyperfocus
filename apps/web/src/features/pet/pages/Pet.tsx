@@ -1,4 +1,4 @@
-import { PET_GENDERS, PET_SPECIES, type PetGender, type PetSpecies } from "@hyperfocus/shared/constants";
+import { MAX_STEP_POINTS, PET_GENDERS, PET_SPECIES, STEP_POINT, type PetGender, type PetSpecies } from "@hyperfocus/shared/constants";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../../App.tsx";
 import PetArt from "../components/PetArt.tsx";
@@ -288,6 +288,7 @@ export default function Pet() {
             <p className="muted tiny">More important things earn more. Each thing counts once.</p>
             <h3>Tasks, by importance</h3>
             {Object.entries(s.points.priority).map(([k, v]) => <div className="xp-row" key={k}><span className="xp-amt">+{v}</span><span className="grow">{PRIORITY_LABEL[k]} task</span></div>)}
+            <div className="xp-row"><span className="xp-amt">+{STEP_POINT}</span><span className="grow">for each of the task's steps you did (up to +{MAX_STEP_POINTS})</span></div>
             <h3>Everything else</h3>
             {([["Reach a goal", s.points.other.goal], ["Publish a LinkedIn post", s.points.other.post], ["Finish a book", s.points.other.book], ["Do a weekly review", s.points.other.review], ["Finish a goal step", s.points.other.step], ["Level up a skill", s.points.other.skill], ["Log a win", s.points.other.win]] as [string, number | undefined][]).map(([l, v]) => <div className="xp-row" key={l}><span className="xp-amt">+{v}</span><span className="grow">{l}</span></div>)}
             <div className="xp-row"><span className="xp-amt">+1…50</span><span className="grow">Study: 1 per 3 minutes (up to 40), +10 for a 45+ minute session</span></div>

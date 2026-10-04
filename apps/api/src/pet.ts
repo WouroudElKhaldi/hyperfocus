@@ -1,5 +1,5 @@
 import type { Pet } from "@hyperfocus/db";
-import { PET_GENDERS, PET_SPECIES, TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+import { MAX_STEP_POINTS, STEP_POINT, PET_GENDERS, PET_SPECIES, TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
 // P5-02: pet points are unique per person; until P5-03 passes in who is asking, everything is the owner's
 import { OWNER_ID } from "./owner.ts";
 import { currentUserId } from "./tenancy.ts";
@@ -39,7 +39,8 @@ export const PRIORITY_POINTS = TASK_PRIORITY_POINTS;
 const POINTS_BY_NAME: Record<string, number | undefined> = PRIORITY_POINTS;
 // After this many finished tasks in one day, each further task is worth 1 point, so a pile of tiny tasks can't be farmed.
 export const TASK_DAILY_FULL = 8;
-export const taskXp = (priority: string): number => POINTS_BY_NAME[priority] ?? 10;
+/** A finished task: its importance, plus 1 for each of its steps done (up to 6): the effort, not just the click. */
+export const taskXp = (priority: string, stepsDone = 0): number => (POINTS_BY_NAME[priority] ?? 3) + Math.min(MAX_STEP_POINTS, Math.max(0, stepsDone) * STEP_POINT);
 export const XP = { step: 2, goal: 50, post: 25, win: 4, review: 10, skill: 4, book: 15, apply: 10 };
 // Study: 2 points per 20 active minutes up to 16 per session, plus 6 for a deep-focus session of 45 minutes or more.
 export const studyXp = (activeMinutes: number): number => (activeMinutes >= 5 ? Math.min(16, Math.max(1, Math.floor(activeMinutes / 10)) * 2) + (activeMinutes >= 45 ? 6 : 0) : 0);

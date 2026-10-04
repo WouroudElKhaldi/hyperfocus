@@ -50,7 +50,9 @@ describe("occurrenceDays (calendar repeats)", () => {
 
 describe("pet XP rules", () => {
   it("task points follow importance", () => {
-    expect([taskXp("low"), taskXp("normal"), taskXp("high"), taskXp("urgent")]).toEqual([2, 4, 8, 14]);
+    expect([taskXp("low"), taskXp("normal"), taskXp("high"), taskXp("urgent")]).toEqual([1, 3, 6, 10]);
+    // P3-24: the effort counts: +1 per step done, up to 6
+    expect([taskXp("normal", 2), taskXp("low", 5), taskXp("high", 20), taskXp("urgent", -1)]).toEqual([5, 6, 12, 10]);
   });
   it("study points: nothing under 5 minutes, capped, with a bonus for long sessions", () => {
     expect(studyXp(4)).toBe(0);

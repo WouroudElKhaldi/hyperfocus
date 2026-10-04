@@ -7,7 +7,7 @@ import type { Db } from "../../types.ts";
 export function petEarnsXp(events: EventBus, prisma: Db): void {
   events.on("NoteCaptured", ({ noteId }) => awardCapture(prisma, "thought", noteId));
   events.on("TaskCaptured", ({ taskId }) => awardCapture(prisma, "task", taskId));
-  events.on("TaskCompleted", ({ taskId, title, priority }) => award(prisma, `task:${taskId}`, "task", taskXp(priority), `Finished: ${title}`));
+  events.on("TaskCompleted", ({ taskId, title, priority, stepsDone }) => award(prisma, `task:${taskId}`, "task", taskXp(priority, stepsDone), `Finished: ${title}`));
   events.on("GoalStepDone", ({ stepId, text }) => award(prisma, `step:${stepId}`, "step", XP.step, `Goal step done: ${text}`));
   events.on("GoalAchieved", ({ goalId, text }) => award(prisma, `goal:${goalId}`, "goal", XP.goal, `Reached a goal: ${text.slice(0, 80)}`));
   events.on("PostPublished", ({ postId }) => award(prisma, `post:${postId}`, "post", XP.post, "Published a LinkedIn post"));

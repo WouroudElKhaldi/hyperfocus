@@ -10,7 +10,7 @@
 export type DomainEvents = {
   NoteCaptured: { noteId: number };
   TaskCaptured: { taskId: number };
-  TaskCompleted: { taskId: number; title: string; priority: string };
+  TaskCompleted: { taskId: number; title: string; priority: string; stepsDone?: number };
   GoalStepDone: { stepId: number; text: string };
   GoalAchieved: { goalId: number; text: string };
   PostPublished: { postId: number };

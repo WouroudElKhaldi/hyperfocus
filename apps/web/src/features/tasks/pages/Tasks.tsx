@@ -1,5 +1,5 @@
 import { CreateTaskInput } from "@hyperfocus/shared";
-import { TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
+import { MAX_STEP_POINTS, STEP_POINT, TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
 import { oneOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
 import More from "../../../components/More.tsx";
@@ -54,7 +54,8 @@ export default function Tasks() {
   // the most important things first
   const open = tasks.filter((t) => !t.done).sort((a, b) => (RANK[a.priority] ?? 2) - (RANK[b.priority] ?? 2)); // priorities are always known; 2 = normal
   const done = tasks.filter((t) => t.done);
-  const pts = (id: string) => PRIORITIES.find((p) => p.id === id)?.pts ?? 10;
+  // its importance, plus 1 for each of its steps done (up to 6): what the API awards (P3-24)
+  const pts = (t: Task) => (PRIORITIES.find((p) => p.id === t.priority)?.pts ?? 3) + Math.min(MAX_STEP_POINTS, (t.steps ?? []).filter((s) => s.done).length * STEP_POINT);
 
   const row = (t: Task) => (
     <div className="item" key={t.id}>
@@ -68,8 +69,8 @@ export default function Tasks() {
       <div className="grow">
         <div className="row" style={{ gap: "var(--s-2)", flexWrap: "nowrap" }}>
           <span className={"grow" + (t.done ? " done" : "")}>{t.title}</span>
-          <span className={"prio p-" + t.priority} title="Points for your companion when you finish it">
-            +{pts(t.priority)}
+          <span className={"prio p-" + t.priority} title="Points for your companion when you finish it: its importance, plus 1 for each step done">
+            +{pts(t)}
           </span>
         </div>
         {t.steps.length > 0 && (
