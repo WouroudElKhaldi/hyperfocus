@@ -80,7 +80,7 @@ export type WinsSummary = { bullets: string[]; paragraph: string };
 export type StuckHelp = { validation: string; step: string; ifStillStuck: string; pick: string };
 
 // ---------- profile, settings, reminders, backups ----------
-export type Profile = { id?: number; name: string; role: string; location: string; email: string; linkedin: string; about: string; helps: string; avatar: string; updatedAt?: string };
+export type Profile = { id?: number; name: string; role: string; location: string; email: string; linkedin: string; about: string; helps: string; avatar: string; occupationCode?: string; pronouns?: string; studyLevel?: string; major?: string; school?: string; studyYear?: string; situation?: string; neuro?: string[]; neuroNote?: string; supports?: string[]; tone?: string; bestTime?: string; focusMins?: number; updatedAt?: string };
 export type Settings = { reminders: boolean; breakEveryMin: number; morningAt: string };
 export type Reminder = { id: number; title: string; note: string; at: string; repeat: string; done: boolean; lastFiredAt: string | null; createdAt: string };
 export type BackupFile = { name: string; size: number; createdAt: string };

@@ -58,7 +58,7 @@ const auth = config.mode === "cloud" ? createAuth({ prisma, config, send: accoun
 const secrets = config.secretsKeys ? keyRing(config.secretsKeys) : localKeyRing(fileURLToPath(new URL("../secrets.key", import.meta.url)));
 // AI daily limits on the app's own key (P5-10)
 // the AI's prompts describe whoever is asking, from their own profile (their job title, what they wrote about themselves)
-usePersonSource(async () => await prisma.profile.findFirst({ select: { name: true, role: true, location: true, about: true, helps: true } }));
+usePersonSource(async () => await prisma.profile.findFirst({ select: { name: true, role: true, location: true, about: true, helps: true, pronouns: true, studyLevel: true, major: true, school: true, studyYear: true, situation: true, neuro: true, neuroNote: true, supports: true, tone: true, bestTime: true, focusMins: true } }));
 const ai = limitedAi(sharedAi, prisma, config.aiDailyLimit);
 // Web push keys (P5-11): from the settings, or in local mode a pair made once next to the API
 const vapid = DEMO ? null : vapidFrom(config.vapid, config.mode === "local" ? fileURLToPath(new URL("../vapid.json", import.meta.url)) : null);

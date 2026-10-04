@@ -2,6 +2,7 @@ import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { type FormEvent, useEffect, useState } from "react";
 import { useToast } from "../../../App.tsx";
+import { type AboutMe, aboutMeOf, BrainQuestions, PronounsQuestion, SituationQuestion, StudyQuestions, StyleQuestions } from "../../../components/AboutMe.tsx";
 import { initialsOf, useProfile, useSaveProfile } from "../hooks/useProfile.ts";
 import { PALETTE_GROUPS, type Palette, paletteTokens } from "../../../palettes.ts";
 import type { Profile as ProfileData } from "../../../types.ts";
@@ -10,6 +11,27 @@ import { getPalette, setPalette } from "../../../theme.ts";
 const FIELDS = ["name", "role", "location", "email", "linkedin", "about", "helps", "avatar"] as const;
 type Form = Record<(typeof FIELDS)[number], string>;
 const formOf = (p: ProfileData) => Object.fromEntries(FIELDS.map((k) => [k, p[k] ?? ""] as const)) as Form;
+
+// P5-14: the welcome guide's questions, to fill in or change any time (also for people who skipped the guide)
+function AboutMeCard({ saved }: { saved: ProfileData }) {
+  const toast = useToast();
+  const saveProfile = useSaveProfile();
+  const [a, setA] = useState<AboutMe>(() => aboutMeOf(saved));
+  const set = (patch: Partial<AboutMe>) => setA((x) => ({ ...x, ...patch }));
+  const dirty = JSON.stringify(a) !== JSON.stringify(aboutMeOf(saved));
+  return (
+    <form id="about-me" className="card aboutme-card" aria-labelledby="aboutme-h" onSubmit={(e) => { e.preventDefault(); saveProfile.mutate(a, { onSuccess: () => toast(i18next.t("aboutme.saved")) }); }}>
+      <h2 id="aboutme-h">{i18next.t("aboutme.cardTitle")}</h2>
+      <p className="muted">{i18next.t("aboutme.cardIntro")}</p>
+      <PronounsQuestion value={a} set={set} />
+      <StudyQuestions value={a} set={set} />
+      <SituationQuestion value={a} set={set} />
+      <BrainQuestions value={a} set={set} />
+      <StyleQuestions value={a} set={set} />
+      <button type="submit" className="primary big" disabled={!dirty || saveProfile.isPending}>{saveProfile.isPending ? i18next.t("profile.saving") : i18next.t("aboutme.save")}</button>
+    </form>
+  );
+}
 
 export default function Profile() {
   useTranslation(); // (re-renders this page when the language changes)
@@ -70,6 +92,8 @@ export default function Profile() {
           </div>
         </div>
       </form>
+
+      {saved && <AboutMeCard saved={saved} />}
 
       <section className="card theme-card" aria-labelledby="theme-h">
         <h2 id="theme-h">{i18next.t("profile.siteColor")}</h2>

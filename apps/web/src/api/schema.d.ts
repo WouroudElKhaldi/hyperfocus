@@ -6429,6 +6429,24 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /**
+                         * @description P5-12: studies, situation, how their brain works, what helps, tone (all optional)
+                         * @default {}
+                         */
+                        about?: {
+                            bestTime?: ("morning" | "afternoon" | "evening" | "night") | "";
+                            focusMins?: number;
+                            major?: string | null;
+                            neuro?: ("adhd" | "autism" | "dyslexia" | "dyscalculia" | "dyspraxia" | "anxiety" | "depression" | "ocd" | "bipolar" | "ptsd" | "chronic" | "unsure")[];
+                            neuroNote?: string | null;
+                            pronouns?: ("she" | "he" | "they") | "";
+                            school?: string | null;
+                            situation?: ("studying" | "working" | "both" | "looking" | "other") | "";
+                            studyLevel?: ("school" | "diploma" | "bachelor" | "master" | "phd" | "bootcamp" | "self" | "none") | "";
+                            studyYear?: ("1" | "2" | "3" | "4" | "5" | "6" | "last") | "";
+                            supports?: ("smallSteps" | "reminders" | "timers" | "checklists" | "examples" | "bodyDouble" | "breaks" | "routine" | "quiet" | "visual" | "deadlines" | "rewards")[];
+                            tone?: ("gentle" | "direct" | "playful") | "";
+                        };
                         /** @default null */
                         fieldCode?: string | null;
                         /** @default [] */
@@ -7980,14 +7998,26 @@ export interface paths {
                         "application/json": {
                             about: string;
                             avatar: string;
+                            bestTime: string;
                             email: string;
+                            focusMins: number;
                             helps: string;
                             id?: number;
                             linkedin: string;
                             location: string;
+                            major: string;
                             name: string;
+                            neuro: string[];
+                            neuroNote: string;
                             occupationCode: string;
+                            pronouns: string;
                             role: string;
+                            school: string;
+                            situation: string;
+                            studyLevel: string;
+                            studyYear: string;
+                            supports: string[];
+                            tone: string;
                             /** Format: date-time */
                             updatedAt?: string;
                         };
@@ -8008,13 +8038,25 @@ export interface paths {
                     "application/json": {
                         about?: string | null;
                         avatar?: string;
+                        bestTime?: ("morning" | "afternoon" | "evening" | "night") | "";
                         email?: string;
+                        focusMins?: number;
                         helps?: string | null;
                         linkedin?: string;
                         location?: string | null;
+                        major?: string | null;
                         name?: string | null;
+                        neuro?: ("adhd" | "autism" | "dyslexia" | "dyscalculia" | "dyspraxia" | "anxiety" | "depression" | "ocd" | "bipolar" | "ptsd" | "chronic" | "unsure")[];
+                        neuroNote?: string | null;
                         occupationCode?: string;
+                        pronouns?: ("she" | "he" | "they") | "";
                         role?: string | null;
+                        school?: string | null;
+                        situation?: ("studying" | "working" | "both" | "looking" | "other") | "";
+                        studyLevel?: ("school" | "diploma" | "bachelor" | "master" | "phd" | "bootcamp" | "self" | "none") | "";
+                        studyYear?: ("1" | "2" | "3" | "4" | "5" | "6" | "last") | "";
+                        supports?: ("smallSteps" | "reminders" | "timers" | "checklists" | "examples" | "bodyDouble" | "breaks" | "routine" | "quiet" | "visual" | "deadlines" | "rewards")[];
+                        tone?: ("gentle" | "direct" | "playful") | "";
                     };
                 };
             };
@@ -8028,14 +8070,26 @@ export interface paths {
                         "application/json": {
                             about: string;
                             avatar: string;
+                            bestTime: string;
                             email: string;
+                            focusMins: number;
                             helps: string;
                             id?: number;
                             linkedin: string;
                             location: string;
+                            major: string;
                             name: string;
+                            neuro: string[];
+                            neuroNote: string;
                             occupationCode: string;
+                            pronouns: string;
                             role: string;
+                            school: string;
+                            situation: string;
+                            studyLevel: string;
+                            studyYear: string;
+                            supports: string[];
+                            tone: string;
                             /** Format: date-time */
                             updatedAt?: string;
                         };

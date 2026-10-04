@@ -73,6 +73,9 @@ export async function startTestStack({ port, env: extraEnv = {} } = {}) {
     SECRETS_KEYS: TEST_SECRETS_KEYS,
     VAPID_PUBLIC_KEY: TEST_VAPID.publicKey, VAPID_PRIVATE_KEY: TEST_VAPID.privateKey, ALLOW_LOCAL_ADDRESSES: "1",
     RADAR_FETCH_OFF: "1", // (never the real job sites from tests)
+    // local mode unless a test asks for cloud: the owner may have APP_MODE=cloud (and their admin email) in .env to try it
+    APP_MODE: "local",
+    ADMIN_EMAILS: " ",
   };
   delete env.DEMO_MODE;
   Object.assign(env, extraEnv); // (the cloud-mode stack for the browser tests, P5-04)

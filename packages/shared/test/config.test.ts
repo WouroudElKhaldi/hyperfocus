@@ -17,7 +17,7 @@ const problems = (env: Record<string, string | undefined>) => {
 
 describe("API settings", () => {
   it("only the database is required; everything else has the old defaults", () => {
-    expect(ok({ DATABASE_URL: DB })).toEqual({
+    expect(ok({ DATABASE_URL: DB })).toMatchObject({ // (settings added later have their own tests)
       databaseUrl: DB,
       port: 4000,
       demo: false,

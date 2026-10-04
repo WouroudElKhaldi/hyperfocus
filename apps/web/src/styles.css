@@ -603,3 +603,9 @@ select.chip { width: auto; border: 0; padding: var(--s-1) var(--s-3); cursor: po
 .radar-advanced { border-top: 1px solid var(--line-2, rgba(0,0,0,.1)); margin-top: 8px; padding-top: 8px; }
 .chip.on { background: var(--accent-soft, rgba(116,71,230,.15)); border-color: var(--accent, #7447e6); }
 .chip.warn { color: var(--danger, #c0392b); }
+
+/* P5-14: "about me" questions (welcome guide and Profile): one question per group, big tappable choices */
+.aboutme-q { border: 0; padding: 0; margin: 0 0 var(--s-3); min-width: 0; }
+.aboutme-q > legend { font-weight: 600; margin-bottom: var(--s-1); padding: 0; }
+.aboutme-q .chip-row .trait { min-height: 40px; }
+.aboutme-private { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: var(--s-2) var(--s-3); font-size: .85rem; color: var(--ink-2); }

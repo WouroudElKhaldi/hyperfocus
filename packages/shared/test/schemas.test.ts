@@ -56,8 +56,8 @@ describe("tasks", () => {
 });
 
 describe("constants", () => {
-  it("every priority has a point value, and the values match what the API has always awarded", () => {
+  it("every priority has a point value, and the values follow the effort (interview 1: simple tasks earn less)", () => {
     expect(Object.keys(TASK_PRIORITY_POINTS)).toEqual([...TASK_PRIORITIES]);
-    expect(TASK_PRIORITY_POINTS).toEqual({ low: 2, normal: 4, high: 8, urgent: 14 });
+    expect(TASK_PRIORITY_POINTS).toEqual({ low: 1, normal: 3, high: 6, urgent: 10 });
   });
 });

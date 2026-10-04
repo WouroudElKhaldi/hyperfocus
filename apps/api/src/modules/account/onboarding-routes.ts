@@ -1,9 +1,11 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { AboutMeInput } from "@hyperfocus/shared";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { body, json, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
 import { mayUseRadar } from "../../radar/access.ts";
 import { presetForField } from "../../taxonomy/presets.ts";
+import { compact } from "../../types.ts";
 
 // The welcome guide (P5-05), three short screens for someone new: their name, what they study, what they want help
 // with. Finishing it sets things up for them: "find jobs" makes their Job Radar filter from their field of study (the
@@ -26,11 +28,12 @@ export function onboardingRouter({ prisma, events }: AppDeps) {
         name: z.string().trim().min(1).max(100),
         fieldCode: z.string().regex(/^cip:\d{2}(\.\d{2,4})?$/).nullable().default(null),
         helpWith: z.array(z.enum(HELP_WITH)).max(HELP_WITH.length).default([]),
+        about: AboutMeInput.default({}).openapi({ description: "P5-14: studies, situation, how their brain works, what helps, tone (all optional)" }),
       })) },
       responses: { 200: json(Done, "Set up"), 404: problem("No such field of study") },
     }),
     async (c) => {
-      const { name, fieldCode, helpWith } = c.req.valid("json");
+      const { name, fieldCode, helpWith, about } = c.req.valid("json");
       const id = c.get("userId");
       let filterId: number | null = null;
       const radar = await mayUseRadar(prisma, c.get("role"));
@@ -47,8 +50,10 @@ export function onboardingRouter({ prisma, events }: AppDeps) {
       const field = fieldCode ? await prisma.fieldOfStudy.findUnique({ where: { code: fieldCode }, select: { title: true } }) : null;
       const profile = await prisma.profile.findFirst();
       const role = !profile?.role && field ? `${field.title} student` : undefined;
-      if (profile) await prisma.profile.update({ where: { id: profile.id }, data: { name, ...(role ? { role } : {}) } });
-      else await prisma.profile.create({ data: { name, ...(role ? { role } : {}) } });
+      const answers = compact(about); // only what they answered; the rest stays as it was
+      if (field && !answers.major && !profile?.major) answers.major = field.title;
+      if (profile) await prisma.profile.update({ where: { id: profile.id }, data: { name, ...(role ? { role } : {}), ...answers } });
+      else await prisma.profile.create({ data: { name, ...(role ? { role } : {}), ...answers } });
       const first = ORDER.find((h) => helpWith.includes(h));
       return c.json({ filterId, next: first === "jobs" && !radar ? "/jobs" : first ? START[first] : "/" }, 200);
     },

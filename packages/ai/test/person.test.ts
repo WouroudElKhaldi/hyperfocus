@@ -25,6 +25,22 @@ describe("who the AI is helping", () => {
     expect(seen.at(-1)?.[0]?.content).not.toContain("{{PERSON}}");
   });
 
+  it("uses what they shared in the welcome guide: studies, brain, what helps, tone, pronouns (P5-14)", () => {
+    const d = describePerson({ name: "Rana", studyLevel: "bachelor", major: "Nursing", studyYear: "3", situation: "both", neuro: ["adhd", "autism"], supports: ["smallSteps", "timers"], tone: "direct", focusMins: 15, pronouns: "she" });
+    expect(d).toContain("bachelor's degree in Nursing (year 3)");
+    expect(d).toContain("studying and working");
+    expect(d).toContain("ADHD, autism");
+    expect(d).toContain("don't diagnose");
+    expect(d).toContain("very small steps, timers");
+    expect(d).toContain("short and direct");
+    expect(d).toContain("about 15 minutes");
+    expect(d).toContain("she/her");
+    // nothing shared: nothing said about it, and "they" by default
+    const none = describePerson({ name: "Sami" });
+    expect(none).not.toContain("brain");
+    expect(none).toContain('"they"');
+  });
+
   it("no prompt describes a fixed person any more", () => {
     const dir = new URL("../src/prompts/", import.meta.url);
     const text = fs.readdirSync(dir).map((f) => fs.readFileSync(new URL(f, dir), "utf8")).join(" ");

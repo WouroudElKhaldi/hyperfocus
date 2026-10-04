@@ -414,6 +414,20 @@ model Profile {
   helps     String   @default("") // "what helps me": shared only with the AI companion, to fit its replies
   /// the standard occupation of their job title, or of the job they want ("onet:15-1252.00", "local:…"): skills for it
   occupationCode String @default("")
+  // P5-14, the longer welcome guide: what they told us so the AI fits them. All optional, all editable in Profile.
+  pronouns   String   @default("") // she | he | they | "" (not said)
+  studyLevel String   @default("") // school | diploma | bachelor | master | phd | bootcamp | self | none
+  major      String   @default("") // in their own words
+  school     String   @default("")
+  studyYear  String   @default("") // "1" … "6", "last"
+  situation  String   @default("") // studying | working | both | looking | other
+  /// how their brain works, only what they chose to say (adhd, autism, dyslexia, …): fits the AI's help, never shown to anyone
+  neuro      String[] @default([])
+  neuroNote  String   @default("")
+  supports   String[] @default([]) // what helps: small steps, reminders, timers, …
+  tone       String   @default("") // gentle | direct | playful
+  bestTime   String   @default("") // morning | afternoon | evening | night
+  focusMins  Int      @default(0) // how long they can usually focus; 0 = not said
   avatar    String   @default("#7447e6")
   updatedAt DateTime @updatedAt
 

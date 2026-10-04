@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { KINDS } from "../../../api.ts";
 import { useApi, useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
+import { aboutMeOf, saidAnything } from "../../../components/AboutMe.tsx";
 import FocusTimer from "../../../components/FocusTimer.tsx";
 import More from "../../../components/More.tsx";
 import { useAddNote, useNotes } from "../../notes/index.ts";
@@ -25,6 +26,28 @@ export default function Today() {
   const me = useMe().data;
   if (me && !me.onboarded) return <Welcome />;
   return <TodayPage />;
+}
+
+const NUDGE_OFF = "aboutme-nudge-off";
+
+/** P5-14: for someone who skipped the welcome guide (or its questions): one quiet card asking about them, until they
+ * answer anything in Profile or close it. */
+function AboutMeNudge() {
+  const { t } = useTranslation();
+  const profile = useProfile();
+  const [off, setOff] = useState(() => { try { return localStorage.getItem(NUDGE_OFF) === "1"; } catch { return false; } });
+  if (off || !profile || saidAnything(aboutMeOf(profile))) return null;
+  const close = () => { setOff(true); try { localStorage.setItem(NUDGE_OFF, "1"); } catch { /* shown again next time */ } };
+  return (
+    <section className="card aboutme-nudge" aria-labelledby="aboutme-nudge-h">
+      <h2 id="aboutme-nudge-h">{t("aboutme.nudgeTitle")}</h2>
+      <p className="muted">{t("aboutme.nudgeBody")}</p>
+      <div className="row">
+        <Link className="btn primary" to="/profile" hash="about-me">{t("aboutme.nudgeGo")}</Link>
+        <button type="button" className="ghost" onClick={close}>{t("aboutme.nudgeLater")}</button>
+      </div>
+    </section>
+  );
 }
 
 function TodayPage() {
@@ -83,6 +106,7 @@ function TodayPage() {
       <div className="row" style={{ marginBottom: "var(--s-3)" }}>
         <Link className="btn primary big" to="/study">{t("today.study")}</Link>
       </div>
+      <AboutMeNudge />
 
       <div className="grid2">
         <div className="card">

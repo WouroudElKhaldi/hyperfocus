@@ -99,17 +99,38 @@ test.describe("privacy @cloud", () => {
     await page.goto(await emailedLink(email, "Confirm your email"));
 
     await expect(page.getByRole("heading", { name: "Welcome! What should we call you?" })).toBeVisible();
-    await expect(page.getByText("Step 1 of 3")).toBeVisible();
+    await expect(page.getByText("Step 1 of 6")).toBeVisible();
     await expect(page.getByLabel("Your name")).toHaveValue("Wel Come");
     await page.getByLabel("Your name").fill("Wel");
-    await page.getByRole("button", { name: "Next" }).click();
-    await expect(page.getByRole("heading", { name: "What do you study, or what's your job?" })).toBeVisible();
+    await page.getByRole("button", { name: "They / them" }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    // P5-14: studies
+    await expect(page.getByRole("heading", { name: "What do you study?" })).toBeVisible();
+    await page.getByRole("button", { name: "Bachelor's" }).click();
     await page.getByRole("button", { name: "Computer Science" }).click();
     await expect(page.getByText("Picked: Computer Science")).toBeVisible();
+    await expect(page.getByLabel("Your major or subject")).toHaveValue("Computer Science");
+    await page.getByLabel(/School or university/).fill("Lebanese University");
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    // what they do, and the job they have or want
+    await expect(page.getByRole("heading", { name: "What are you up to these days?" })).toBeVisible();
+    await page.getByRole("button", { name: "Studying and working" }).click();
     await page.getByLabel("Your job, or the job you want").fill("software dev");
     await page.getByRole("option", { name: /Software Developers/ }).first().click();
     await expect(page.getByText("Your job: Software Developers")).toBeVisible();
-    await page.getByRole("button", { name: "Next" }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    // how their brain works: private, optional
+    await expect(page.getByRole("heading", { name: "How does your brain work?" })).toBeVisible();
+    await expect(page.getByRole("note")).toContainText("Nobody else sees it");
+    await page.getByRole("button", { name: "ADHD" }).click();
+    await page.getByRole("button", { name: "Very small steps" }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    // how the app should talk to them (a question left alone can be skipped)
+    await expect(page.getByRole("heading", { name: "How should the app talk to you?" })).toBeVisible();
+    await page.getByRole("button", { name: "Short and direct" }).click();
+    await page.getByRole("button", { name: "15 min" }).click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(page.getByRole("heading", { name: "What do you want help with?" })).toBeVisible();
     await page.getByLabel(/Finding internships and jobs/).click();
     await expect(page.getByText(/We'll start Job Radar/)).toHaveCount(0); // (Job Radar is for admins while it is tested)
@@ -128,6 +149,40 @@ test.describe("privacy @cloud", () => {
     // once only: Today is their day now
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /What should we call you/ })).toHaveCount(0);
+    // they answered, so Today doesn't ask again; Profile shows the answers, to change any time
+    await expect(page.getByRole("heading", { name: /Tell the app a bit about you/ })).toHaveCount(0);
+    await page.goto("/profile");
+    const aboutMe = page.getByRole("form", { name: "About me, for better help" });
+    await expect(aboutMe.getByRole("button", { name: "ADHD" })).toHaveAttribute("aria-pressed", "true");
+    await expect(aboutMe.getByRole("button", { name: "Short and direct" })).toHaveAttribute("aria-pressed", "true");
+    await expect(aboutMe.getByLabel(/School or university/)).toHaveValue("Lebanese University");
+    await aboutMe.getByRole("button", { name: "ADHD" }).click(); // cleared
+    await aboutMe.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Saved.")).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("form", { name: "About me, for better help" }).getByRole("button", { name: "ADHD" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("skipping the guide: Today asks once, quietly, and Profile has the questions (P5-14)", async ({ page }) => {
+    const email = `e2e-skip-${Date.now()}@example.com`;
+    await page.goto("/");
+    await page.getByRole("link", { name: "Make an account" }).click();
+    await page.getByLabel("Full name").fill("Skip Per");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Phone number").fill("+961 70 123 457");
+    await page.getByLabel(/^Password/).fill("skipper-pass-123");
+    await page.getByRole("button", { name: "Make my account" }).click();
+    await page.goto(await emailedLink(email, "Confirm your email"));
+    await page.getByRole("button", { name: "Skip the welcome" }).click();
+    const nudge = page.getByRole("region", { name: /Tell the app a bit about you/ });
+    await expect(nudge).toBeVisible();
+    await nudge.getByRole("link", { name: "Tell it" }).click();
+    await expect(page).toHaveURL(/\/profile#about-me$/);
+    await expect(page.getByRole("form", { name: "About me, for better help" })).toBeVisible();
+    await page.goto("/");
+    await page.getByRole("region", { name: /Tell the app a bit about you/ }).getByRole("button", { name: "Not now" }).click();
+    await page.reload();
+    await expect(page.getByRole("region", { name: /Tell the app a bit about you/ })).toHaveCount(0);
   });
 
   test("the privacy page opens signed out, and is linked from sign-up", async ({ page }) => {
