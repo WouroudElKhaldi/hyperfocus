@@ -111,7 +111,7 @@ export default function Connections() {
                 <p className="muted tiny">{i18next.t("settings.inYourLinkedinApp")} <code>{`${window.location.origin}/api/integrations/linkedin/callback`}</code></p>
                 {have && (directLinkedIn ? (
                   <div className="row">
-                    <span>✅ Posting as {directLinkedIn.account}</span>
+                    <span>{i18next.t("misc.postingAs", { name: directLinkedIn.account })}</span>
                     <button onClick={() => remove.mutate("linkedin")}>{i18next.t("settings.disconnectLinkedin")}</button>
                   </div>
                 ) : (

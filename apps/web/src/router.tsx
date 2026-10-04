@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import {
   Link,
   type RouteComponent,
@@ -51,10 +52,10 @@ const SoundCheck = DEV_PAGES ? lazyRouteComponent(() => import("./features/dev/p
 function NotFound() {
   return (
     <>
-      <h1>This page doesn't exist</h1>
-      <p className="sub">The link may be old or mistyped. Nothing is lost.</p>
+      <h1>{i18next.t("misc.noSuchPage")}</h1>
+      <p className="sub">{i18next.t("misc.linkMayBeOld")}</p>
       <Link className="btn primary" to="/">
-        Back to Today
+        {i18next.t("misc.backToToday")}
       </Link>
     </>
   );

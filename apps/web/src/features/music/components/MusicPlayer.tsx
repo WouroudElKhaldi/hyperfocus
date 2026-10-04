@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Engine, SPIN_SHAPES } from "../audio/engine.ts";
@@ -45,6 +47,7 @@ function Art({ t, size = 44, className = "" }: { t: Track; size?: number; classN
 }
 
 export default function MusicPlayer() {
+  useTranslation(); // (re-renders this page when the language changes)
   const st = useEngine();
   const prefs0 = useMemo(load, []);
   const [open, setOpen] = useState(false);
@@ -210,7 +213,7 @@ export default function MusicPlayer() {
   };
   const beep = async () => {
     const state = await engine.beep();
-    setBeepNote(state === "running" ? "You should have heard two soft notes. If you didn't, check that this browser tab isn't muted (right-click the tab), the computer volume is up, and the right speakers or headphones are selected." : "Your browser is blocking sound. Click the button again, and allow sound for this site in the address bar if it asks.");
+    setBeepNote(state === "running" ? i18next.t("misc.youShouldHaveHeard") : i18next.t("misc.yourBrowserIsBlocking"));
   };
   const blocked = going && !song && st.ctxState !== "running";
   const canSpin = !song && (cur ? cur.kind !== "beats" : true);
@@ -219,20 +222,20 @@ export default function MusicPlayer() {
 
   const ui = (
     <>
-      <button className={"music-fab" + (going ? " playing" : "")} onClick={() => setOpen(!open)} aria-expanded={open} aria-label={going ? `Music: playing ${now?.name}` : "Open music player"} title="Focus music" style={going && now ? artStyle(now) : undefined}>
+      <button className={"music-fab" + (going ? " playing" : "")} onClick={() => setOpen(!open)} aria-expanded={open} aria-label={going ? `Music: playing ${now?.name}` : i18next.t("misc.openMusicPlayer")} title={i18next.t("misc.focusMusic")} style={going && now ? artStyle(now) : undefined}>
         {going ? <span className="eq" aria-hidden="true"><i /><i /><i /><i /></span> : <Icon name="music" size={22} />}
       </button>
 
       {showPanel && (
-        <section className={"music-panel" + (open ? "" : " mini")} role="dialog" aria-label="Focus music">
+        <section className={"music-panel" + (open ? "" : " mini")} role="dialog" aria-label={i18next.t("misc.focusMusic")}>
           <header className="mp-hero" style={now ? artStyle(now) : undefined}>
             <div className="mp-hero-top">
               {now ? <Art t={now} size={64} className="mp-cover" /> : <span className="mp-art mp-cover mp-idle" style={{ width: 64, height: 64 }}><Icon name="music" size={28} /></span>}
               <div className="mp-now">
-                <b>{now ? now.name : "Focus music"}</b>
-                <span>{now ? (song ? `${song.desc}${song.eightD ? "" : " · on YouTube"}` : `${g?.name}${spinning && now.genre !== "spin" ? " · 8D" : ""}${now.headphones ? " · headphones best" : ""}`) : "Pick something, then press play"}</span>
+                <b>{now ? now.name : i18next.t("misc.focusMusic")}</b>
+                <span>{now ? (song ? `${song.desc}${song.eightD ? "" : " · on YouTube"}` : `${g?.name}${spinning && now.genre !== "spin" ? " · 8D" : ""}${now.headphones ? " · headphones best" : ""}`) : i18next.t("misc.pickSomethingThenPress")}</span>
               </div>
-              <button className="mp-x" onClick={() => (open ? setOpen(false) : stopAll())} aria-label={open ? "Close music player" : "Stop the song"}><Icon name="close" size={18} /></button>
+              <button className="mp-x" onClick={() => (open ? setOpen(false) : stopAll())} aria-label={open ? i18next.t("misc.closeMusicPlayer") : i18next.t("misc.stopTheSong")}><Icon name="close" size={18} /></button>
             </div>
             {song && YT_ID.test(song.yt) && (
               <div className="mp-embed">
@@ -243,25 +246,25 @@ export default function MusicPlayer() {
             )}
             <canvas className="mp-viz" ref={viz} aria-hidden="true" />
             <div className="mp-controls">
-              <button className="mp-btn" onClick={() => step(-1)} aria-label="Previous track" disabled={!now}><Icon name="prev" size={18} /></button>
-              <button className="mp-play" onClick={main} aria-label={going ? "Pause" : "Play"}><Icon name={going ? "pause" : "play"} size={22} /></button>
-              <button className="mp-btn" onClick={() => step(1)} aria-label="Next track" disabled={!now}><Icon name="next" size={18} /></button>
-              <label className="mp-vol"><span className="sr-only">Volume</span><input type="range" min="0" max="1" step="0.01" value={vol} onChange={(e) => onVol(+e.target.value)} aria-label="Volume" /></label>
-              {now && <button className="mp-btn mp-stop" onClick={stopAll}>Stop</button>}
+              <button className="mp-btn" onClick={() => step(-1)} aria-label={i18next.t("misc.previousTrack")} disabled={!now}><Icon name="prev" size={18} /></button>
+              <button className="mp-play" onClick={main} aria-label={going ? i18next.t("misc.pause") : i18next.t("misc.play")}><Icon name={going ? "pause" : "play"} size={22} /></button>
+              <button className="mp-btn" onClick={() => step(1)} aria-label={i18next.t("misc.nextTrack")} disabled={!now}><Icon name="next" size={18} /></button>
+              <label className="mp-vol"><span className="sr-only">{i18next.t("misc.volume")}</span><input type="range" min="0" max="1" step="0.01" value={vol} onChange={(e) => onVol(+e.target.value)} aria-label={i18next.t("misc.volume")} /></label>
+              {now && <button className="mp-btn mp-stop" onClick={stopAll}>{i18next.t("misc.stop")}</button>}
             </div>
           </header>
 
           {open && (
             <>
-              {going && vol < 0.03 && <p className="mp-warn" role="alert">The volume slider is at zero. Slide it to the right to hear the music.</p>}
-              {blocked && <p className="mp-warn" role="alert">The browser is holding the sound back. Press the play button once more. If it still stays silent, allow sound for this site in the address bar.</p>}
-              {song && songState === "error" && <p className="mp-warn" role="alert">YouTube would not play this one here. <a href={`https://www.youtube.com/watch?v=${song.yt}`} target="_blank" rel="noopener noreferrer">Open it on YouTube</a> or press next.</p>}
+              {going && vol < 0.03 && <p className="mp-warn" role="alert">{i18next.t("misc.theVolumeSliderIs")}</p>}
+              {blocked && <p className="mp-warn" role="alert">{i18next.t("misc.theBrowserIsHolding")}</p>}
+              {song && songState === "error" && <p className="mp-warn" role="alert">{i18next.t("misc.youtubeWouldNotPlay")} <a href={`https://www.youtube.com/watch?v=${song.yt}`} target="_blank" rel="noopener noreferrer">{i18next.t("misc.openItOnYoutube")}</a> {i18next.t("misc.orPressNext")}</p>}
               <div className="mp-body">
-                <input type="search" className="mp-search" placeholder={`Search ${TRACKS.length} tracks and songs…`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search tracks" />
+                <input type="search" className="mp-search" placeholder={`Search ${TRACKS.length} tracks and songs…`} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={i18next.t("misc.searchTracks")} />
 
                 {!q && (
-                  <div className="mp-genres" role="tablist" aria-label="Music styles">
-                    {favs.length > 0 && <button role="tab" aria-selected={genre === "favs"} className={"mp-genre fav" + (genre === "favs" ? " on" : "")} onClick={() => setGenre("favs")}><i>★</i><b>Favorites</b><small>{favs.length}</small></button>}
+                  <div className="mp-genres" role="tablist" aria-label={i18next.t("misc.musicStyles")}>
+                    {favs.length > 0 && <button role="tab" aria-selected={genre === "favs"} className={"mp-genre fav" + (genre === "favs" ? " on" : "")} onClick={() => setGenre("favs")}><i>★</i><b>{i18next.t("misc.favorites")}</b><small>{favs.length}</small></button>}
                     {GENRES.map((x) => (
                       <button key={x.id} role="tab" aria-selected={genre === x.id} className={"mp-genre" + (genre === x.id ? " on" : "")} style={{ "--gh": x.hue } as CSSProperties} onClick={() => setGenre(x.id)}>
                         <i>{x.icon}</i><b>{x.name}</b><small>{countOf(x.id)}</small>
@@ -270,16 +273,16 @@ export default function MusicPlayer() {
                   </div>
                 )}
                 {!q && genre === "songs" && (
-                  <label className="mp-row">Artist
-                    <select value={artist} onChange={(e) => setArtist(e.target.value)} aria-label="Filter songs by artist">
+                  <label className="mp-row">{i18next.t("misc.artist")}
+                    <select value={artist} onChange={(e) => setArtist(e.target.value)} aria-label={i18next.t("misc.filterSongsByArtist")}>
                       <option value="">All artists ({SONG_ARTISTS.length})</option>
                       {SONG_ARTISTS.map((a) => <option key={a} value={a}>{a}</option>)}
                     </select>
                   </label>
                 )}
                 <div className="mp-listhead">
-                  <span className="muted tiny">{q ? `${list.length} found` : genre === "favs" ? "Your starred tracks." : genreById(genre)?.blurb}</span>
-                  <button className="ghost tiny-btn" onClick={surprise}>Surprise me</button>
+                  <span className="muted tiny">{q ? `${list.length} found` : genre === "favs" ? i18next.t("misc.yourStarredTracks") : genreById(genre)?.blurb}</span>
+                  <button className="ghost tiny-btn" onClick={surprise}>{i18next.t("misc.surpriseMe")}</button>
                 </div>
 
                 <ul className="mp-list">
@@ -293,7 +296,7 @@ export default function MusicPlayer() {
                       <button className={"ghost icon-btn star" + (favs.includes(t.id) ? " on" : "")} onClick={() => toggleFav(t.id)} aria-pressed={favs.includes(t.id)} aria-label={`Favorite ${t.name}`}><Icon name="star" size={16} /></button>
                     </li>
                   ))}
-                  {!list.length && <li className="empty">{q ? "Nothing matches that." : "Star a track to find it here."}</li>}
+                  {!list.length && <li className="empty">{q ? i18next.t("misc.nothingMatchesThat") : i18next.t("misc.starATrackTo")}</li>}
                 </ul>
                 {list.length > shown.length && <button className="ghost" onClick={() => setLimit(limit + PAGE)}>Show {Math.min(PAGE, list.length - shown.length)} more ({list.length - shown.length} left)</button>}
 
@@ -301,19 +304,19 @@ export default function MusicPlayer() {
                   <div className="mp-box-head">
                     <label className="check-row">
                       <input type="checkbox" checked={st.spatial && canSpin} disabled={!canSpin} onChange={(e) => onSpin(e.target.checked)} />
-                      <span><b>8D spin</b> <span className="muted tiny">headphones</span></span>
+                      <span><b>{i18next.t("misc.n8dSpin")}</b> <span className="muted tiny">{i18next.t("misc.headphones")}</span></span>
                     </label>
-                    {!canSpin && <span className="muted tiny">{song ? "Not for songs" : "Not for beat tracks"}</span>}
+                    {!canSpin && <span className="muted tiny">{song ? i18next.t("misc.notForSongs") : i18next.t("misc.notForBeatTracks")}</span>}
                   </div>
                   {canSpin && (
                     <div className="mp-8d-body">
-                      <canvas ref={radar} className="mp-radar" aria-label="Where the sound is, seen from above" role="img" />
+                      <canvas ref={radar} className="mp-radar" aria-label={i18next.t("misc.whereTheSoundIs")} role="img" />
                       <div className="mp-8d-controls">
-                        <div className="mp-chips" role="radiogroup" aria-label="Path">
+                        <div className="mp-chips" role="radiogroup" aria-label={i18next.t("misc.path")}>
                           {SPIN_SHAPES.map(([id, label]) => <button key={id} role="radio" aria-checked={st.shape === id} className={"mp-chip" + (st.shape === id ? " on" : "")} onClick={() => onShape(id)}>{label}</button>)}
                         </div>
-                        <label className="mp-row">Speed
-                          <input type="range" min="5" max="30" step="1" value={35 - (st.period || period)} onChange={(e) => onPeriod(35 - +e.target.value)} aria-label="Spin speed" />
+                        <label className="mp-row">{i18next.t("misc.speed")}
+                          <input type="range" min="5" max="30" step="1" value={35 - (st.period || period)} onChange={(e) => onPeriod(35 - +e.target.value)} aria-label={i18next.t("misc.spinSpeed")} />
                         </label>
                         <span className="muted tiny">One lap every {st.period || period} seconds</span>
                       </div>
@@ -322,25 +325,25 @@ export default function MusicPlayer() {
                 </section>
 
                 <section className="mp-box">
-                  <label className="mp-row">Add a sound
+                  <label className="mp-row">{i18next.t("misc.addASound")}
                     <select value={st.layerId || ""} onChange={(e) => onLayer(e.target.value)}>
-                      <option value="">None</option>
+                      <option value="">{i18next.t("misc.none")}</option>
                       {LAYERS.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </label>
-                  {st.layerId && <label className="mp-row">Its volume<input type="range" min="0" max="1" step="0.01" value={lvol} onChange={(e) => onLvol(+e.target.value)} aria-label="Added sound volume" /></label>}
-                  <label className="mp-row">Sleep timer
+                  {st.layerId && <label className="mp-row">{i18next.t("misc.itsVolume")}<input type="range" min="0" max="1" step="0.01" value={lvol} onChange={(e) => onLvol(+e.target.value)} aria-label={i18next.t("misc.addedSoundVolume")} /></label>}
+                  <label className="mp-row">{i18next.t("misc.sleepTimer")}
                     <select value={sleep} onChange={(e) => onSleep(+e.target.value)}>
-                      <option value={0}>Off</option>{[15, 25, 30, 45, 60, 90].map((m) => <option key={m} value={m}>{m} min</option>)}
+                      <option value={0}>{i18next.t("misc.off")}</option>{[15, 25, 30, 45, 60, 90].map((m) => <option key={m} value={m}>{m} min</option>)}
                     </select>
                   </label>
                 </section>
                 <section className="mp-box">
-                  <div className="mp-row">No sound? <button className="ghost" onClick={beep}>Play a test beep</button></div>
+                  <div className="mp-row">{i18next.t("misc.noSound")} <button className="ghost" onClick={beep}>{i18next.t("misc.playATestBeep")}</button></div>
                   {beepNote && <p className="muted tiny">{beepNote}</p>}
                   <p className="muted tiny">Audio is {st.ctxState === "none" ? "not started yet" : st.ctxState}.</p>
                 </section>
-                <p className="muted tiny">The music is made live in your browser as it plays: nothing is downloaded and it works offline. Songs play in YouTube's own player (the privacy-friendly version), and nothing from YouTube loads until you press play on a song.</p>
+                <p className="muted tiny">{i18next.t("misc.theMusicIsMade")}</p>
               </div>
             </>
           )}

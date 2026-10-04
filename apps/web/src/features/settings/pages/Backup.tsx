@@ -72,7 +72,7 @@ export default function Backup() {
       {me?.mode === "cloud" && me.user && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <div><b>Signed in as {me.user.name}</b><div className="muted">{me.user.email}</div></div>
+            <div><b>{i18next.t("misc.signedInAs", { name: me.user.name })}</b><div className="muted">{me.user.email}</div></div>
             <button onClick={() => void signOut(client)}>{i18next.t("settings.signOut")}</button>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function Backup() {
           <h2>{i18next.t("settings.appearance")}</h2>
           <p className="muted">{i18next.t("settings.lightDarkAllWhite")}</p>
           <div className="seg" role="radiogroup" aria-label={i18next.t("settings.theme")}>
-            {([["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["white", "All white"], ["black", "All black"]] as [ThemeMode, string][]).map(([k, l]) => (
+            {([["auto", i18next.t("misc.themeAuto")], ["light", i18next.t("misc.themeLight")], ["dark", i18next.t("misc.themeDark")], ["white", i18next.t("misc.themeWhite")], ["black", i18next.t("misc.themeBlack")]] as [ThemeMode, string][]).map(([k, l]) => (
               <button key={k} role="radio" aria-checked={theme === k} className={theme === k ? "on" : ""} onClick={() => pickTheme(k)}>{l}</button>
             ))}
           </div>
@@ -224,7 +224,7 @@ export default function Backup() {
             </label>
             {(prefs.quietFrom || prefs.quietTo) && <button className="ghost" onClick={() => savePrefs({ quietFrom: "", quietTo: "" })}>{i18next.t("settings.noQuietHours")}</button>}
           </div>
-          <p className="muted tiny">During quiet hours nothing pops up; it all waits in the bell. Times are in your time zone: {prefs.timeZone || "this computer's"}.</p>
+          <p className="muted tiny">{i18next.t("misc.quietHoursNote", { zone: prefs.timeZone || i18next.t("misc.thisComputers") })}</p>
         </div>
       )}
 

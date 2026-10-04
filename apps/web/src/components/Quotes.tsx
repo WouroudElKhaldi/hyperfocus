@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QUOTES, QUOTE_CATEGORIES } from "../data/quotes.ts";
 
@@ -18,6 +20,7 @@ const SHOW_MS = 14000;
 
 // A soft card that shows a short line every few minutes while the app is open. It never takes focus and never blocks anything.
 export default function Quotes() {
+  useTranslation(); // (re-renders this page when the language changes)
   const [settings, setSettings] = useState(readQuoteSettings);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [hover, setHover] = useState(false);
@@ -82,8 +85,8 @@ export default function Quotes() {
       <div className="q-head">
         <span className="q-tag"><i />{cat?.label}</span>
         <div className="row" style={{ gap: 0 }}>
-          <button className="ghost icon-btn" onClick={() => { const q = next(); if (q) setQuote({ ...q, id: Date.now() }); }} aria-label="Another one" title="Another one">↻</button>
-          <button className="ghost icon-btn" onClick={() => setQuote(null)} aria-label="Close">✕</button>
+          <button className="ghost icon-btn" onClick={() => { const q = next(); if (q) setQuote({ ...q, id: Date.now() }); }} aria-label={i18next.t("misc.anotherOne")} title={i18next.t("misc.anotherOne")}>↻</button>
+          <button className="ghost icon-btn" onClick={() => setQuote(null)} aria-label={i18next.t("misc.close")}>✕</button>
         </div>
       </div>
       <p>{quote.text}</p>

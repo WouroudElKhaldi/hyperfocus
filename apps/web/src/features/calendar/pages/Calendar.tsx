@@ -445,8 +445,7 @@ export default function Calendar() {
               </button>
             </div>
             <p className="muted">
-              Picked from your free time in the next 7 days, using your goals and skill gaps. Add the ones that feel
-              doable.
+              {i18next.t("misc.pickedFromFreeTime")}
             </p>
             {plan.blocks.length === 0 && <p className="muted">{plan.note || i18next.t("cal.nothingLeft")}</p>}
             {plan.blocks.map((b) => (

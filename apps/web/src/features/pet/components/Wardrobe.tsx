@@ -1,5 +1,8 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { type ReactNode, useState } from "react";
 import type { Outfit, PetCatalog } from "../../../types.ts";
+import { itemName, ruleLabel, sceneName } from "../names.ts";
 import PetArt from "./PetArt.tsx";
 
 /** What a wardrobe pick changes: one of these at a time. */
@@ -10,14 +13,14 @@ type Props = {
   outfit: Outfit; backdrop: string; pattern: string; aura: string; onChange: (change: WardrobeChange) => void; busy?: boolean;
 };
 
-const TABS = [
-  { id: "head", label: "Head" },
-  { id: "face", label: "Face" },
-  { id: "neck", label: "Neck & jewelry" },
-  { id: "body", label: "Clothes" },
-  { id: "extra", label: "Extras" },
-  { id: "look", label: "Looks" },
-  { id: "scene", label: "Scene" },
+const TABS = () => [
+  { id: "head", label: i18next.t("petpage.head") },
+  { id: "face", label: i18next.t("petpage.face") },
+  { id: "neck", label: i18next.t("petpage.neckJewelry") },
+  { id: "body", label: i18next.t("petpage.clothes") },
+  { id: "extra", label: i18next.t("petpage.extras") },
+  { id: "look", label: i18next.t("petpage.looks") },
+  { id: "scene", label: i18next.t("petpage.scene") },
 ];
 const BD_PREVIEW: Record<string, string> = { meadow: "bd-meadow", night: "bd-night", sunrise: "bd-sunrise", candy: "bd-candy", beach: "bd-beach", space: "bd-space" };
 
@@ -28,6 +31,7 @@ function Progress({ have, need }: { have: number; need: number }) {
 // Clothes, jewelry and looks the pet can wear. Locked ones show what to do to earn them.
 // `onChange` receives the new outfit / backdrop / pattern / aura, so this works both when choosing a pet and on its page.
 export default function Wardrobe({ data, pet, age, outfit, backdrop, pattern, aura, onChange, busy }: Props) {
+  useTranslation(); // (re-renders this page when the language changes)
   const gender = pet.gender || "neutral";
   const [tab, setTab] = useState("head");
   const previewAge = Math.max(age, 4);
@@ -35,10 +39,10 @@ export default function Wardrobe({ data, pet, age, outfit, backdrop, pattern, au
 
   const tile = ({ key, name, unlocked, label, have = 0, need = 0, worn, onPick, preview, extra }: Tile) => (
     <button key={key} type="button" className={"wd-item" + (worn ? " worn" : "") + (unlocked ? "" : " locked")} onClick={onPick} disabled={busy || (!unlocked && !worn)}
-      aria-pressed={worn} title={unlocked ? (worn ? "Wearing it. Click to take off." : `Put on ${name}`) : `${name}: ${label}`}>
+      aria-pressed={worn} title={unlocked ? (worn ? i18next.t("petpage.wearingItClickTo") : i18next.t("petpage.putOn", { name })) : i18next.t("petpage.lockedTitle", { name, how: label })}>
       <span className={"wd-prev " + (extra || "")}>{preview}</span>
       <b>{name}</b>
-      {unlocked ? <span className="muted tiny">{worn ? "Wearing" : "Unlocked"}</span> : <><span className="muted tiny">{label}</span><Progress have={have} need={need} /></>}
+      {unlocked ? <span className="muted tiny">{worn ? i18next.t("petpage.wearing") : i18next.t("petpage.unlocked")}</span> : <><span className="muted tiny">{label}</span><Progress have={have} need={need} /></>}
     </button>
   );
 
@@ -48,28 +52,28 @@ export default function Wardrobe({ data, pet, age, outfit, backdrop, pattern, au
 
   return (
     <div className="wardrobe">
-      <div className="seg wd-tabs" role="tablist" aria-label="Wardrobe">
-        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>{t.label}</button>)}
+      <div className="seg wd-tabs" role="tablist" aria-label={i18next.t("petpage.wardrobe")}>
+        {TABS().map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>{t.label}</button>)}
       </div>
 
       {tab !== "scene" ? (
         <div className="wd-grid">
-          {tile({ key: "none", name: "Nothing", unlocked: true, worn: !outfit[tab], onPick: () => setSlot(tab, ""), preview: <PetArt {...base} outfit={{}} size={64} /> })}
-          {slotItems.map((i) => tile({ key: i.id, name: i.name, unlocked: i.unlocked, label: i.label, have: i.have, need: i.need, worn: outfit[tab] === i.id, onPick: () => setSlot(tab, i.id), preview: <PetArt {...base} outfit={{ [tab]: i.id }} size={64} /> }))}
+          {tile({ key: "none", name: i18next.t("petpage.nothing"), unlocked: true, worn: !outfit[tab], onPick: () => setSlot(tab, ""), preview: <PetArt {...base} outfit={{}} size={64} /> })}
+          {slotItems.map((i) => tile({ key: i.id, name: itemName(i.id, i.name), unlocked: i.unlocked, label: ruleLabel(i.kind, i.need, i.label), have: i.have, need: i.need, worn: outfit[tab] === i.id, onPick: () => setSlot(tab, i.id), preview: <PetArt {...base} outfit={{ [tab]: i.id }} size={64} /> }))}
         </div>
       ) : (
         <div className="wd-looks">
-          <h3>Backdrop</h3>
+          <h3>{i18next.t("petpage.backdrop")}</h3>
           <div className="wd-grid">
-            {data.backdrops.map((b) => tile({ key: b.id, name: b.name, unlocked: b.unlocked, label: b.label, have: b.have, need: b.need, worn: backdrop === b.id, onPick: () => onChange({ backdrop: b.id }), extra: BD_PREVIEW[b.id], preview: <PetArt {...base} stage={Math.max(age, 2)} size={56} /> }))}
+            {data.backdrops.map((b) => tile({ key: b.id, name: sceneName("bd", b.id, b.name), unlocked: b.unlocked, label: ruleLabel(b.kind, b.need, b.label), have: b.have, need: b.need, worn: backdrop === b.id, onPick: () => onChange({ backdrop: b.id }), extra: BD_PREVIEW[b.id], preview: <PetArt {...base} stage={Math.max(age, 2)} size={56} /> }))}
           </div>
-          <h3>Body pattern</h3>
+          <h3>{i18next.t("petpage.bodyPattern")}</h3>
           <div className="wd-grid">
-            {data.patterns.map((p) => tile({ key: p.id, name: p.name, unlocked: p.unlocked, label: p.label, have: p.have, need: p.need, worn: pattern === p.id, onPick: () => onChange({ pattern: p.id }), preview: <PetArt {...base} pattern={p.id} size={64} /> }))}
+            {data.patterns.map((p) => tile({ key: p.id, name: sceneName("pat", p.id, p.name), unlocked: p.unlocked, label: ruleLabel(p.kind, p.need, p.label), have: p.have, need: p.need, worn: pattern === p.id, onPick: () => onChange({ pattern: p.id }), preview: <PetArt {...base} pattern={p.id} size={64} /> }))}
           </div>
-          <h3>Aura</h3>
+          <h3>{i18next.t("petpage.aura")}</h3>
           <div className="wd-grid">
-            {data.auras.map((a) => tile({ key: a.id, name: a.name, unlocked: a.unlocked, label: a.label, have: a.have, need: a.need, worn: aura === a.id, onPick: () => onChange({ aura: a.id }), preview: <PetArt {...base} aura={a.id} size={64} /> }))}
+            {data.auras.map((a) => tile({ key: a.id, name: sceneName("aura", a.id, a.name), unlocked: a.unlocked, label: ruleLabel(a.kind, a.need, a.label), have: a.have, need: a.need, worn: aura === a.id, onPick: () => onChange({ aura: a.id }), preview: <PetArt {...base} aura={a.id} size={64} /> }))}
           </div>
         </div>
       )}

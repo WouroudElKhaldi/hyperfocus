@@ -1,8 +1,10 @@
+import i18next from "i18next";
 import { type CSSProperties, useEffect, useState } from "react";
 import type { PetState } from "../../../types.ts";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { usePet } from "../hooks/usePet.ts";
+import { ageName } from "../names.ts";
 import PetArt from "./PetArt.tsx";
 
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -10,6 +12,7 @@ const write = (k: string, v: unknown) => { try { localStorage.setItem(k, String(
 
 // The pet card in the sidebar.
 export default function PetWidget({ compact = false }: { compact?: boolean }) {
+  useTranslation(); // (re-renders this page when the language changes)
   const { t } = useTranslation();
   const s = usePet();
   if (!s) return null;
@@ -24,7 +27,7 @@ export default function PetWidget({ compact = false }: { compact?: boolean }) {
   }
   const p = s.pet;
   return (
-    <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget" + (compact ? " compact" : "")} title={`${p.name} · Age ${s.age} ${s.stageName} · ${s.xp} points`}>
+    <Link activeProps={{ className: "active" }} to="/pet" className={"pet-widget" + (compact ? " compact" : "")} title={i18next.t("petpage.widgetTitle", { name: p.name, age: s.age, stage: ageName(s.age, s.stageName), n: s.xp })}>
       <PetArt species={p.species} gender={p.gender} color={p.color} stage={s.stage} mood={s.mood} outfit={s.outfit} pattern={p.pattern} aura={p.aura} legend={s.legend} eggProgress={s.progress} size={compact ? 40 : 48} />
       <span className="pw-text">
         <b translate="no">{p.name}</b>
@@ -52,14 +55,14 @@ export function PetCelebration() {
   if (!party) return null;
   return (
     <div className="modal-bg party" onClick={close}>
-      <div className="modal card party-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Your pet grew">
+      <div className="modal card party-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={i18next.t("petpage.yourPetGrew")}>
         <div className="confetti" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}</div>
         <PetArt species={party.pet.species} gender={party.pet.gender} color={party.pet.color} stage={party.stage} mood="happy" outfit={party.outfit} pattern={party.pet.pattern} aura={party.pet.aura} legend={party.legend} size={200} />
-        <h2>{party.stage === 1 ? `${party.pet.name} hatched!` : `${party.pet.name} grew up a little!`}</h2>
-        <p className="muted">{party.stage === 1 ? "That's all the things you finished, coming to life." : `Now age ${party.age}: a ${party.stageName.toLowerCase()}. Look what you did.`}</p>
+        <h2>{party.stage === 1 ? i18next.t("petpage.hatched", { name: party.pet.name }) : i18next.t("petpage.grewUp", { name: party.pet.name })}</h2>
+        <p className="muted">{party.stage === 1 ? i18next.t("petpage.thatSAllThe") : i18next.t("petpage.nowAge", { age: party.age, stage: ageName(party.age, party.stageName) })}</p>
         <div className="row" style={{ justifyContent: "center" }}>
-          <Link activeProps={{ className: "active" }} to="/pet" className="btn primary" onClick={close}>Say hi</Link>
-          <button className="ghost" onClick={close}>Later</button>
+          <Link activeProps={{ className: "active" }} to="/pet" className="btn primary" onClick={close}>{i18next.t("petpage.sayHi")}</Link>
+          <button className="ghost" onClick={close}>{i18next.t("petpage.later")}</button>
         </div>
       </div>
     </div>

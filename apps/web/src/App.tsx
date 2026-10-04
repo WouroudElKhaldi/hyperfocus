@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import { type KeyboardEvent, type PointerEvent, Suspense, createContext, lazy, useCallback, useContext, useEffect, useState } from "react";
 import { BRAND } from "./brand.ts";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
@@ -47,7 +48,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 // signs in, so it goes straight to the app).
 export default function App() {
   const me = useMe();
-  if (me.isPending) return <div className="empty" role="status">Loading…</div>;
+  if (me.isPending) return <div className="empty" role="status">{i18next.t("misc.loading")}</div>;
   if (me.data?.mode === "cloud" && !me.data.user) {
     // the privacy policy can be read before making an account (P5-12)
     if (window.location.pathname === "/privacy") return <main className="main signed-out-page"><Privacy signedOut /></main>;

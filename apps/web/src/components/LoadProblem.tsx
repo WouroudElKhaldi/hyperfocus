@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import type { ApiError } from "../api.ts";
 
@@ -8,11 +10,12 @@ export const isId = (v: unknown) => /^\d+$/.test(String(v ?? ""));
 
 type Props = { error: ApiError; what: string; back: string; backLabel: string; onRetry: () => void };
 export default function LoadProblem({ error, what, back, backLabel, onRetry }: Props) {
+  useTranslation(); // (re-renders this page when the language changes)
   if (error.status === 404) {
     return (
       <>
         <h1>{what.charAt(0).toUpperCase() + what.slice(1)} not found</h1>
-        <p className="sub">It may have been removed.</p>
+        <p className="sub">{i18next.t("misc.itMayHaveBeen")}</p>
         <Link className="btn primary" to={back}>{backLabel}</Link>
       </>
     );
@@ -22,7 +25,7 @@ export default function LoadProblem({ error, what, back, backLabel, onRetry }: P
       <h1>Couldn't load this {what}</h1>
       <p className="sub">{error.message}</p>
       <div className="row">
-        <button className="primary" onClick={onRetry}>Try again</button>
+        <button className="primary" onClick={onRetry}>{i18next.t("misc.tryAgain")}</button>
         <Link className="btn" to={back}>{backLabel}</Link>
       </div>
     </>

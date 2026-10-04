@@ -146,3 +146,18 @@ test("the Calendar in French and Lebanese Arabic (P3-28: pages)", async ({ page 
   expect(main).not.toMatch(/[٠-٩]/);
   await page.goto("/calendar?lang=en");
 });
+
+test("the Pet page in French and Lebanese Arabic, with its clothes and voice (P3-28: pages)", async ({ page }) => {
+  if (!(await (await page.request.get("/api/pet")).json()).pet)
+    await page.request.post("/api/pet", { data: { name: "Pixel", species: "cat", gender: "neutral", color: "#9b7bff", traits: [] } });
+  await page.goto("/pet?lang=fr");
+  await expect(page.getByRole("heading", { name: "Croissance" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Garde-robe/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Tête" })).toBeVisible();
+  await expect(page.getByText("Bonnet douillet")).toBeVisible(); // a name from the server, shown in French
+  await page.goto("/pet?lang=ar-LB");
+  await expect(page.getByRole("heading", { name: /^الخزانة/ })).toBeVisible();
+  await expect(page.getByText("طاقية صوف")).toBeVisible();
+  await page.goto("/pet?lang=en");
+  await expect(page.getByRole("heading", { name: "Growth" })).toBeVisible();
+});
