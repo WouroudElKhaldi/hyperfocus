@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import More from "../../../components/More.tsx";
 import { useNavigate } from "@tanstack/react-router";
@@ -22,6 +24,7 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 }
 
 export default function Review() {
+  useTranslation(); // (re-renders this page when the language changes)
   const toast = useToast();
   const nav = useNavigate();
   const reviews = useReviews().data ?? [];
@@ -34,12 +37,12 @@ export default function Review() {
   const busy = write.isPending;
 
   const generate = () => write.mutate(undefined);
-  const remove = (r: ReviewData) => { if (confirm("Delete this review?")) deleteReview.mutate(r.id); };
-  const addTask = (title: string) => addTaskChange.mutate({ title }, { onSuccess: () => toast("Added to your tasks ✅") });
+  const remove = (r: ReviewData) => { if (confirm(i18next.t("review.deleteThisReview2"))) deleteReview.mutate(r.id); };
+  const addTask = (title: string) => addTaskChange.mutate({ title }, { onSuccess: () => toast(i18next.t("review.addedToYourTasks")) });
   const addAll = async () => {
     if (!current) return;
     for (const p of current.content.priorities) await addTaskChange.mutateAsync({ title: p.title });
-    toast("Your 3 priorities are in Tasks ✅");
+    toast(i18next.t("review.your3PrioritiesAre"));
   };
   const toPost = async () => {
     if (!current) return;
@@ -54,13 +57,13 @@ export default function Review() {
     <>
       <div className="page-head">
         <div>
-          <h1>Weekly review</h1>
-          <p className="sub">The last 7 days, in plain words. The numbers come from what you logged; the AI only explains them.</p>
+          <h1>{i18next.t("review.weeklyReview")}</h1>
+          <p className="sub">{i18next.t("review.theLast7Days")}</p>
         </div>
-        <button className="primary big" disabled={busy} onClick={generate}>{busy ? "Writing your review…" : "✨ Review my week"}</button>
+        <button className="primary big" disabled={busy} onClick={generate}>{busy ? i18next.t("review.writingYourReview") : i18next.t("review.reviewMyWeek")}</button>
       </div>
 
-      {!current && !busy && <div className="empty">No review yet. Press the button and get a calm summary of your week plus 3 priorities for the next one.</div>}
+      {!current && !busy && <div className="empty">{i18next.t("review.noReviewYetPress")}</div>}
 
       {current && c && s && (
         <>
@@ -78,38 +81,38 @@ export default function Review() {
           </div>
 
           <div className="card plain-more">
-          <More label="The numbers" open>
+          <More label={i18next.t("review.theNumbers")} open>
           <div className="stats">
-            <Stat label="Study time" value={hm(s.studyMinutes)} sub={s.studyMinutesLastWeek || s.studyMinutes ? `${diff >= 0 ? "+" : "−"}${hm(Math.abs(diff))} vs the week before` : ""} />
-            <Stat label="Study days" value={`${s.studyDays} / 7`} sub={`${s.studySessions} session${s.studySessions === 1 ? "" : "s"}`} />
-            <Stat label="Tasks done" value={s.tasksDone} sub={s.tasksOverdue ? `${s.tasksOverdue} still waiting from before` : `${s.tasksOpen} open`} />
-            <Stat label="Posts published" value={s.postsPublished} sub={`${s.draftsWaiting} draft${s.draftsWaiting === 1 ? "" : "s"} waiting`} />
+            <Stat label={i18next.t("review.studyTime")} value={hm(s.studyMinutes)} sub={s.studyMinutesLastWeek || s.studyMinutes ? `${diff >= 0 ? "+" : "−"}${hm(Math.abs(diff))} vs the week before` : ""} />
+            <Stat label={i18next.t("review.studyDays")} value={`${s.studyDays} / 7`} sub={s.studySessions === 1 ? i18next.t("review.oneSession") : i18next.t("review.sessions", { count: s.studySessions })} />
+            <Stat label={i18next.t("review.tasksDone")} value={s.tasksDone} sub={s.tasksOverdue ? i18next.t("review.waitingBefore", { count: s.tasksOverdue }) : i18next.t("review.open", { count: s.tasksOpen })} />
+            <Stat label={i18next.t("review.postsPublished")} value={s.postsPublished} sub={s.draftsWaiting === 1 ? i18next.t("review.oneDraft") : i18next.t("review.draftsWaiting", { count: s.draftsWaiting })} />
           </div>
           </More>
           </div>
 
           <div className="grid2">
             <div className="card">
-              <h2>Wins</h2>
+              <h2>{i18next.t("review.wins")}</h2>
               {c.wins.map((w, i) => <p key={i} style={{ margin: "var(--s-1) 0" }}>• {w}</p>)}
             </div>
             <div className="card">
-              <h2>Gently noticing</h2>
-              {c.watch.length === 0 && <p className="muted">Nothing worrying. Keep going.</p>}
+              <h2>{i18next.t("review.gentlyNoticing")}</h2>
+              {c.watch.length === 0 && <p className="muted">{i18next.t("review.nothingWorryingKeepGoing")}</p>}
               {c.watch.map((w, i) => <p key={i} style={{ margin: "var(--s-1) 0" }}>• {w}</p>)}
             </div>
           </div>
 
           <div className="card">
             <div className="row" style={{ justifyContent: "space-between" }}>
-              <h2>Next week: just these 3</h2>
-              {c.priorities.length > 0 && <button onClick={addAll}>➕ Add all to Tasks</button>}
+              <h2>{i18next.t("review.nextWeekJustThese")}</h2>
+              {c.priorities.length > 0 && <button onClick={addAll}>{i18next.t("review.addAllToTasks")}</button>}
             </div>
             {c.priorities.map((p, i) => (
               <div className="item" key={i}>
                 <b style={{ width: 18 }}>{i + 1}.</b>
                 <div className="grow"><b>{p.title}</b><div className="muted">{p.why}</div></div>
-                <button className="ghost" onClick={() => addTask(p.title)}>➕ task</button>
+                <button className="ghost" onClick={() => addTask(p.title)}>{i18next.t("review.task")}</button>
               </div>
             ))}
             {c.tinyStart && <div className="break-note" style={{ marginTop: "var(--s-3)" }}>⚡ Tiny start for #1 (under 2 minutes): {c.tinyStart}</div>}
@@ -117,14 +120,14 @@ export default function Review() {
 
           {c.postIdea && (
             <div className="card">
-              <h2>A post idea from your week</h2>
+              <h2>{i18next.t("review.aPostIdeaFrom")}</h2>
               <p className="pre">{c.postIdea}</p>
-              <button className="primary" onClick={toPost}>Turn it into a post</button>
+              <button className="primary" onClick={toPost}>{i18next.t("review.turnItIntoA")}</button>
             </div>
           )}
 
           <div className="row" style={{ justifyContent: "flex-end" }}>
-            <button className="ghost" onClick={() => remove(current)}>Delete this review</button>
+            <button className="ghost" onClick={() => remove(current)}>{i18next.t("review.deleteThisReview")}</button>
           </div>
         </>
       )}

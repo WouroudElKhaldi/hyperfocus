@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { type FormEvent, useEffect, useState } from "react";
 import { useToast } from "../../../App.tsx";
 import { initialsOf, useProfile, useSaveProfile } from "../hooks/useProfile.ts";
@@ -10,6 +12,7 @@ type Form = Record<(typeof FIELDS)[number], string>;
 const formOf = (p: ProfileData) => Object.fromEntries(FIELDS.map((k) => [k, p[k] ?? ""] as const)) as Form;
 
 export default function Profile() {
+  useTranslation(); // (re-renders this page when the language changes)
   const toast = useToast();
   const saved = useProfile();
   const [f, setF] = useState<Form | null>(null);
@@ -19,7 +22,7 @@ export default function Profile() {
 
   useEffect(() => { if (saved && !f) setF(formOf(saved)); }, [saved]);
 
-  if (!f) return <div className="empty">Loading…</div>;
+  if (!f) return <div className="empty">{i18next.t("profile.loading")}</div>;
   const set = (p: Partial<Form>) => setF((x) => (x ? { ...x, ...p } : x));
   const dirty = FIELDS.some((k) => (saved?.[k] ?? "") !== f[k]);
 
@@ -31,46 +34,46 @@ export default function Profile() {
 
   const save = (e: FormEvent) => {
     e.preventDefault();
-    saveProfile.mutate(f, { onSuccess: () => toast("Saved. Your info stays on this computer.") });
+    saveProfile.mutate(f, { onSuccess: () => toast(i18next.t("profile.savedYourInfoStays")) });
   };
 
   return (
     <>
-      <h1>Your profile</h1>
-      <p className="sub">Your info, saved on this computer. There's no account and no login. Only you see it, and it's included in your backups.</p>
+      <h1>{i18next.t("profile.yourProfile")}</h1>
+      <p className="sub">{i18next.t("profile.yourInfoSavedOn")}</p>
 
       <form className="profile-grid" onSubmit={save}>
         <div className="card profile-card">
           <div className="avatar big-avatar" style={{ background: f.avatar }} aria-hidden="true">{initialsOf(f.name)}</div>
-          <h2 style={{ marginBottom: 0 }}>{f.name || "Your name"}</h2>
+          <h2 style={{ marginBottom: 0 }}>{f.name || i18next.t("profile.yourName")}</h2>
           <p className="muted">{[f.role, f.location].filter(Boolean).join(" · ") || "Role and place"}</p>
-          <p className="muted tiny">Your color follows the site theme below.</p>
-          {f.linkedin && <a className="btn" href={f.linkedin} target="_blank" rel="noopener noreferrer">Open LinkedIn</a>}
+          <p className="muted tiny">{i18next.t("profile.yourColorFollowsThe")}</p>
+          {f.linkedin && <a className="btn" href={f.linkedin} target="_blank" rel="noopener noreferrer">{i18next.t("profile.openLinkedin")}</a>}
         </div>
 
         <div className="card profile-fields">
           <div className="form-grid">
-            <label>Name<input id="pf-name" maxLength={60} placeholder="What should I call you?" value={f.name} onChange={(e) => set({ name: e.target.value })} /></label>
-            <label>What you do<input id="pf-role" maxLength={80} placeholder="e.g. Software engineer" value={f.role} onChange={(e) => set({ role: e.target.value })} /></label>
-            <label>Where you are<input id="pf-loc" maxLength={80} placeholder="City, country" value={f.location} onChange={(e) => set({ location: e.target.value })} /></label>
-            <label>Email (optional)<input id="pf-email" type="email" maxLength={120} placeholder="you@example.com" value={f.email} onChange={(e) => set({ email: e.target.value })} /></label>
+            <label>{i18next.t("profile.name")}<input id="pf-name" maxLength={60} placeholder={i18next.t("profile.whatShouldICall")} value={f.name} onChange={(e) => set({ name: e.target.value })} /></label>
+            <label>{i18next.t("profile.whatYouDo")}<input id="pf-role" maxLength={80} placeholder={i18next.t("profile.eGSoftwareEngineer")} value={f.role} onChange={(e) => set({ role: e.target.value })} /></label>
+            <label>{i18next.t("profile.whereYouAre")}<input id="pf-loc" maxLength={80} placeholder={i18next.t("profile.cityCountry")} value={f.location} onChange={(e) => set({ location: e.target.value })} /></label>
+            <label>{i18next.t("profile.emailOptional")}<input id="pf-email" type="email" maxLength={120} placeholder={i18next.t("profile.youExampleCom")} value={f.email} onChange={(e) => set({ email: e.target.value })} /></label>
           </div>
-          <label>LinkedIn link (optional)<input id="pf-li" type="url" maxLength={200} placeholder="https://www.linkedin.com/in/…" value={f.linkedin} onChange={(e) => set({ linkedin: e.target.value })} /></label>
-          <label>About you<textarea id="pf-about" rows={3} maxLength={600} placeholder="A few lines: what you do, what you're working toward." value={f.about} onChange={(e) => set({ about: e.target.value })} /></label>
-          <label>What helps you
-            <textarea id="pf-helps" rows={4} maxLength={800} placeholder="How you work best, what overwhelms you, what kind of words help when you're stuck. For example: “Tiny steps help. Please don't tell me to just focus.”" value={f.helps} onChange={(e) => set({ helps: e.target.value })} />
+          <label>{i18next.t("profile.linkedinLinkOptional")}<input id="pf-li" type="url" maxLength={200} placeholder={i18next.t("profile.httpsWwwLinkedinCom")} value={f.linkedin} onChange={(e) => set({ linkedin: e.target.value })} /></label>
+          <label>{i18next.t("profile.aboutYou")}<textarea id="pf-about" rows={3} maxLength={600} placeholder={i18next.t("profile.aFewLinesWhat")} value={f.about} onChange={(e) => set({ about: e.target.value })} /></label>
+          <label>{i18next.t("profile.whatHelpsYou")}
+            <textarea id="pf-helps" rows={4} maxLength={800} placeholder={i18next.t("profile.howYouWorkBest")} value={f.helps} onChange={(e) => set({ helps: e.target.value })} />
           </label>
-          <p className="muted tiny">“What helps you” and “About you” are shared only with the AI companion, so its replies fit you. Nothing is sent anywhere else.</p>
+          <p className="muted tiny">{i18next.t("profile.whatHelpsYouAnd")}</p>
           <div className="row">
-            <button className="primary big" disabled={!dirty || busy}>{busy ? "Saving…" : "Save"}</button>
+            <button className="primary big" disabled={!dirty || busy}>{busy ? i18next.t("profile.saving") : i18next.t("profile.save")}</button>
             {!dirty && saved?.updatedAt && <span className="muted tiny">Saved {new Date(saved.updatedAt).toLocaleDateString([], { day: "numeric", month: "short" })}</span>}
           </div>
         </div>
       </form>
 
       <section className="card theme-card" aria-labelledby="theme-h">
-        <h2 id="theme-h">Site color</h2>
-        <p className="muted">Pick the main color of the whole site. It works in both light and dark mode, and your choice stays on this device.</p>
+        <h2 id="theme-h">{i18next.t("profile.siteColor")}</h2>
+        <p className="muted">{i18next.t("profile.pickTheMainColor")}</p>
         {PALETTE_GROUPS.map((g) => (
           <div key={g.id} className="theme-group">
             <h3>{g.label}</h3>

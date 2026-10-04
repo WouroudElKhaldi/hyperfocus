@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import More from "../../../components/More.tsx";
 import { useToast } from "../../../App.tsx";
@@ -5,9 +7,9 @@ import type { Goal, GoalAction, GoalLog } from "../../../types.ts";
 import { useAddGoal, useDeleteGoal, useGoalChanges, useGoals } from "../api.ts";
 
 const VERDICT: Record<string, { label: string; cls: string }> = {
-  achievable: { label: "✅ Achievable", cls: "v-ok" },
-  stretch: { label: "🌱 A stretch", cls: "v-mid" },
-  unrealistic: { label: "⚠️ Not realistic as planned", cls: "v-bad" },
+  achievable: { label: i18next.t("goals.achievable"), cls: "v-ok" },
+  stretch: { label: i18next.t("goals.aStretch"), cls: "v-mid" },
+  unrealistic: { label: i18next.t("goals.notRealisticAsPlanned"), cls: "v-bad" },
 };
 const dayStr = (d: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 const todayStr = () => {
@@ -47,57 +49,57 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
     <div className={"card goal" + (goal.status !== "active" ? " faded" : "")}>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <span className={"chip " + (goal.status === "achieved" ? "posted" : "")}>
-          {goal.status === "achieved" ? "Achieved" : goal.status === "paused" ? "Paused" : "Active"}
+          {goal.status === "achieved" ? i18next.t("goals.achieved") : goal.status === "paused" ? i18next.t("goals.paused") : i18next.t("goals.active")}
         </span>
         <div className="row">
-          {goal.status !== "achieved" && <button className="ghost" onClick={() => patch({ status: "achieved" })}>Mark achieved</button>}
-          <More label="More" className="inline">
-            {goal.status === "active" && <button className="ghost" onClick={() => patch({ status: "paused" })}>Pause</button>}
-            {goal.status !== "active" && <button className="ghost" onClick={() => patch({ status: "active" })}>Reactivate</button>}
-            <button className="ghost danger" onClick={onDelete}>Delete</button>
+          {goal.status !== "achieved" && <button className="ghost" onClick={() => patch({ status: "achieved" })}>{i18next.t("goals.markAchieved")}</button>}
+          <More label={i18next.t("goals.more")} className="inline">
+            {goal.status === "active" && <button className="ghost" onClick={() => patch({ status: "paused" })}>{i18next.t("goals.pause")}</button>}
+            {goal.status !== "active" && <button className="ghost" onClick={() => patch({ status: "active" })}>{i18next.t("goals.reactivate")}</button>}
+            <button className="ghost danger" onClick={onDelete}>{i18next.t("goals.delete")}</button>
           </More>
         </div>
       </div>
 
-      <div className="section"><h3>The what</h3>
+      <div className="section"><h3>{i18next.t("goals.theWhat")}</h3>
         <textarea style={{ minHeight: 70 }} value={original} onChange={(e) => setOriginal(e.target.value)} onBlur={() => changed && patch({ original })} />
         {goal.refined && (
           <div className="refined">
-            <div className="muted">Sharper version (AI, same meaning)</div>
+            <div className="muted">{i18next.t("goals.sharperVersionAiSame")}</div>
             <div className="pre">{goal.refined}</div>
-            <button className="ghost" onClick={() => { navigator.clipboard.writeText(goal.refined); toast("Copied"); }}>Copy</button>
-            <button className="ghost" onClick={() => { setOriginal(goal.refined); patch({ original: goal.refined }); }}>Use it as my goal</button>
+            <button className="ghost" onClick={() => { navigator.clipboard.writeText(goal.refined); toast(i18next.t("goals.copied")); }}>{i18next.t("goals.copy")}</button>
+            <button className="ghost" onClick={() => { setOriginal(goal.refined); patch({ original: goal.refined }); }}>{i18next.t("goals.useItAsMy")}</button>
           </div>
         )}
       </div>
 
-      <div className="section"><h3>The when</h3>
+      <div className="section"><h3>{i18next.t("goals.theWhen")}</h3>
         <div className="row">
           <input type="date" style={{ width: "auto" }} value={dayStr(goal.targetDate)} onChange={(e) => patch({ targetDate: e.target.value || null })} />
           {left !== null && goal.status === "active" && (
-            <span className="chip">{left > 0 ? `${left} days left` : left === 0 ? "Today!" : `${-left} days overdue`}</span>
+            <span className="chip">{left > 0 ? `${left} days left` : left === 0 ? i18next.t("goals.today") : `${-left} days overdue`}</span>
           )}
-          {left === null && <span className="muted">No date yet. Ask the AI to judge, or pick one.</span>}
+          {left === null && <span className="muted">{i18next.t("goals.noDateYetAsk")}</span>}
         </div>
       </div>
 
-      <More label="Is it realistic? (AI check)" className="in-card" open={!!goal.verdict}>
+      <More label={i18next.t("goals.isItRealisticAi")} className="in-card" open={!!goal.verdict}>
       <div>
         <button className="primary" disabled={busy} onClick={analyze}>
-          {busy ? "Thinking…" : goal.verdict ? "✨ Re-check with AI" : "✨ Rephrase & check with AI"}
+          {busy ? i18next.t("goals.thinking") : goal.verdict ? i18next.t("goals.reCheckWithAi") : i18next.t("goals.rephraseCheckWithAi")}
         </button>
         {v && (
           <div className={"verdict " + v.cls}>
             <b>{v.label}</b>
             <p className="pre">{goal.verdictNote}</p>
-            {goal.suggestion && <p className="pre"><b>Suggestion:</b> {goal.suggestion}</p>}
-            <div className="muted">The AI uses your date and your logged study hours. It can be wrong, you decide.</div>
+            {goal.suggestion && <p className="pre"><b>{i18next.t("goals.suggestion")}</b> {goal.suggestion}</p>}
+            <div className="muted">{i18next.t("goals.theAiUsesYour")}</div>
           </div>
         )}
       </div>
       </More>
 
-      <div className="section"><h3>The how (my plan)</h3>
+      <div className="section"><h3>{i18next.t("goals.theHowMyPlan")}</h3>
         {goal.actions.length > 0 && <div className="bar" style={{ marginBottom: "var(--s-2)" }}><div style={{ width: pct + "%" }} /></div>}
         <div className="steps">
           {goal.actions.map((a) => (
@@ -110,25 +112,25 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
         </div>
         {proposed.length > 0 && (
           <div className="refined">
-            <div className="muted">AI suggested steps</div>
+            <div className="muted">{i18next.t("goals.aiSuggestedSteps")}</div>
             {proposed.map((p, i) => <div key={i}>• {p}</div>)}
-            <button className="primary" style={{ marginTop: "var(--s-2)" }} onClick={() => { addActions(proposed); setProposed([]); }}>Add all to my plan</button>
-            <button className="ghost" onClick={() => setProposed([])}>Dismiss</button>
+            <button className="primary" style={{ marginTop: "var(--s-2)" }} onClick={() => { addActions(proposed); setProposed([]); }}>{i18next.t("goals.addAllToMy")}</button>
+            <button className="ghost" onClick={() => setProposed([])}>{i18next.t("goals.dismiss")}</button>
           </div>
         )}
         <div className="row" style={{ marginTop: "var(--s-2)" }}>
-          <input className="grow" placeholder="Add a step…" value={newAction} onChange={(e) => setNewAction(e.target.value)}
+          <input className="grow" placeholder={i18next.t("goals.addAStep")} value={newAction} onChange={(e) => setNewAction(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && newAction.trim() && addActions([newAction])} />
-          <button disabled={!newAction.trim()} onClick={() => addActions([newAction])}>Add</button>
+          <button disabled={!newAction.trim()} onClick={() => addActions([newAction])}>{i18next.t("goals.add")}</button>
         </div>
       </div>
 
-      <More label="My progress log" className="in-card">
+      <More label={i18next.t("goals.myProgressLog")} className="in-card">
       <div>
         <div className="row">
-          <input className="grow" placeholder="What did you do toward this today?" value={logText} onChange={(e) => setLogText(e.target.value)}
+          <input className="grow" placeholder={i18next.t("goals.whatDidYouDo")} value={logText} onChange={(e) => setLogText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addLog()} />
-          <button disabled={!logText.trim()} onClick={addLog}>Log it</button>
+          <button disabled={!logText.trim()} onClick={addLog}>{i18next.t("goals.logIt")}</button>
         </div>
         {goal.logs.map((l) => (
           <div className="item" key={l.id}>
@@ -144,6 +146,7 @@ function GoalCard({ goal, onDelete }: { goal: Goal; onDelete: () => void }) {
 }
 
 export default function Goals() {
+  useTranslation(); // (re-renders this page when the language changes)
   const goals = useGoals().data ?? [];
   const addGoal = useAddGoal();
   const deleteGoal = useDeleteGoal();
@@ -156,21 +159,21 @@ export default function Goals() {
     setText(""); setDate("");
     addGoal.mutate({ original: typed.text, targetDate: typed.date || null }, { onError: () => { setText(typed.text); setDate(typed.date); } });
   };
-  const remove = (g: Goal) => { if (confirm("Delete this goal and its plan?")) deleteGoal.mutate(g.id); };
+  const remove = (g: Goal) => { if (confirm(i18next.t("goals.deleteThisGoalAnd"))) deleteGoal.mutate(g.id); };
 
   return (
     <>
-      <h1>Goals</h1>
-      <p className="sub">What do I want, by when, is it realistic, and how will I do it?</p>
+      <h1>{i18next.t("goals.goals")}</h1>
+      <p className="sub">{i18next.t("goals.whatDoIWant")}</p>
       <div className="card">
-        <h2>New goal</h2>
-        <textarea style={{ minHeight: 80 }} placeholder="In your own words, what do you want? e.g. pass my exams in June, or get my first internship…" value={text} onChange={(e) => setText(e.target.value)} />
+        <h2>{i18next.t("goals.newGoal")}</h2>
+        <textarea style={{ minHeight: 80 }} placeholder={i18next.t("goals.inYourOwnWords")} value={text} onChange={(e) => setText(e.target.value)} />
         <div className="row" style={{ marginTop: "var(--s-3)" }}>
-          <label className="muted">By when? <input type="date" style={{ width: "auto" }} value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <button className="primary" disabled={!text.trim() || addGoal.isPending} onClick={add}>Add goal</button>
+          <label className="muted">{i18next.t("goals.byWhen")} <input type="date" style={{ width: "auto" }} value={date} onChange={(e) => setDate(e.target.value)} /></label>
+          <button className="primary" disabled={!text.trim() || addGoal.isPending} onClick={add}>{i18next.t("goals.addGoal")}</button>
         </div>
       </div>
-      {goals.length === 0 && <div className="empty">No goals yet. Write the first one, messy is fine.</div>}
+      {goals.length === 0 && <div className="empty">{i18next.t("goals.noGoalsYetWrite")}</div>}
       {goals.map((g) => <GoalCard key={g.id} goal={g} onDelete={() => remove(g)} />)}
     </>
   );

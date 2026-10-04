@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { type FormEvent, useMemo, useState } from "react";
 import { useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
@@ -8,6 +10,7 @@ const ICON: Record<string, string> = { win: "🏆", task: "✅", post: "💼", s
 const dayLabel = (iso: string) => new Date(iso).toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
 
 export default function Wins() {
+  useTranslation(); // (re-renders this page when the language changes)
   const toast = useToast();
   const wins = useWins().data ?? [];
   const addWin = useAddWin();
@@ -20,14 +23,14 @@ export default function Wins() {
   const add = (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    addWin.mutate(text, { onSuccess: () => { setText(""); toast("Logged 🏆 You did that."); } });
+    addWin.mutate(text, { onSuccess: () => { setText(""); toast(i18next.t("wins.loggedYouDidThat")); } });
   };
   const remove = (w: Win) => { if (w.winId) deleteWin.mutate(w.winId); };
   const makeSummary = () => summarize.mutate(undefined);
   const copy = () => {
     if (!summary) return;
     navigator.clipboard.writeText(summary.bullets.map((b) => `• ${b}`).join("\n") + "\n\n" + summary.paragraph);
-    toast("Copied");
+    toast(i18next.t("wins.copied"));
   };
 
   const days = useMemo(() => {
@@ -45,30 +48,30 @@ export default function Wins() {
     <>
       <div className="page-head">
         <div>
-          <h1>Wins</h1>
-          <p className="sub">Proof of what you've done. Finished tasks, study sessions and published posts land here by themselves.</p>
+          <h1>{i18next.t("wins.wins")}</h1>
+          <p className="sub">{i18next.t("wins.proofOfWhatYou")}</p>
         </div>
-        <button className="primary big" disabled={busy || wins.length < 3} onClick={makeSummary}>{busy ? "Writing…" : "✨ Make my talking points"}</button>
+        <button className="primary big" disabled={busy || wins.length < 3} onClick={makeSummary}>{busy ? i18next.t("wins.writing") : i18next.t("wins.makeMyTalkingPoints")}</button>
       </div>
 
       <form className="card row" onSubmit={add}>
-        <input className="grow" placeholder="Something I did that I'm proud of (big or small)…" value={text} onChange={(e) => setText(e.target.value)} />
-        <button className="primary" disabled={!text.trim()}>Add win</button>
+        <input className="grow" placeholder={i18next.t("wins.somethingIDidThat")} value={text} onChange={(e) => setText(e.target.value)} />
+        <button className="primary" disabled={!text.trim()}>{i18next.t("wins.addWin")}</button>
       </form>
 
       {summary && (
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2>For a review, a promotion talk or your CV</h2>
-            <div className="row"><button onClick={copy}>Copy</button><button className="ghost" onClick={() => setSummary(null)}>Hide</button></div>
+            <h2>{i18next.t("wins.forAReviewA")}</h2>
+            <div className="row"><button onClick={copy}>{i18next.t("wins.copy")}</button><button className="ghost" onClick={() => setSummary(null)}>{i18next.t("wins.hide")}</button></div>
           </div>
           {summary.bullets.map((b, i) => <p key={i} style={{ margin: "var(--s-1) 0" }}>• {b}</p>)}
           <p className="pre" style={{ marginTop: "var(--s-3)" }}>{summary.paragraph}</p>
-          <p className="muted tiny">Built only from your entries below, nothing invented. Edit it before you use it.</p>
+          <p className="muted tiny">{i18next.t("wins.builtOnlyFromYour")}</p>
         </div>
       )}
 
-      {days.length === 0 && <div className="empty">Nothing yet. Write your first win above, even "I opened the app".</div>}
+      {days.length === 0 && <div className="empty">{i18next.t("wins.nothingYetWriteYour")}</div>}
       {days.map((d) => (
         <div className="card" key={d.k}>
           <h2>{d.k}</h2>

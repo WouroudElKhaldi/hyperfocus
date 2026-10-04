@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { CreateTaskInput } from "@hyperfocus/shared";
 import { MAX_STEP_POINTS, STEP_POINT, TASK_PRIORITIES, TASK_PRIORITY_POINTS } from "@hyperfocus/shared/constants";
 import { oneOf } from "../../../api.ts";
@@ -17,11 +19,12 @@ import {
 
 // More important tasks earn more points for your companion. The list and the points come from @hyperfocus/shared,
 // the same values the API awards, so what you see is what you get. Only the labels live here.
-const PRIORITY_LABELS: Record<string, string> = { low: "Low", normal: "Normal", high: "Important", urgent: "Critical" };
+const PRIORITY_LABELS: Record<string, string> = { low: i18next.t("tasks.low"), normal: i18next.t("tasks.normal"), high: i18next.t("tasks.important"), urgent: i18next.t("tasks.critical") };
 const PRIORITIES = TASK_PRIORITIES.map((id) => ({ id, label: PRIORITY_LABELS[id], pts: TASK_PRIORITY_POINTS[id] }));
 const RANK: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
 
 export default function Tasks() {
+  useTranslation(); // (re-renders this page when the language changes)
   const toast = useToast();
   const tasks = useTasks().data ?? [];
   // checked by the API's own schema: an empty title gets the server's message before anything is sent
@@ -47,7 +50,7 @@ export default function Tasks() {
     update.mutate({ id: t.id, change });
   const setToday = (t: Task) => {
     const count = tasks.filter((x) => x.today && !x.done).length;
-    if (!t.today && count >= 3) return toast("3 is plenty for today. Finish one first 💜", "err");
+    if (!t.today && count >= 3) return toast(i18next.t("tasks.n3IsPlentyFor"), "err");
     change(t, { today: !t.today });
   };
 
@@ -64,12 +67,12 @@ export default function Tasks() {
         className="check"
         checked={t.done}
         onChange={() => change(t, { done: !t.done })}
-        aria-label={`Done: ${t.title}`}
+        aria-label={i18next.t("tasks.doneLabel", { title: t.title })}
       />
       <div className="grow">
         <div className="row" style={{ gap: "var(--s-2)", flexWrap: "nowrap" }}>
           <span className={"grow" + (t.done ? " done" : "")}>{t.title}</span>
-          <span className={"prio p-" + t.priority} title="Points for your companion when you finish it: its importance, plus 1 for each step done">
+          <span className={"prio p-" + t.priority} title={i18next.t("tasks.pointsForYourCompanion")}>
             +{pts(t)}
           </span>
         </div>
@@ -88,8 +91,8 @@ export default function Tasks() {
                 <button
                   className="ghost icon-btn"
                   onClick={() => deleteSteps.mutate([s.id])}
-                  aria-label={`Remove step: ${s.text}`}
-                  title="Remove this step"
+                  aria-label={i18next.t("tasks.removeStep", { text: s.text })}
+                  title={i18next.t("tasks.removeThisStep")}
                 >
                   ✕
                 </button>
@@ -100,7 +103,7 @@ export default function Tasks() {
         {!t.done && (
           <div className="row" style={{ marginTop: "var(--s-2)" }}>
             <button className="ghost" onClick={() => setToday(t)}>
-              {t.today ? "In today ✓" : "Add to today"}
+              {t.today ? i18next.t("tasks.inToday") : i18next.t("tasks.addToToday")}
             </button>
             {t.steps.length === 0 && (
               <button
@@ -108,15 +111,15 @@ export default function Tasks() {
                 disabled={busyId === t.id}
                 onClick={() => breakDown.mutate({ id: t.id, title: t.title })}
               >
-                {busyId === t.id ? "Thinking…" : "Tiny steps (AI)"}
+                {busyId === t.id ? i18next.t("tasks.thinking") : i18next.t("tasks.tinyStepsAi")}
               </button>
             )}
-            <More label="Options" className="inline">
+            <More label={i18next.t("tasks.options")} className="inline">
               <select
                 className="mini-select"
                 value={t.priority}
                 onChange={(e) => change(t, { priority: oneOf(TASK_PRIORITIES, e.target.value, "normal") })}
-                aria-label="How important"
+                aria-label={i18next.t("tasks.howImportant")}
               >
                 {PRIORITIES.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -127,17 +130,17 @@ export default function Tasks() {
               <input
                 type="date"
                 className="mini-date"
-                title="Due date (shows on the calendar)"
+                title={i18next.t("tasks.dueDateShowsOn")}
                 value={t.dueDay || ""}
                 onChange={(e) => change(t, { dueDay: e.target.value || null })}
               />
               {t.steps.length > 0 && (
                 <button className="ghost" onClick={() => deleteSteps.mutate(t.steps.map((s) => s.id))}>
-                  Remove all tiny steps
+                  {i18next.t("tasks.removeAllTinySteps")}
                 </button>
               )}
               <button className="ghost danger" onClick={() => deleteTask.mutate(t.id)}>
-                Delete task
+                {i18next.t("tasks.deleteTask")}
               </button>
             </More>
           </div>
@@ -145,7 +148,7 @@ export default function Tasks() {
         {t.done && (
           <div className="row" style={{ marginTop: "var(--s-1)" }}>
             <button className="ghost danger" onClick={() => deleteTask.mutate(t.id)}>
-              Delete
+              {i18next.t("tasks.delete")}
             </button>
           </div>
         )}
@@ -155,21 +158,21 @@ export default function Tasks() {
 
   return (
     <>
-      <h1>Tasks</h1>
-      <p className="sub">Add a task, then tick it off. Stuck on one? Try "Tiny steps".</p>
+      <h1>{i18next.t("tasks.tasks")}</h1>
+      <p className="sub">{i18next.t("tasks.addATaskThen")}</p>
       <form className="card row" onSubmit={add} noValidate>
         <input
           className="grow"
-          placeholder="New task…"
-          aria-label="New task"
+          placeholder={i18next.t("tasks.newTask")}
+          aria-label={i18next.t("tasks.newTask2")}
           aria-invalid={!!formError}
           {...form.register("title")}
         />
         <button className="primary" disabled={addTask.isPending}>
-          Add
+          {i18next.t("tasks.add")}
         </button>
-        <More label="How important?" className="inline">
-          <select aria-label="How important" {...form.register("priority")}>
+        <More label={i18next.t("tasks.howImportant2")} className="inline">
+          <select aria-label={i18next.t("tasks.howImportant")} {...form.register("priority")}>
             {PRIORITIES.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label} (+{p.pts})
@@ -184,12 +187,12 @@ export default function Tasks() {
         )}
       </form>
       <div className="card">
-        {open.length === 0 && <div className="empty">All clear. Nothing waiting.</div>}
+        {open.length === 0 && <div className="empty">{i18next.t("tasks.allClearNothingWaiting")}</div>}
         {open.map(row)}
       </div>
       {done.length > 0 && (
         <div className="card">
-          <h2>Done ({done.length})</h2>
+          <h2>{i18next.t("tasks.doneCount", { count: done.length })}</h2>
           {done.map(row)}
         </div>
       )}
