@@ -659,6 +659,9 @@ model User {
   emailVerified    Boolean            @default(false)
   phone            String             @default("") // asked at sign-up (P5-04); empty for the owner and for Google sign-ups
   role             String             @default("user") // "user" or "admin" (P5-06); the owner is an admin
+  /// P5-05: when they finished (or skipped) the welcome guide; null = show it. What they want help with.
+  onboardedAt      DateTime?
+  helpWith         String[]           @default([])
   image            String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt

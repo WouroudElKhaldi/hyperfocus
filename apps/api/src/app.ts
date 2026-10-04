@@ -36,6 +36,7 @@ import { ingestRouter } from "./modules/radar/ingest-routes.ts";
 import { radarMatchesRouter } from "./modules/radar/matches-routes.ts";
 import { sourcesAdminRouter } from "./modules/radar/sources-admin-routes.ts";
 import { taxonomyAdminRouter } from "./modules/taxonomy/admin-routes.ts";
+import { onboardingRouter } from "./modules/account/onboarding-routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -102,6 +103,7 @@ const Me = z
     flags: z.array(z.string()).openapi({ description: "The features an admin switched on (P5-06)" }),
     connected: z.object({ ai: z.boolean(), linkedin: z.boolean(), email: z.boolean() }).openapi({ description: "What works for you: your own credentials, or the app's where it shares them" }),
     google: z.boolean().openapi({ description: "Sign in with Google is offered" }),
+    onboarded: z.boolean().openapi({ description: "They finished or skipped the welcome guide (P5-05); always true in local mode" }),
   })
   .openapi("Me");
 const meRoute = createRoute({
@@ -194,7 +196,9 @@ export function createApp(deps: AppDeps) {
     const aiReady = deps.aiReady ?? (() => !!config.deepseek.apiKey);
     const connected = !who ? { ai: false, linkedin: false, email: false }
       : await asUser(who.id, () => withCredentials(deps.prisma, deps.secrets, async () => ({ ai: aiReady(), linkedin: deps.publisher.configured(), email: !deps.mail.unavailable() }), appAiFor(deps, who.email)));
-    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google }, 200);
+    // P5-05: someone new sees the welcome guide once (the owner in local mode never does)
+    const onboarded = !deps.auth || !who || !!(await deps.prisma.user.findUnique({ where: { id: who.id }, select: { onboardedAt: true } }))?.onboardedAt;
+    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google, onboarded }, 200);
   });
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));
@@ -231,6 +235,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", radarMatchesRouter(deps)); // P6-25/26/27: your matches
   app.route("/", sourcesAdminRouter(deps)); // P6-18: job sources (admins only)
   app.route("/", taxonomyAdminRouter(deps)); // P6-09: the job list (admins only)
+  app.route("/", onboardingRouter(deps)); // P5-05: the welcome guide
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

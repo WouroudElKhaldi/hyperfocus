@@ -87,6 +87,39 @@ test.describe("accounts @cloud", () => {
 
 // P5-12: the privacy policy can be read before signing up; deleting your account signs you out for good
 test.describe("privacy @cloud", () => {
+  test("someone new gets the welcome guide: name, major, what to help with, then Job Radar with their jobs (P5-05)", async ({ page }) => {
+    const email = `e2e-welcome-${Date.now()}@example.com`;
+    await page.goto("/");
+    await page.getByRole("link", { name: "Make an account" }).click();
+    await page.getByLabel("Full name").fill("Wel Come");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Phone number").fill("+961 70 123 456");
+    await page.getByLabel(/^Password/).fill("welcome-pass-123");
+    await page.getByRole("button", { name: "Make my account" }).click();
+    await page.goto(await emailedLink(email, "Confirm your email"));
+
+    await expect(page.getByRole("heading", { name: "Welcome! What should we call you?" })).toBeVisible();
+    await expect(page.getByText("Step 1 of 3")).toBeVisible();
+    await expect(page.getByLabel("Your name")).toHaveValue("Wel Come");
+    await page.getByLabel("Your name").fill("Wel");
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByRole("heading", { name: "What do you study?" })).toBeVisible();
+    await page.getByRole("button", { name: "Computer Science" }).click();
+    await expect(page.getByText("Picked: Computer Science")).toBeVisible();
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByRole("heading", { name: "What do you want help with?" })).toBeVisible();
+    await page.getByLabel(/Finding internships and jobs/).click();
+    await expect(page.getByText("We'll start Job Radar with Computer Science jobs for you.")).toBeVisible();
+    await page.getByRole("button", { name: "Let's go" }).click();
+
+    await expect(page).toHaveURL(/\/radar$/);
+    await expect(page.getByRole("article", { name: "Software Engineer Intern" })).toBeVisible();
+    await expect(page.locator("header.topbar")).toContainText("Wel");
+    // once only: Today is their day now
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /What should we call you/ })).toHaveCount(0);
+  });
+
   test("the privacy page opens signed out, and is linked from sign-up", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("link", { name: "Make an account" }).click();

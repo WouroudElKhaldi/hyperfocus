@@ -6401,6 +6401,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish the welcome guide (name, field of study, what to help with) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @default null */
+                        fieldCode?: string | null;
+                        /** @default [] */
+                        helpWith?: ("focus" | "tasks" | "study" | "jobs" | "habits")[];
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Set up */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OnboardingDone"];
+                    };
+                };
+                /** @description No such field of study */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": {
+                            error: string;
+                            status: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/onboarding/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Skip the welcome guide (it isn't shown again) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Skipped */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pet": {
         parameters: {
             query?: never;
@@ -10971,6 +11063,8 @@ export interface components {
              * @enum {string}
              */
             mode: "local" | "cloud";
+            /** @description They finished or skipped the welcome guide (P5-05); always true in local mode */
+            onboarded: boolean;
             /** @description Who is signed in (in local mode, the owner); null = nobody */
             user: {
                 email: string;
@@ -10994,6 +11088,12 @@ export interface components {
         Ok: {
             /** @enum {boolean} */
             ok: true;
+        };
+        OnboardingDone: {
+            /** @description The Job Radar filter made from their field of study */
+            filterId: number | null;
+            /** @description The page to open next */
+            next: string;
         };
         /** @description Checked by the pet rules: unknown species, colors or locked items are refused with a message. */
         PetFields: {

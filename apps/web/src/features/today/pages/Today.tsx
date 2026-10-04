@@ -7,6 +7,7 @@ import { useToast } from "../../../App.tsx";
 import More from "../../../components/More.tsx";
 import { useAddNote, useNotes } from "../../notes/index.ts";
 import { useProfile } from "../../profile/index.ts";
+import { Welcome, useMe } from "../../account/index.ts";
 import { useAddTask, useTasks, useUpdateTask } from "../../tasks/index.ts";
 import type { OrganizedItem, Task } from "../../../types.ts";
 
@@ -63,7 +64,14 @@ function FocusTimer() {
   );
 }
 
+/** Someone new sees the welcome guide here first (P5-05); everyone else, their day. */
 export default function Today() {
+  const me = useMe().data;
+  if (me && !me.onboarded) return <Welcome />;
+  return <TodayPage />;
+}
+
+function TodayPage() {
   const toast = useToast();
   const [text, setText] = useState("");
   const [kind, setKind] = useState("thought");
