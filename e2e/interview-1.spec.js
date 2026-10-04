@@ -140,5 +140,9 @@ test("the Calendar in French and Lebanese Arabic (P3-28: pages)", async ({ page 
   await page.goto("/calendar?lang=ar-LB");
   await expect(page.getByRole("tab", { name: "جمعة" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "جايي" })).toBeVisible(); // "Coming up"
+  // dates with Western digits (1, 2, 3), as in Lebanon: never Arabic-Indic ones (٠-٩)
+  const main = await page.locator("main").innerText();
+  expect(main).toMatch(/20\d\d/);
+  expect(main).not.toMatch(/[٠-٩]/);
   await page.goto("/calendar?lang=en");
 });

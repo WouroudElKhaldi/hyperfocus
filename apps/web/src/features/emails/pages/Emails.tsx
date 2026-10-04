@@ -1,4 +1,5 @@
 import { type MouseEvent, useState } from "react";
+import { dateLocale } from "../../../i18n/locale.ts";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -6,7 +7,7 @@ import type { EmailListItem, EmailTemplate } from "../../../types.ts";
 import { useDeleteEmail, useDeleteTemplate, useEmails, useNewEmail, useRenameTemplate, useTemplates } from "../api.ts";
 
 const TABS: [string, "all" | "drafts" | "sent" | "failed" | "templates"][] = [["all", "all"], ["draft", "drafts"], ["sent", "sent"], ["failed", "failed"], ["templates", "templates"]];
-const day = (d: string) => new Date(d).toLocaleString(i18next.language, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const day = (d: string) => new Date(d).toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS: Record<string, "sDraft" | "sSent" | "sFailed" | "sSending"> = { draft: "sDraft", sent: "sSent", failed: "sFailed", sending: "sSending" };
 
 export default function Emails() {

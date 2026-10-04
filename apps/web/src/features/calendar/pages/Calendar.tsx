@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { dateLocale } from "../../../i18n/locale.ts";
 import i18next from "i18next";
 import More from "../../../components/More.tsx";
 import { useNavigate } from "@tanstack/react-router";
@@ -143,7 +144,7 @@ export default function Calendar() {
         .map((p) => ({
           key: `p${p.id}`,
           day: localDayOf(p.at),
-          time: new Date(p.at ?? 0).toLocaleTimeString(i18next.language, { hour: "2-digit", minute: "2-digit", hour12: false }),
+          time: new Date(p.at ?? 0).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit", hour12: false }),
           title: i18next.t("cal.postLive"),
           cls: "post",
         })),
@@ -176,7 +177,7 @@ export default function Calendar() {
   const shiftSelected = (dir: number) => pickDay(addDays(selected, dir));
   const title =
     view === "month"
-      ? parseDay(anchor).toLocaleDateString(i18next.language, { month: "long", year: "numeric" })
+      ? parseDay(anchor).toLocaleDateString(dateLocale(), { month: "long", year: "numeric" })
       : view === "week"
         ? `${fmtDay(days[0] ?? anchor, { day: "numeric", month: "short" })} – ${fmtDay(days[6] ?? anchor, { day: "numeric", month: "short", year: "numeric" })}`
         : fmtDay(anchor, { weekday: "long", day: "numeric", month: "long", year: "numeric" });

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { dateLocale } from "../../../i18n/locale.ts";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -17,7 +18,7 @@ const toLocalInput = (at: string | number | Date) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 const tomorrowAt = (h: number) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(h, 0, 0, 0); return d; };
-const fmtWhen = (d: string | null) => new Date(d ?? 0).toLocaleString(i18next.language, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fmtWhen = (d: string | null) => new Date(d ?? 0).toLocaleString(dateLocale(), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const STATUS: Record<string, "sDraft" | "sScheduled" | "sPosting" | "sPosted" | "sFailed" | "sMissed"> = { draft: "sDraft", scheduled: "sScheduled", posting: "sPosting", posted: "sPosted", failed: "sFailed", missed: "sMissed" };
 
 // Top-level so the date input keeps focus while the editor re-renders.

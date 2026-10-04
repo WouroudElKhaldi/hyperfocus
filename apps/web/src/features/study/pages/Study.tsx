@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { dateLocale } from "../../../i18n/locale.ts";
 import { useTranslation } from "react-i18next";
 import FocusTimer from "../../../components/FocusTimer.tsx";
 import More from "../../../components/More.tsx";
@@ -218,7 +219,7 @@ export default function Study() {
   for (const s of done) {
     const k = dayKey(s.startedAt);
     let g = days.find((d) => d.k === k);
-    if (!g) days.push((g = { k, label: new Date(s.startedAt).toLocaleDateString(i18n.language, { weekday: "long", day: "numeric", month: "short" }), items: [] }));
+    if (!g) days.push((g = { k, label: new Date(s.startedAt).toLocaleDateString(dateLocale(), { weekday: "long", day: "numeric", month: "short" }), items: [] }));
     g.items.push(s);
   }
 

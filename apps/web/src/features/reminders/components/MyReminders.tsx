@@ -1,4 +1,5 @@
 import { REMINDER_REPEATS, type ReminderRepeat } from "@hyperfocus/shared/constants";
+import { dateLocale } from "../../../i18n/locale.ts";
 import i18next from "i18next";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,7 +47,7 @@ function whenLabel(iso: string | Date) {
     n = new Date(),
     t = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((t(d) - t(n)) / 864e5);
-  const lang = i18next.language;
+  const lang = dateLocale();
   const time = d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
   if (days === 0) return i18next.t("reminders.todayAt", { time });
   if (days === 1) return i18next.t("reminders.tomorrowAt", { time });

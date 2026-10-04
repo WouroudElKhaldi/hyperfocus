@@ -1,4 +1,5 @@
 import { type MouseEvent, useState } from "react";
+import { dateLocale } from "../../../i18n/locale.ts";
 import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -7,7 +8,7 @@ import { useCreatePost, useDeletePost, usePosts } from "../api.ts";
 
 const FILTERS: [string, "all" | "drafts" | "scheduled" | "posted"][] = [["all", "all"], ["draft", "drafts"], ["scheduled", "scheduled"], ["posted", "posted"]];
 const textOf = (p: Post) => (p.draft || p.thought).trim();
-const statusLabel = (p: Post) => p.status === "posted" ? i18next.t("posts.sPosted") : p.status === "scheduled" ? `⏰ ${new Date(p.scheduledAt ?? "").toLocaleString(i18next.language, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : p.status === "failed" ? i18next.t("posts.sFailed") : p.status === "missed" ? i18next.t("posts.sMissed") : p.status === "posting" ? i18next.t("posts.sPosting") : i18next.t("posts.sDraft");
+const statusLabel = (p: Post) => p.status === "posted" ? i18next.t("posts.sPosted") : p.status === "scheduled" ? `⏰ ${new Date(p.scheduledAt ?? "").toLocaleString(dateLocale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : p.status === "failed" ? i18next.t("posts.sFailed") : p.status === "missed" ? i18next.t("posts.sMissed") : p.status === "posting" ? i18next.t("posts.sPosting") : i18next.t("posts.sDraft");
 const titleOf = (p: Post) => textOf(p).split("\n").find((l) => l.trim()) || i18next.t("posts.empty");
 
 function load(key: string, fallback: string) {
@@ -36,7 +37,7 @@ export default function Posts() {
 
   const shown = posts.filter((p) => filter === "all" || p.status === filter);
   const count = (f: string) => posts.filter((p) => f === "all" || p.status === f).length;
-  const when = (p: Post) => new Date(p.updatedAt).toLocaleDateString(i18n.language, { day: "numeric", month: "short" });
+  const when = (p: Post) => new Date(p.updatedAt).toLocaleDateString(dateLocale(), { day: "numeric", month: "short" });
 
   return (
     <>

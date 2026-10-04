@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { dateLocale } from "../i18n/locale.ts";
 import { Link } from "@tanstack/react-router";
 import { PetArt, usePet } from "../features/pet/index.ts";
 import { initialsOf, useProfile } from "../features/profile/index.ts";
@@ -56,7 +57,7 @@ export default function TopBar({ collapsed, onToggleSidebar }: { collapsed: bool
   const name = profile?.name?.trim();
   // a date is formatted for the chosen language (by the browser), not translated
   const now = new Date();
-  const today = now.toLocaleDateString(i18n.language, { weekday: "long", day: "numeric", month: "long" });
+  const today = now.toLocaleDateString(dateLocale(), { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <header className="topbar">

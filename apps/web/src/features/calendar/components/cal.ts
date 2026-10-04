@@ -1,5 +1,6 @@
 // Date helpers and constants shared by the calendar views. Days are local "YYYY-MM-DD" strings, times are "HH:mm".
 import i18next from "i18next";
+import { dateLocale } from "../../../i18n/locale.ts";
 import type { Strings } from "../../../i18n/en.ts";
 import type { CalendarData, Occurrence } from "../../../types.ts";
 
@@ -36,9 +37,9 @@ export const monthGrid = (s: string) => {
   return Array.from({ length: weeks * 7 }, (_, i) => addDays(start, i));
 };
 
-export const fmtDay = (s: string, o: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }) => parseDay(s).toLocaleDateString(i18next.language, o);
-export const fmtHour = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString(i18next.language, { hour: "numeric" });
-export const fmtClock = (d: string | null) => new Date(d ?? 0).toLocaleTimeString(i18next.language, { hour: "2-digit", minute: "2-digit" });
+export const fmtDay = (s: string, o: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" }) => parseDay(s).toLocaleDateString(dateLocale(), o);
+export const fmtHour = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString(dateLocale(), { hour: "numeric" });
+export const fmtClock = (d: string | null) => new Date(d ?? 0).toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" });
 export const fmtMins = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${pad(m % 60)}m` : ""}` : `${m}m`);
 
 // (labels in the language files, P3-28; read each time so they follow the chosen language)
@@ -48,7 +49,7 @@ export const CATEGORIES = [labelled("event", "cGeneral"), labelled("study", "cSt
 export const REPEATS = [labelled("none", "rNone"), labelled("daily", "rDaily"), labelled("weekdays", "rWeekdays"), labelled("weekly", "rWeekly"), labelled("monthly", "rMonthly")];
 export const REMINDERS = [labelled(-1, "mNone"), labelled(0, "mStart"), labelled(5, "m5"), labelled(10, "m10"), labelled(15, "m15"), labelled(30, "m30"), labelled(60, "m60"), labelled(1440, "m1440")];
 /** Mon…Sun in the chosen language (Jan 1, 2024 was a Monday). */
-export const weekNames = () => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(i18next.language, { weekday: "short" }));
+export const weekNames = () => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(dateLocale(), { weekday: "short" }));
 
 // Side-by-side lanes for items that overlap in time, so nothing is drawn on top of anything else.
 // items: [{ start, end, ... }] in minutes. Returns the same items with lane and lanes (number of lanes in their group).
