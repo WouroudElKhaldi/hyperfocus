@@ -1,9 +1,10 @@
 // Small pieces shared by the books list and the single-book page.
+import i18next from "i18next";
 import type { BookLink, BookResult } from "../../../types.ts";
 
-export const STATUS: Record<string, string> = { want: "📚 Want to read", reading: "📖 Reading", done: "✅ Finished" };
+export const STATUS: Record<string, string> = { want: i18next.t("books.wantToRead"), reading: i18next.t("books.reading"), done: i18next.t("books.finished") };
 export const ICON: Record<string, string> = { free: "🆓", borrow: "📚", preview: "👀", buy: "🛒", info: "🔗" };
-export const KIND: Record<string, string> = { free: "Free", borrow: "Borrow", preview: "Preview", buy: "Buy", info: "Info" };
+export const KIND: Record<string, string> = { free: i18next.t("books.free"), borrow: i18next.t("books.borrow"), preview: i18next.t("books.preview"), buy: i18next.t("books.buy"), info: i18next.t("books.info") };
 
 /** The saved "find links" result of a book, or null when it was never searched (or can't be read). */
 export function parse(result: string): BookResult | null {

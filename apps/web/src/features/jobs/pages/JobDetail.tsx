@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { type ChangeEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { errorOf } from "../../../api.ts";
@@ -14,6 +16,7 @@ type Form = Record<(typeof EDIT)[number], string>;
 const formOf = (j: Job) => Object.fromEntries(EDIT.map((k) => [k, j[k] ?? ""] as const)) as Form;
 
 export default function JobDetail() {
+  useTranslation(); // (re-renders this page when the language changes)
   const { id } = useParams({ from: "/jobs/$id" });
   const nav = useNavigate();
   const toast = useToast();
@@ -33,17 +36,17 @@ export default function JobDetail() {
 
   const dirty = job && f && EDIT.some((k) => (f[k] ?? "") !== (job[k] ?? ""));
   const save = () => {
-    if (f) update.mutate({ id: Number(id), change: f }, { onSuccess: (j) => { setF(formOf(j)); toast("Saved"); } });
+    if (f) update.mutate({ id: Number(id), change: f }, { onSuccess: (j) => { setF(formOf(j)); toast(i18next.t("jobs.saved")); } });
   };
   const patch = (change: Parameters<typeof update.mutate>[0]["change"]) => update.mutate({ id: Number(id), change });
   const link = (emailId: number | string, jobId: number | null) => linkEmail.mutate({ emailId, jobId }, { onSuccess: () => setPick("") });
   const write = () => writeEmail.mutate(Number(id), { onSuccess: (m) => nav({ to: "/emails/$id", params: { id: String(m.id) } }) });
   const remove = () => {
-    if (confirm("Delete this job? Your emails stay, they just won't be linked to it.")) deleteJob.mutate(Number(id), { onSuccess: () => nav({ to: "/jobs" }) });
+    if (confirm(i18next.t("jobs.deleteThisJobYour"))) deleteJob.mutate(Number(id), { onSuccess: () => nav({ to: "/jobs" }) });
   };
 
-  if (loadErr) return <LoadProblem error={loadErr} what="job" back="/jobs" backLabel="Back to jobs" onRetry={() => jobQuery.refetch()} />;
-  if (!job || !f) return <p className="muted">Loading…</p>;
+  if (loadErr) return <LoadProblem error={loadErr} what="job" back="/jobs" backLabel={i18next.t("jobs.backToJobs")} onRetry={() => jobQuery.refetch()} />;
+  if (!job || !f) return <p className="muted">{i18next.t("jobs.loading")}</p>;
   const set = (k: keyof Form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((x) => (x ? { ...x, [k]: e.target.value } : x));
   const linkedIds = new Set(job.emails.map((m) => m.id));
   const candidates = emails.filter((m) => !linkedIds.has(m.id)).sort((a, b) => Number(b.status === "sent") - Number(a.status === "sent"));
@@ -55,68 +58,68 @@ export default function JobDetail() {
         <div>
           <h1>{job.title || "Job"} <span className="muted">at {job.company}</span></h1>
           <p className="sub">
-            <Link to="/jobs">← All jobs</Link>{" · "}
+            <Link to="/jobs">{i18next.t("jobs.allJobs")}</Link>{" · "}
             <span className={statusChip(job.status)}>{STATUS[job.status]}</span>{" "}
-            {job.appliedAt ? `Applied ${dayOf(job.appliedAt)}` : "Not applied yet"}
+            {job.appliedAt ? `Applied ${dayOf(job.appliedAt)}` : i18next.t("jobs.notAppliedYet")}
           </p>
         </div>
         <div className="row">
-          {job.url && <a className="btn" href={job.url} target="_blank" rel="noopener noreferrer">Open job post ↗</a>}
-          <button className="ghost danger" onClick={remove}>Delete</button>
+          {job.url && <a className="btn" href={job.url} target="_blank" rel="noopener noreferrer">{i18next.t("jobs.openJobPost")}</a>}
+          <button className="ghost danger" onClick={remove}>{i18next.t("jobs.delete")}</button>
         </div>
       </div>
 
       <div className="card">
-        <h2>Did I apply?</h2>
+        <h2>{i18next.t("jobs.didIApply")}</h2>
         {sent.length > 0
-          ? <p><b>Yes.</b> You sent {sent.length === 1 ? "an email" : `${sent.length} emails`} for this job, the latest on {when(sent[0]?.sentAt ?? null)}.</p>
-          : <p className="muted">No sent email is linked yet. Write one from here, or link one you already sent.</p>}
+          ? <p><b>{i18next.t("jobs.yes")}</b> You sent {sent.length === 1 ? "an email" : `${sent.length} emails`} for this job, the latest on {when(sent[0]?.sentAt ?? null)}.</p>
+          : <p className="muted">{i18next.t("jobs.noSentEmailIs")}</p>}
         <div className="job-emails">
           {job.emails.map((m) => (
             <div className="job-email" key={m.id}>
               <Link to="/emails/$id" params={{ id: String(m.id) }}><b>{m.subject || "(no subject)"}</b></Link>
               <span className="muted">To: {m.toAddr || "—"}</span>
-              <span className={"chip " + (m.status === "sent" ? "posted" : m.status === "failed" ? "failed" : "")}>{m.status === "sent" ? `✓ Sent ${when(m.sentAt)}` : m.status === "failed" ? "⚠️ Not sent" : "Draft"}</span>
-              <button className="ghost" onClick={() => link(m.id, null)} aria-label="Unlink this email">Unlink</button>
+              <span className={"chip " + (m.status === "sent" ? "posted" : m.status === "failed" ? "failed" : "")}>{m.status === "sent" ? `✓ Sent ${when(m.sentAt)}` : m.status === "failed" ? i18next.t("jobs.notSent") : i18next.t("jobs.draft")}</span>
+              <button className="ghost" onClick={() => link(m.id, null)} aria-label={i18next.t("jobs.unlinkThisEmail")}>{i18next.t("jobs.unlink")}</button>
             </div>
           ))}
         </div>
         <div className="row" style={{ marginTop: "var(--s-3)", flexWrap: "wrap" }}>
-          <button className="primary" onClick={write}>✉️ Write an email for this job</button>
+          <button className="primary" onClick={write}>{i18next.t("jobs.writeAnEmailFor")}</button>
           {candidates.length > 0 && (
             <>
-              <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Pick an email to link" style={{ maxWidth: 360 }}>
-                <option value="">Link an existing email…</option>
+              <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label={i18next.t("jobs.pickAnEmailTo")} style={{ maxWidth: 360 }}>
+                <option value="">{i18next.t("jobs.linkAnExistingEmail")}</option>
                 {candidates.map((m) => <option key={m.id} value={m.id}>{m.status === "sent" ? "✓ " : ""}{m.subject || "(no subject)"} — {m.toAddr || "no recipient"}{m.job ? ` (linked to ${m.job.company})` : ""}</option>)}
               </select>
-              <button disabled={!pick} onClick={() => link(pick, job.id)}>Link</button>
+              <button disabled={!pick} onClick={() => link(pick, job.id)}>{i18next.t("jobs.link")}</button>
             </>
           )}
         </div>
       </div>
 
       <div className="card">
-        <h2>Details</h2>
+        <h2>{i18next.t("jobs.details")}</h2>
         <div className="job-form">
-          <label>Company<input value={f.company} onChange={set("company")} /></label>
-          <label>Job title<input value={f.title} onChange={set("title")} /></label>
-          <label>Status
+          <label>{i18next.t("jobs.company")}<input value={f.company} onChange={set("company")} /></label>
+          <label>{i18next.t("jobs.jobTitle")}<input value={f.title} onChange={set("title")} /></label>
+          <label>{i18next.t("jobs.status")}
             <select value={job.status} onChange={(e) => patch({ status: e.target.value })}>
               {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </label>
-          <label>Link to the job post<input value={f.url} onChange={set("url")} placeholder="https://…" /></label>
-          <label>Location<input value={f.location} onChange={set("location")} placeholder="Remote, Beirut…" /></label>
-          <label>Salary<input value={f.salary} onChange={set("salary")} /></label>
-          <label>Where you found it<input value={f.source} onChange={set("source")} placeholder="LinkedIn, a friend…" /></label>
-          <label>Contact name<input value={f.contactName} onChange={set("contactName")} /></label>
-          <label>Contact email<input value={f.contactEmail} onChange={set("contactEmail")} /></label>
-          <label>Follow up on<input type="date" value={f.followUpDay} onChange={set("followUpDay")} /></label>
+          <label>{i18next.t("jobs.linkToTheJob")}<input value={f.url} onChange={set("url")} placeholder={i18next.t("jobs.https")} /></label>
+          <label>{i18next.t("jobs.location")}<input value={f.location} onChange={set("location")} placeholder={i18next.t("jobs.remoteBeirut")} /></label>
+          <label>{i18next.t("jobs.salary")}<input value={f.salary} onChange={set("salary")} /></label>
+          <label>{i18next.t("jobs.whereYouFoundIt")}<input value={f.source} onChange={set("source")} placeholder={i18next.t("jobs.linkedinAFriend")} /></label>
+          <label>{i18next.t("jobs.contactName")}<input value={f.contactName} onChange={set("contactName")} /></label>
+          <label>{i18next.t("jobs.contactEmail")}<input value={f.contactEmail} onChange={set("contactEmail")} /></label>
+          <label>{i18next.t("jobs.followUpOn")}<input type="date" value={f.followUpDay} onChange={set("followUpDay")} /></label>
         </div>
-        <label className="job-notes">Notes<textarea value={f.notes} onChange={set("notes")} placeholder="What they asked for, who you talked to, how it went…" /></label>
+        <label className="job-notes">{i18next.t("jobs.notes")}<textarea value={f.notes} onChange={set("notes")} placeholder={i18next.t("jobs.whatTheyAskedFor")} /></label>
         <div className="row" style={{ marginTop: "var(--s-3)" }}>
-          <button className="primary" disabled={!dirty || !f.company.trim()} onClick={save}>Save changes</button>
-          {dirty && <span className="muted">Unsaved changes</span>}
+          <button className="primary" disabled={!dirty || !f.company.trim()} onClick={save}>{i18next.t("jobs.saveChanges")}</button>
+          {dirty && <span className="muted">{i18next.t("jobs.unsavedChanges")}</span>}
         </div>
       </div>
     </>

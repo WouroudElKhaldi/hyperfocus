@@ -1,3 +1,5 @@
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { type FormEvent, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import More from "../../../components/More.tsx";
@@ -31,11 +33,11 @@ function BookCard({ book, onDelete }: { book: Book; onDelete: () => void }) {
         <div className="book-meta">
           {editing ? (
             <div className="book-edit">
-              <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Title" aria-label="Title" />
-              <input value={f.author} onChange={(e) => setF({ ...f, author: e.target.value })} placeholder="Author (optional)" aria-label="Author" />
+              <input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder={i18next.t("books.title")} aria-label={i18next.t("books.title")} />
+              <input value={f.author} onChange={(e) => setF({ ...f, author: e.target.value })} placeholder={i18next.t("books.authorOptional")} aria-label={i18next.t("books.author")} />
               <div className="row">
-                <button className="primary" onClick={saveEdit}>Save</button>
-                <button className="ghost" onClick={() => { setEditing(false); setF({ title: book.title, author: book.author }); }}>Cancel</button>
+                <button className="primary" onClick={saveEdit}>{i18next.t("books.save")}</button>
+                <button className="ghost" onClick={() => { setEditing(false); setF({ title: book.title, author: book.author }); }}>{i18next.t("books.cancel")}</button>
               </div>
             </div>
           ) : (
@@ -44,26 +46,26 @@ function BookCard({ book, onDelete }: { book: Book; onDelete: () => void }) {
               {book.author && <div className="muted tiny">{book.author}</div>}
             </>
           )}
-          <select className={"book-status " + book.status} value={book.status} onChange={(e) => patch({ status: e.target.value })} aria-label="Reading status">
+          <select className={"book-status " + book.status} value={book.status} onChange={(e) => patch({ status: e.target.value })} aria-label={i18next.t("books.readingStatus")}>
             {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </div>
-        <More label="More" className="inline book-menu">
-          <button className="ghost" onClick={() => setEditing(!editing)}>Edit</button>
-          <button className="ghost danger" onClick={onDelete}>Remove</button>
+        <More label={i18next.t("books.more")} className="inline book-menu">
+          <button className="ghost" onClick={() => setEditing(!editing)}>{i18next.t("books.edit")}</button>
+          <button className="ghost danger" onClick={onDelete}>{i18next.t("books.remove")}</button>
         </More>
       </div>
 
       <div className="book-actions">
-        <Link className="btn primary" to="/books/$slug" params={{ slug: bookSlug(book) }}>Open</Link>
-        <button disabled={busy} onClick={find}>{busy ? "Searching… (up to 30s)" : res ? "Search again" : "Find links and PDFs"}</button>
+        <Link className="btn primary" to="/books/$slug" params={{ slug: bookSlug(book) }}>{i18next.t("books.open")}</Link>
+        <button disabled={busy} onClick={find}>{busy ? i18next.t("books.searchingUpTo30s") : res ? i18next.t("books.searchAgain") : i18next.t("books.findLinksAndPdfs")}</button>
       </div>
 
       {res && (
         <div className="book-res">
           {best && <a className="btn" href={best.url} target="_blank" rel="noopener noreferrer" title={best.label}>{ICON[best.kind]} {short(best)}</a>}
           {top.length > 0 && <Pills items={top} />}
-          {!best && <p className="muted tiny">No free legal copy found. Open the book to see more places to look.</p>}
+          {!best && <p className="muted tiny">{i18next.t("books.noFreeLegalCopy")}</p>}
         </div>
       )}
     </div>
@@ -71,6 +73,7 @@ function BookCard({ book, onDelete }: { book: Book; onDelete: () => void }) {
 }
 
 export default function Books() {
+  useTranslation(); // (re-renders this page when the language changes)
   const books = useBooks().data ?? [];
   const addBook = useAddBook();
   const deleteBook = useDeleteBook();
@@ -83,20 +86,20 @@ export default function Books() {
     if (!title.trim()) return;
     addBook.mutate({ title, author }, { onSuccess: () => { setTitle(""); setAuthor(""); } });
   };
-  const remove = (b: Book) => { if (confirm(`Remove "${b.title}" from your list?`)) deleteBook.mutate(b.id); };
+  const remove = (b: Book) => { if (confirm(i18next.t("books.removeAsk", { title: b.title }))) deleteBook.mutate(b.id); };
 
   const shown = books.filter((b) => filter === "all" || b.status === filter);
   const count = (k: string) => books.filter((b) => k === "all" || b.status === k).length;
 
   return (
     <>
-      <h1>Books</h1>
-      <p className="sub">Add a book, then open it to find free copies, read what the AI found, and ask it questions.</p>
+      <h1>{i18next.t("books.books")}</h1>
+      <p className="sub">{i18next.t("books.addABookThen")}</p>
 
       <form className="card row" onSubmit={add}>
-        <input className="grow" placeholder="Book title…" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <input className="grow" placeholder="Author (optional)" value={author} onChange={(e) => setAuthor(e.target.value)} />
-        <button className="primary" disabled={!title.trim()}>Add</button>
+        <input className="grow" placeholder={i18next.t("books.bookTitle")} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input className="grow" placeholder={i18next.t("books.authorOptional")} value={author} onChange={(e) => setAuthor(e.target.value)} />
+        <button className="primary" disabled={!title.trim()}>{i18next.t("books.add")}</button>
       </form>
 
       <div className="tabs">
@@ -105,7 +108,7 @@ export default function Books() {
         ))}
       </div>
 
-      {shown.length === 0 && <div className="empty">{books.length ? "Nothing here." : "No books yet. What do you want to read next?"}</div>}
+      {shown.length === 0 && <div className="empty">{books.length ? i18next.t("books.nothingHere") : i18next.t("books.noBooksYetWhat")}</div>}
       <div className="book-grid">
         {shown.map((b) => <BookCard key={b.id} book={b} onDelete={() => remove(b)} />)}
       </div>
