@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import FocusTimer from "../../../components/FocusTimer.tsx";
 import More from "../../../components/More.tsx";
 import { useNavigate } from "@tanstack/react-router";
 import { api, studyMins, studySecs } from "../../../api.ts";
@@ -225,7 +226,7 @@ export default function Study() {
 
   return (
     <>
-      <h1>SE Square study log</h1>
+      <h1>Study log</h1>
       <p className="sub">Start the timer, study, stop and save. That is all.</p>
 
       <div className="stats">
@@ -233,6 +234,8 @@ export default function Study() {
           <div className="card stat" key={l}><div className="muted">{l}</div><div className="big-num">{v}</div></div>
         ))}
       </div>
+
+      <FocusTimer />
 
       <div className="card">
         <h2>{running ? "Studying now" : "Start a session"}</h2>

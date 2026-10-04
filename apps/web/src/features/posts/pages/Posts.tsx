@@ -57,7 +57,7 @@ export default function Posts() {
         </div>
       </div>
 
-      {shown.length === 0 && <div className="empty">{posts.length ? "Nothing in this filter." : "No posts yet. Start with your SE Square notes!"}</div>}
+      {shown.length === 0 && <div className="empty">{posts.length ? "Nothing in this filter." : "No posts yet. Start with something you learned this week!"}</div>}
 
       {shown.length > 0 && view === "table" && (
         <div className="card table-card">

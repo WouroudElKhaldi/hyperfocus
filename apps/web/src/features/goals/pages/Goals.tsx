@@ -164,7 +164,7 @@ export default function Goals() {
       <p className="sub">What do I want, by when, is it realistic, and how will I do it?</p>
       <div className="card">
         <h2>New goal</h2>
-        <textarea style={{ minHeight: 80 }} placeholder="In your own words, what do you want? e.g. become a senior engineer…" value={text} onChange={(e) => setText(e.target.value)} />
+        <textarea style={{ minHeight: 80 }} placeholder="In your own words, what do you want? e.g. pass my exams in June, or get my first internship…" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="row" style={{ marginTop: "var(--s-3)" }}>
           <label className="muted">By when? <input type="date" style={{ width: "auto" }} value={date} onChange={(e) => setDate(e.target.value)} /></label>
           <button className="primary" disabled={!text.trim() || addGoal.isPending} onClick={add}>Add goal</button>
