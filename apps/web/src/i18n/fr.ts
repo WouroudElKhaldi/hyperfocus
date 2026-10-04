@@ -1708,7 +1708,7 @@ export const fr: Strings = {
     "si_both": "étudies et travailles",
     "si_looking": "cherches un emploi",
     "si_other": "autre chose",
-    "brainPrivate": "Privé et facultatif. Ça sert seulement à adapter l'aide de l'IA (petites étapes, réponses courtes, le bon ton). Personne d'autre ne le voit, ça ne sert jamais à te juger, et tu peux l'effacer quand tu veux dans Profil.",
+    "brainPrivate": "Privé et facultatif. C'est ajouté seulement à tes propres demandes à l'IA (envoyées à DeepSeek avec ta clé), pour que l'aide te corresponde : petites étapes, réponses courtes, le bon ton. Aucune autre personne de l'appli ne le voit, ça ne sert jamais à te juger, et tu peux l'effacer quand tu veux dans Profil.",
     "brain": "Quelque chose que l'appli devrait savoir ?",
     "brainHint": "Diagnostiqué ou non, choisis ce qui te parle.",
     "ne_adhd": "TDAH",

@@ -1707,7 +1707,7 @@ export const en = {
     "si_both": "Studying and working",
     "si_looking": "Looking for a job",
     "si_other": "Something else",
-    "brainPrivate": "Private and optional. It only shapes how the AI helps you (smaller steps, shorter answers, the right tone). Nobody else sees it, it's never used to judge you, and you can clear it any time in Profile.",
+    "brainPrivate": "Private and optional. It's added only to your own AI requests (sent to DeepSeek with your key), so the help fits you: smaller steps, shorter answers, the right tone. No other person using the app sees it, it's never used to judge you, and you can clear it any time in Profile.",
     "brain": "Anything you'd like the app to keep in mind?",
     "brainHint": "Diagnosed or not, pick what feels true.",
     "ne_adhd": "ADHD",

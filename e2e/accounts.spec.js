@@ -122,7 +122,7 @@ test.describe("privacy @cloud", () => {
     await page.getByRole("button", { name: "Next", exact: true }).click();
     // how their brain works: private, optional
     await expect(page.getByRole("heading", { name: "How does your brain work?" })).toBeVisible();
-    await expect(page.getByRole("note")).toContainText("Nobody else sees it");
+    await expect(page.getByRole("note")).toContainText("sent to DeepSeek with your key");
     await page.getByRole("button", { name: "ADHD" }).click();
     await page.getByRole("button", { name: "Very small steps" }).click();
     await page.getByRole("button", { name: "Next", exact: true }).click();
