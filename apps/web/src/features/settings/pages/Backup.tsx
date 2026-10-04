@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import MenuEditor from "../components/MenuEditor.tsx";
 import { Link } from "@tanstack/react-router";
 import { signOut, useMe } from "../../account/index.ts";
 import { useEffect, useState } from "react";
@@ -108,10 +109,12 @@ export default function Backup() {
         </div>
       </div>
 
+      <MenuEditor />
+
       <div className="grid2">
         <div className="card">
           <h2>Appearance</h2>
-          <p className="muted">Light, dark, or follow your computer.</p>
+          <p className="muted">Light, dark, all white, all black, or follow your device.</p>
           <div className="seg" role="radiogroup" aria-label="Theme">
             {([["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["white", "All white"], ["black", "All black"]] as [ThemeMode, string][]).map(([k, l]) => (
               <button key={k} role="radio" aria-checked={theme === k} className={theme === k ? "on" : ""} onClick={() => pickTheme(k)}>{l}</button>

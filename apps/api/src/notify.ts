@@ -19,6 +19,8 @@ const DEFAULTS: Settings = {
   desktop: true, push: false, emailDigest: false, digestAt: "18:00", quietFrom: "", quietTo: "", timeZone: "",
   // privacy (P5-12): AI chats are kept until you choose otherwise
   chatKeepDays: 0,
+  // P3-27: the standard menu until you arrange yours
+  menu: null,
 };
 const KEYS = Object.keys(DEFAULTS) as (keyof Settings)[];
 /** Only the known fields (an old file may carry others, like the "sent" log it once kept). */

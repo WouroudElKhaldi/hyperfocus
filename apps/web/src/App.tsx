@@ -1,14 +1,14 @@
 import { type KeyboardEvent, type PointerEvent, Suspense, createContext, lazy, useCallback, useContext, useEffect, useState } from "react";
 import { BRAND } from "./brand.ts";
-import { Link, type LinkProps, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { api } from "./api.ts";
 import { useTranslation } from "react-i18next";
 import Icon from "./components/Icon.tsx";
-import type { Strings } from "./i18n/en.ts";
+import { ALL, arrange, type NavItem } from "./nav.ts";
 import Stuck from "./components/Stuck.tsx";
 import TopBar, { ThemeSwitch } from "./components/TopBar.tsx";
 import { PetCelebration, PetWidget } from "./features/pet/index.ts";
-import { useA11y } from "./features/settings/index.ts";
+import { useA11y, useSettings } from "./features/settings/index.ts";
 import { AccountPages, useMe } from "./features/account/index.ts";
 import { Privacy } from "./features/settings/index.ts";
 import Quotes from "./components/Quotes.tsx";
@@ -23,39 +23,6 @@ export type Toast = (msg: string, kind?: "ok" | "err") => void;
 const ToastCtx = createContext<Toast>(() => {});
 export const useToast = () => useContext(ToastCtx);
 
-// The menu, grouped by what you use it for. `tab` marks the shortcuts shown in the phone tab bar.
-// (labels are word keys: the words themselves are in i18n/en.ts, P3-19)
-type NavItem = { to: LinkProps["to"] & string; icon: string; label: Exclude<keyof Strings["nav"], "groups" | "chatShort">; tab?: boolean; radar?: boolean };
-type NavGroup = { group: keyof Strings["nav"]["groups"]; items: NavItem[] };
-const NAV: NavGroup[] = [
-  { group: "Plan", items: [
-    { to: "/", icon: "today", label: "today", tab: true },
-    { to: "/calendar", icon: "calendar", label: "calendar", tab: true },
-    { to: "/tasks", icon: "tasks", label: "tasks", tab: true },
-  ] },
-  { group: "Grow", items: [
-    { to: "/goals", icon: "goals", label: "goals" },
-    { to: "/skills", icon: "skills", label: "skills" },
-    { to: "/study", icon: "study", label: "study" },
-    { to: "/books", icon: "books", label: "books" },
-    { to: "/review", icon: "review", label: "review" },
-  ] },
-  { group: "Share", items: [
-    { to: "/notes", icon: "thoughts", label: "notes" },
-    { to: "/posts", icon: "posts", label: "posts" },
-    { to: "/emails", icon: "mail", label: "emails" },
-    { to: "/jobs", icon: "jobs", label: "jobs" },
-    { to: "/radar", icon: "radar", label: "radar", radar: true }, // (admins only while it is tested)
-  ] },
-  { group: "You", items: [
-    { to: "/chat", icon: "chat", label: "chat", tab: true },
-    { to: "/pet", icon: "pet", label: "pet" },
-    { to: "/wins", icon: "wins", label: "wins" },
-    { to: "/profile", icon: "profile", label: "profile" },
-    { to: "/backup", icon: "settings", label: "settings" },
-  ] },
-];
-const ALL = NAV.flatMap((g) => g.items);
 // one tab of the phone's bottom bar (P3-17)
 const TAB = "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[12px] bg-transparent px-0.5 py-1 text-[.68rem] font-semibold text-[var(--muted)] no-underline hover:bg-transparent hover:transform-none [&.active]:text-[var(--accent-strong)] [&_svg]:transition-transform [&_svg]:duration-200 [&.active_svg]:-translate-y-px [&.active_svg]:scale-[1.08] small:min-h-[52px] small:text-[.72rem] small:[&_svg]:size-6";
 
@@ -64,7 +31,7 @@ const SB = { min: 190, max: 380, def: 240, rail: 68 };
 const clampW = (n: unknown) => Math.max(SB.min, Math.min(SB.max, Math.round(Number(n) || SB.def)));
 const lsGet = <T,>(k: string, fallback: T): T => { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch { return fallback; } };
 const lsSet = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage may be unavailable */ } };
-const inGroup = (g: NavGroup, path: string) => g.items.some((i) => (i.to === "/" ? path === "/" : path === i.to || path.startsWith(i.to + "/")));
+const inGroup = (g: { items: NavItem[] }, path: string) => g.items.some((i) => (i.to === "/" ? path === "/" : path === i.to || path.startsWith(i.to + "/")));
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
@@ -96,6 +63,8 @@ function Shell() {
   const connected = meData?.connected;
   // Job Radar is shown to those it is open to (admins while it is tested)
   const shown = (i: NavItem) => !i.radar || !!meData?.radar;
+  // the menu as you arranged it (P3-27; the standard one until you do)
+  const groups = arrange(useSettings().data?.menu);
   const [sheet, setSheet] = useState(false);
   useA11y(); // the accessibility settings (P3-18), kept in step with what is saved
   const [sbWidth, setSbWidth] = useState(() => clampW(lsGet("sb-width", SB.def)));
@@ -119,8 +88,8 @@ function Shell() {
 
   // opening a page unfolds the group it lives in, so you can always see where you are
   useEffect(() => {
-    const g = NAV.find((x) => inGroup(x, location.pathname));
-    if (g && folded[g.group]) setFolded((f) => ({ ...f, [g.group]: false }));
+    const g = groups.find((x) => inGroup(x, location.pathname));
+    if (g && folded[g.id]) setFolded((f) => ({ ...f, [g.id]: false }));
   }, [location.pathname]);
 
   // Ctrl+B (or Cmd+B) collapses and expands the sidebar, unless you are typing
@@ -150,7 +119,7 @@ function Shell() {
   };
 
   const width = collapsed ? SB.rail : sbWidth;
-  const allFolded = NAV.every((g) => folded[g.group]);
+  const allFolded = groups.every((g) => folded[g.id]);
 
   return (
     <ToastCtx.Provider value={show}>
@@ -160,18 +129,18 @@ function Shell() {
           <aside className={"sidebar" + (collapsed ? " collapsed" : "")} aria-label={t("shell.sidebar")}>
             <Brand collapsed={collapsed} />
             {!collapsed && (
-              <button className="ghost fold-all" onClick={() => setFolded(Object.fromEntries(NAV.map((g) => [g.group, !allFolded])))}>
+              <button className="ghost fold-all" onClick={() => setFolded(Object.fromEntries(groups.map((g) => [g.id, !allFolded])))}>
                 {allFolded ? t("shell.unfoldAll") : t("shell.foldAll")}
               </button>
             )}
             <nav aria-label={t("shell.main")}>
-              {NAV.map((g) => {
-                const isFolded = !collapsed && !!folded[g.group];
+              {groups.filter((g) => g.items.some(shown)).map((g) => {
+                const isFolded = !collapsed && !!folded[g.id];
                 return (
-                  <div key={g.group} className="nav-group">
+                  <div key={g.id} className="nav-group">
                     {collapsed ? <div className="nav-sep" aria-hidden="true" /> : (
-                      <button className="nav-label" aria-expanded={!isFolded} onClick={() => setFolded((f) => ({ ...f, [g.group]: !f[g.group] }))}>
-                        <Icon name="chevron" size={13} /> {t(`nav.groups.${g.group}`)}
+                      <button className="nav-label" aria-expanded={!isFolded} onClick={() => setFolded((f) => ({ ...f, [g.id]: !f[g.id] }))}>
+                        <Icon name="chevron" size={13} /> {g.name ?? t(`nav.groups.${g.std ?? "You"}`)}
                       </button>
                     )}
                     <div className={"nav-items" + (isFolded ? "" : " open")}>
@@ -236,7 +205,7 @@ function Shell() {
             <div className="card fixed inset-x-2 bottom-[calc(var(--tab-h)+8px+env(safe-area-inset-bottom,0px))] grid max-h-[72vh] animate-[slide-up_.25s_both] gap-2 overflow-y-auto small:max-h-[78vh] small:p-3" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("shell.allPages")}>
               <PetWidget compact />
               <div className="grid grid-cols-2 gap-1">
-                {ALL.filter(shown).map((i) => (
+                {groups.flatMap((g) => g.items).filter(shown).map((i) => (
                   <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav border border-line bg-surface-2 [&.active]:bg-[var(--accent)] small:min-h-12 small:text-[1rem]" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{t(`nav.${i.label}`)}</span></Link>
                 ))}
               </div>

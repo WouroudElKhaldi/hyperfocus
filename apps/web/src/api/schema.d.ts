@@ -8949,6 +8949,14 @@ export interface paths {
                             focusMode: boolean;
                             /** @enum {string} */
                             font: "default" | "readable";
+                            menu: {
+                                groups: {
+                                    id: string;
+                                    items: string[];
+                                    name: string;
+                                }[];
+                                hidden: string[];
+                            } | null;
                             morningAt: string;
                             /** @enum {string} */
                             motion: "auto" | "reduce";
@@ -8988,6 +8996,14 @@ export interface paths {
                         focusMode?: boolean | null;
                         /** @enum {string|null} */
                         font?: "default" | "readable" | null;
+                        menu?: {
+                            groups: {
+                                id: string;
+                                items: string[];
+                                name: string;
+                            }[];
+                            hidden: string[];
+                        } | null;
                         morningAt?: string | null;
                         /** @enum {string|null} */
                         motion?: "auto" | "reduce" | null;
@@ -9017,6 +9033,14 @@ export interface paths {
                             focusMode: boolean;
                             /** @enum {string} */
                             font: "default" | "readable";
+                            menu: {
+                                groups: {
+                                    id: string;
+                                    items: string[];
+                                    name: string;
+                                }[];
+                                hidden: string[];
+                            } | null;
                             morningAt: string;
                             /** @enum {string} */
                             motion: "auto" | "reduce";

@@ -749,6 +749,7 @@ exports[`response shapes of read endpoints > GET /api/settings 1`] = `
   "emailDigest": "boolean",
   "focusMode": "boolean",
   "font": "string",
+  "menu": "null",
   "morningAt": "string",
   "motion": "string",
   "push": "boolean",

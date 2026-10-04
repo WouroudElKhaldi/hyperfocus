@@ -52,3 +52,22 @@ test("two more themes: all white and all black, from Settings; the top-bar switc
   await expect(page.locator("html")).not.toHaveAttribute("data-look", /./);
   await themes.getByRole("radio", { name: "Automatic" }).click();
 });
+
+test("your menu: hide a page, make a group and move a page into it, then back to the standard menu (P3-27)", async ({ page }) => {
+  await page.goto("/backup");
+  const editor = page.getByRole("region", { name: "Your menu" });
+  const sidebar = page.getByRole("navigation", { name: /main/i }).first();
+  await expect(sidebar.getByRole("link", { name: "Books" })).toBeVisible();
+  await editor.getByRole("button", { name: "Hide Books" }).click();
+  await expect(sidebar.getByRole("link", { name: "Books" })).toHaveCount(0);
+  await editor.getByLabel("New group").fill("Work");
+  await editor.getByRole("button", { name: "Add group" }).click();
+  await editor.getByLabel("Group for Email").selectOption({ label: "Work" });
+  await expect(sidebar.getByRole("button", { name: /Work/ })).toBeVisible();
+  await expect(editor.getByRole("list", { name: "Pages in Work" })).toContainText("Email");
+  await page.reload(); // saved with the account
+  await expect(sidebar.getByRole("link", { name: "Books" })).toHaveCount(0);
+  await editor.getByRole("button", { name: "Back to the standard menu" }).click();
+  await expect(sidebar.getByRole("link", { name: "Books" })).toBeVisible();
+  await expect(sidebar.getByRole("button", { name: /Work/ })).toHaveCount(0);
+});
