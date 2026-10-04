@@ -7986,6 +7986,7 @@ export interface paths {
                             linkedin: string;
                             location: string;
                             name: string;
+                            occupationCode: string;
                             role: string;
                             /** Format: date-time */
                             updatedAt?: string;
@@ -8012,6 +8013,7 @@ export interface paths {
                         linkedin?: string;
                         location?: string | null;
                         name?: string | null;
+                        occupationCode?: string;
                         role?: string | null;
                     };
                 };
@@ -8032,6 +8034,7 @@ export interface paths {
                             linkedin: string;
                             location: string;
                             name: string;
+                            occupationCode: string;
                             role: string;
                             /** Format: date-time */
                             updatedAt?: string;
@@ -9371,6 +9374,136 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/for-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The skills and tools your job needs (your job title in your profile, or ?code=) */
+        get: {
+            parameters: {
+                query?: {
+                    code?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Your job and its skills (none when no job is set) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SkillsForJob"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/from-job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add skills of your job to your Skills map (linked to the standard skill; ones you have are skipped) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        codes: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description What was added */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            added: string[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/skills/job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set your job title (from the list, or typed): its skills are suggested */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code?: string;
+                        title?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Your job and its skills */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SkillsForJob"] & {
+                            /** @description When the title isn't one we know: the closest jobs to pick from */
+                            closest: components["schemas"]["Job"][];
+                            /** @description The AI named this new title's skills (stored for everyone) */
+                            learned: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -10775,6 +10908,10 @@ export interface components {
                 [key: string]: number;
             };
         };
+        Job: {
+            code: string;
+            title: string;
+        } | null;
         JobFields: {
             appliedAt?: string | null;
             company?: string;
@@ -11023,6 +11160,14 @@ export interface components {
             };
             summary: string;
         };
+        JobSkill: {
+            code: string;
+            /** @description Already on your Skills map */
+            have: boolean;
+            hot: boolean;
+            name: string;
+            type: string;
+        };
         JobSourceHealth: {
             enabled: boolean;
             id: number;
@@ -11182,6 +11327,10 @@ export interface components {
                 title: string;
             }[];
             steps: string[];
+        };
+        SkillsForJob: {
+            job: components["schemas"]["Job"];
+            skills: components["schemas"]["JobSkill"][];
         };
         SkillSuggestions: {
             skills: {

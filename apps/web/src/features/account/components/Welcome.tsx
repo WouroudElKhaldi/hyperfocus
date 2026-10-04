@@ -8,7 +8,8 @@ import { useMe } from "../api.ts";
 
 // The welcome guide (P5-05): three short screens for someone new. One question each, big buttons, skippable at any
 // point, and everything can be changed later. Finishing it sets things up: "Find jobs" makes their Job Radar filter
-// from what they study, and they land on the page that fits what they picked.
+// from what they study, their job title (or the job they want) brings the skills it needs to their Skills page, and
+// they land on the page that fits what they picked.
 
 const HELP = [
   ["focus", "🎯 Getting started and staying focused"],
@@ -27,13 +28,18 @@ export default function Welcome() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState(me?.user?.name ?? "");
   const [field, setField] = useState<{ code: string; label: string } | null>(null);
+  const [job, setJob] = useState<{ code: string; label: string } | null>(null);
   const [help, setHelp] = useState<Help[]>([]);
   const after = async (next: string) => {
     await client.invalidateQueries();
     await navigate({ to: next });
   };
   const finish = useMutation({
-    mutationFn: () => api.post("/onboarding", { name: name.trim() || (me?.user?.name ?? "Me"), fieldCode: field?.code ?? null, helpWith: help }) as Promise<{ next: string }>,
+    mutationFn: async () => {
+      const done = (await api.post("/onboarding", { name: name.trim() || (me?.user?.name ?? "Me"), fieldCode: field?.code ?? null, helpWith: help })) as { next: string };
+      if (job) await api.put("/skills/job", { code: job.code }); // the skills their job needs, on the Skills page
+      return done;
+    },
     onSuccess: (r) => after(r.next),
   });
   const skip = useMutation({ mutationFn: () => api.post("/onboarding/skip"), onSuccess: () => after("/") });
@@ -54,8 +60,8 @@ export default function Welcome() {
       )}
       {step === 2 && (
         <>
-          <h1 id="welcome-title">What do you study?</h1>
-          <p className="muted">It helps us suggest internships and jobs. Not a student? Skip this one.</p>
+          <h1 id="welcome-title">What do you study, or what's your job?</h1>
+          <p className="muted">It helps us suggest internships, jobs and the skills they need. Fill in one, both, or skip.</p>
           <fieldset className="row" style={{ gap: 6, flexWrap: "wrap", border: 0, padding: 0 }}>
             <legend className="sr-only">Majors</legend>
             {majors.map((m) => (
@@ -66,9 +72,13 @@ export default function Welcome() {
             <TaxonomyPicker kind="field" label="Another field of study" placeholder="Not listed? Type it…" onPick={(it) => setField({ code: it.code, label: it.label })} />
           </div>
           {field && <p>Picked: <b>{field.label}</b></p>}
+          <div style={{ margin: "12px 0" }}>
+            <TaxonomyPicker kind="occupation" label="Your job, or the job you want" placeholder="Type a job: nurse, accountant, developer…" onPick={(it) => setJob({ code: it.code, label: it.label })} />
+          </div>
+          {job && <p>Your job: <b>{job.label}</b></p>}
           <div className="row">
             <button type="button" onClick={() => setStep(1)}>Back</button>
-            <button type="button" className="primary" onClick={() => setStep(3)}>{field ? "Next" : "Skip this"}</button>
+            <button type="button" className="primary" onClick={() => setStep(3)}>{field || job ? "Next" : "Skip this"}</button>
           </div>
         </>
       )}

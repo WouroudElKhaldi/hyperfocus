@@ -114,3 +114,18 @@ test.describe.serial("Job Radar", () => {
     await expect(page.getByRole("heading", { name: "Job Radar", exact: true })).toBeVisible();
   });
 });
+
+test("skills for my job: pick a job, its skills are listed, add them all; change the job", async ({ page }) => {
+  await page.goto("/skills");
+  const card = page.getByRole("region", { name: /^Skills for / });
+  if (await card.getByRole("button", { name: "Change my job" }).isVisible()) await card.getByRole("button", { name: "Change my job" }).click();
+  await card.getByLabel("Your job").fill("software dev");
+  await page.getByRole("option", { name: /Software Developers/ }).first().click();
+  const mine = page.getByRole("region", { name: "Skills for Software Developers" });
+  await expect(mine.getByRole("list", { name: "Skills for Software Developers" })).toContainText("Python");
+  const all = mine.getByRole("button", { name: /^Add all/ });
+  if (await all.isVisible()) await all.click();
+  await expect(mine.getByText("✓ Git")).toBeVisible();
+  await mine.getByRole("button", { name: "Change my job" }).click();
+  await expect(mine.getByLabel("Job title not in the list")).toBeVisible();
+});

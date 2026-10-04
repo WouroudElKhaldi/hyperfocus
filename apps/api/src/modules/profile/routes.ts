@@ -8,7 +8,7 @@ import { compact } from "../../types.ts";
 
 // The person using the app (P2-20): no login yet, just one saved profile. Same answers as the Express routes had.
 
-const EMPTY_PROFILE = { name: "", role: "", location: "", email: "", linkedin: "", about: "", helps: "", avatar: DEFAULT_AVATAR };
+const EMPTY_PROFILE = { name: "", role: "", location: "", email: "", linkedin: "", about: "", helps: "", occupationCode: "", avatar: DEFAULT_AVATAR };
 
 export function profileRouter({ prisma }: AppDeps) {
   const app = new OpenAPIHono<AppEnv>({ defaultHook });

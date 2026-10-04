@@ -103,9 +103,12 @@ test.describe("privacy @cloud", () => {
     await expect(page.getByLabel("Your name")).toHaveValue("Wel Come");
     await page.getByLabel("Your name").fill("Wel");
     await page.getByRole("button", { name: "Next" }).click();
-    await expect(page.getByRole("heading", { name: "What do you study?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What do you study, or what's your job?" })).toBeVisible();
     await page.getByRole("button", { name: "Computer Science" }).click();
     await expect(page.getByText("Picked: Computer Science")).toBeVisible();
+    await page.getByLabel("Your job, or the job you want").fill("software dev");
+    await page.getByRole("option", { name: /Software Developers/ }).first().click();
+    await expect(page.getByText("Your job: Software Developers")).toBeVisible();
     await page.getByRole("button", { name: "Next" }).click();
     await expect(page.getByRole("heading", { name: "What do you want help with?" })).toBeVisible();
     await page.getByLabel(/Finding internships and jobs/).click();
@@ -115,6 +118,11 @@ test.describe("privacy @cloud", () => {
     await expect(page).toHaveURL(/\/radar$/);
     await expect(page.getByRole("article", { name: "Software Engineer Intern" })).toBeVisible();
     await expect(page.locator("header.topbar")).toContainText("Wel");
+    // the skills their job needs are waiting on the Skills page; one click adds one
+    await page.goto("/skills");
+    const card = page.getByRole("region", { name: "Skills for Software Developers" });
+    await card.getByRole("button", { name: /Python/ }).click();
+    await expect(card.getByText("✓ Python")).toBeVisible();
     // once only: Today is their day now
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /What should we call you/ })).toHaveCount(0);

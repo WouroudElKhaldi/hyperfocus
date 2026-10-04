@@ -680,6 +680,7 @@ exports[`response shapes of read endpoints > GET /api/profile 1`] = `
   "linkedin": "string",
   "location": "string",
   "name": "string",
+  "occupationCode": "string",
   "role": "string",
   "updatedAt": "date",
 }

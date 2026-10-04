@@ -412,6 +412,8 @@ model Profile {
   linkedin  String   @default("")
   about     String   @default("")
   helps     String   @default("") // "what helps me": shared only with the AI companion, to fit its replies
+  /// the standard occupation of their job title, or of the job they want ("onet:15-1252.00", "local:…"): skills for it
+  occupationCode String @default("")
   avatar    String   @default("#7447e6")
   updatedAt DateTime @updatedAt
 

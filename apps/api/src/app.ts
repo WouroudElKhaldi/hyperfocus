@@ -37,6 +37,7 @@ import { radarMatchesRouter } from "./modules/radar/matches-routes.ts";
 import { sourcesAdminRouter } from "./modules/radar/sources-admin-routes.ts";
 import { taxonomyAdminRouter } from "./modules/taxonomy/admin-routes.ts";
 import { onboardingRouter } from "./modules/account/onboarding-routes.ts";
+import { jobSkillsRouter } from "./modules/skills/job-routes.ts";
 import type { Vapid } from "./push.ts";
 import type { Channel } from "./notifications.ts";
 import { integrationsRouter } from "./modules/integrations/routes.ts";
@@ -236,6 +237,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", sourcesAdminRouter(deps)); // P6-18: job sources (admins only)
   app.route("/", taxonomyAdminRouter(deps)); // P6-09: the job list (admins only)
   app.route("/", onboardingRouter(deps)); // P5-05: the welcome guide
+  app.route("/", jobSkillsRouter(deps)); // skills for my job, from the shared job list
   app.route("/", integrationsRouter(deps)); // P5-07: your connected accounts (never their tokens)
 
   // ---------- documentation ----------

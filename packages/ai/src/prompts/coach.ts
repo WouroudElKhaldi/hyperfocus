@@ -1,6 +1,6 @@
 import { NOTE_KINDS } from "@hyperfocus/shared/constants";
 import { PERSON } from "../person.ts";
-import { jsonTemplate, object, objects, oneOf, systemAndUser, text, texts } from "../template.ts";
+import { jsonTemplate, lenient, object, objects, oneOf, systemAndUser, text, texts } from "../template.ts";
 import { VOICE } from "./posts.ts";
 
 // Getting started and staying on track: goal analysis, task steps, sorting a brain dump, the "I'm stuck" helper,
@@ -110,4 +110,19 @@ Reply ONLY with JSON: {"bullets": string[] (5-8), "paragraph": string (3-4 sente
       wins.map((w) => `${w.date.slice(0, 10)} [${w.kind}] ${w.text}`).join("\n"),
     ),
   reply: object({ bullets: texts(), paragraph: text() }),
+});
+
+/** Skills for a job title the standard job list doesn't have (used once per title, then stored for everyone). */
+export const jobSkills = jsonTemplate({
+  name: "jobSkills",
+  temperature: 0.2,
+  messages: ({ title }: { title: string }) =>
+    systemAndUser(
+      `You list what a job asks for. Give 10-15 concrete skills, tools and software someone in this job really uses, as they are commonly written in job ads ("Microsoft Excel", "Project management", "Patient assessment"), most important first. No soft personality traits, no duplicates, no explanations. If it is not a real job title, return an empty list.
+Reply ONLY with JSON: {"skills": string[]}.`,
+      `Job title: ${title}`,
+    ),
+  // (names as text; a list of {"name": …} objects is read too)
+  reply: object({ skills: lenient((v) => (Array.isArray(v) ? v.map((x) => (typeof x === "string" ? x : x && typeof x === "object" && "name" in x ? String((x as { name: unknown }).name) : "")) : [])) }),
+  after: (out) => [...new Set(out.skills.map((s) => s.trim()).filter((s) => s && s.length <= 80))].slice(0, 15),
 });

@@ -19,6 +19,8 @@ export const Profile = z.object({
   about: z.string(),
   /** "What helps me": shared only with the AI companion, to fit its replies. */
   helps: z.string(),
+  /** the standard occupation of their job title (or the job they want): skills are suggested for it; "" = none */
+  occupationCode: z.string(),
   avatar: z.string(),
   updatedAt: IsoDateTime.optional(),
 });
@@ -42,5 +44,6 @@ export const UpdateProfileInput = z.object({
   location: text(PROFILE_MAX.location),
   about: text(PROFILE_MAX.about),
   helps: text(PROFILE_MAX.helps),
+  occupationCode: z.string().regex(/^((onet|esco|local):\S{1,100})?$/, "Pick a job from the list.").optional(),
 });
 export type UpdateProfileInput = z.input<typeof UpdateProfileInput>;

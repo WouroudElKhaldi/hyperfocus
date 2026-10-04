@@ -5,19 +5,11 @@ import { useToast } from "../../../App.tsx";
 import type { Skill, SkillPlan, SkillSuggestion } from "../../../types.ts";
 import { useAddTask } from "../../tasks/index.ts";
 import { useAddSkill, useAddSkills, useDeleteSkill, useSkills, useUpdateSkill } from "../api.ts";
+import JobSkills from "../components/JobSkills.tsx";
 
 const LEVELS = ["Not rated yet", "Shaky", "Learning it", "Comfortable", "Strong", "Could teach it"];
-const AREAS = ["Design & architecture", "Code quality", "Data & databases", "Delivery & DevOps", "Security & performance", "Communication & leadership", "Product & UX", "Other"] as const;
+const AREAS = ["Core skills", "Tools & software", "Communication & teamwork", "Leadership", "Other"] as const;
 type NewSkill = { name: string; area: string; why?: string };
-const STARTER: NewSkill[] = ([
-  ["Design patterns", 0], ["System design", 0], ["Software architecture", 0], ["API design", 0],
-  ["Clean code & refactoring", 1], ["Testing (unit & integration)", 1], ["Code review", 1], ["Debugging hard bugs", 1],
-  ["SQL & database design", 2], ["Data structures & algorithms", 2],
-  ["CI/CD & deployment", 3], ["Git workflows", 3], ["Cloud basics", 3],
-  ["Web security basics", 4], ["Performance optimization", 4],
-  ["Technical writing", 5], ["Mentoring & giving feedback", 5], ["Estimating & planning work", 5],
-  ["Accessibility", 6], ["Product thinking", 6],
-] as [string, number][]).map(([name, a]) => ({ name, area: AREAS[a] ?? "Other" }));
 
 function Dots({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
   return (
@@ -180,21 +172,22 @@ export default function Skills() {
         </div>
       )}
 
+      <JobSkills />
+
       <div className="card">
         <form className="row" onSubmit={add}>
-          <input className="grow" placeholder="Add a skill… e.g. Designing REST APIs" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="grow" placeholder="Add a skill… e.g. Patient assessment, Excel, Public speaking" value={name} onChange={(e) => setName(e.target.value)} />
           <select value={area} onChange={(e) => setArea(e.target.value)}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select>
           <button className="primary" disabled={!name.trim()}>Add</button>
         </form>
         <div className="row" style={{ marginTop: "var(--s-2)" }}>
-          <button onClick={() => addMany(STARTER)}>📋 Add a starter list ({STARTER.length} common senior skills)</button>
           <button onClick={() => setHelpOpen(!helpOpen)}>✨ Help me find my gaps (AI)</button>
         </div>
         {helpOpen && (
           <div className="refined">
             <p className="muted tiny">Tell me what you work on, and what feels shaky or scary. Messy is fine.</p>
             <textarea style={{ minHeight: 70 }} value={context} onChange={(e) => setContext(e.target.value)}
-              placeholder="e.g. I build React screens and some Node APIs. I avoid database design and I'm never sure how to structure a big feature…" />
+              placeholder="e.g. I'm a nursing student. I'm fine with patients but I freeze when I have to write reports or use the hospital's software…" />
             <button className="primary" style={{ marginTop: "var(--s-2)" }} disabled={busy || !context.trim()} onClick={suggest}>{busy ? "Thinking…" : "Suggest skills to work on"}</button>
             {ideas.map((i) => (
               <div key={i.name} className="row" style={{ flexWrap: "nowrap", marginTop: "var(--s-2)" }}>
@@ -207,7 +200,7 @@ export default function Skills() {
         )}
       </div>
 
-      {skills.length === 0 && <div className="empty">No skills yet. Add a starter list or let the AI help you find them.</div>}
+      {skills.length === 0 && <div className="empty">No skills yet. Add the ones your job needs (above), or add your own.</div>}
       {byArea.map(([a, list]) => (
         <div className="card" key={a}>
           <h2>{a}</h2>
