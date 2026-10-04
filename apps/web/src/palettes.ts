@@ -98,3 +98,25 @@ export function paletteTokens(p: Palette, mode: Mode): Record<string, string> {
 }
 
 export const TOKEN_NAMES = Object.keys(paletteTokens(LAVENDER, "light")); // the names are the same for every palette
+
+/** P3-26 (interview 1): the "all white" and "all black" looks: no color at all, black on white or white on black. */
+export function monoTokens(mode: Mode): Record<string, string> {
+  if (mode === "dark") {
+    return {
+      "--bg": "#000000", "--bg-2": "#0a0a0a", "--surface": "#0d0d0d", "--surface-2": "#161616",
+      "--line": "#262626", "--line-2": "#383838",
+      "--ink": "#f2f2f2", "--ink-2": "#d4d4d4", "--muted": "#a8a8a8",
+      "--accent": "#f2f2f2", "--accent-hover": "#ffffff", "--accent-strong": "#ffffff", "--accent-soft": "#1f1f1f",
+      "--on-accent": "#000000",
+      "--shadow-1": "0 1px 2px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.4)", "--shadow-2": "0 10px 34px rgba(0,0,0,.7)",
+    };
+  }
+  return {
+    "--bg": "#ffffff", "--bg-2": "#f5f5f5", "--surface": "#ffffff", "--surface-2": "#fafafa",
+    "--line": "#e6e6e6", "--line-2": "#d4d4d4",
+    "--ink": "#111111", "--ink-2": "#333333", "--muted": "#5c5c5c",
+    "--accent": "#111111", "--accent-hover": "#333333", "--accent-strong": "#000000", "--accent-soft": "#efefef",
+    "--on-accent": "#ffffff",
+    "--shadow-1": "0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05)", "--shadow-2": "0 10px 34px rgba(0,0,0,.12)",
+  };
+}

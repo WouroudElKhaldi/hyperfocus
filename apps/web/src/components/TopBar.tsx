@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { PetArt, usePet } from "../features/pet/index.ts";
 import { initialsOf, useProfile } from "../features/profile/index.ts";
 import { useA11y, useSaveSettings } from "../features/settings/index.ts";
-import { effectiveTheme, setTheme } from "../theme.ts";
+import { effectiveTheme, isMono, setTheme } from "../theme.ts";
 import { useTranslation } from "react-i18next";
 import Icon from "./Icon.tsx";
 import NotificationBell from "./NotificationBell.tsx";
@@ -22,7 +22,7 @@ export function ThemeSwitch() {
   const { t: tr } = useTranslation();
   const dark = t === "dark";
   return (
-    <button role="switch" aria-checked={dark} className={"theme-switch" + (dark ? " dark" : "")} onClick={() => setTheme(dark ? "light" : "dark")} title={dark ? tr("topbar.toLight") : tr("topbar.toDark")}>
+    <button role="switch" aria-checked={dark} className={"theme-switch" + (dark ? " dark" : "")} onClick={() => setTheme(isMono() ? (dark ? "white" : "black") : dark ? "light" : "dark")} title={dark ? tr("topbar.toLight") : tr("topbar.toDark")}>
       <span className="ts-ico sun"><Icon name="sun" size={15} /></span>
       <span className="ts-ico moon"><Icon name="moon" size={15} /></span>
       <span className="ts-thumb" />

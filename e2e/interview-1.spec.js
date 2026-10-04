@@ -31,3 +31,24 @@ test("Today: tasks for today (picked or due today), today's events, and a Study 
     await page.request.delete(`/api/tasks/${due.id}`);
   }
 });
+
+test("two more themes: all white and all black, from Settings; the top-bar switch flips between them (P3-26)", async ({ page }) => {
+  await page.goto("/backup");
+  const themes = page.getByRole("radiogroup", { name: "Theme" });
+  const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+  await themes.getByRole("radio", { name: "All black" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-look", "black");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect.poll(bg).toBe("rgb(0, 0, 0)");
+  expect(await accent()).toBe("#f2f2f2");
+  await page.getByRole("switch").first().click(); // the top bar: black → white
+  await expect(page.locator("html")).toHaveAttribute("data-look", "white");
+  await expect.poll(bg).toBe("rgb(255, 255, 255)");
+  expect(await accent()).toBe("#111111");
+  await page.reload(); // remembered
+  await expect(page.locator("html")).toHaveAttribute("data-look", "white");
+  await themes.getByRole("radio", { name: "Light" }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-look", /./);
+  await themes.getByRole("radio", { name: "Automatic" }).click();
+});

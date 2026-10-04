@@ -113,7 +113,7 @@ export default function Backup() {
           <h2>Appearance</h2>
           <p className="muted">Light, dark, or follow your computer.</p>
           <div className="seg" role="radiogroup" aria-label="Theme">
-            {([["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"]] as [ThemeMode, string][]).map(([k, l]) => (
+            {([["auto", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["white", "All white"], ["black", "All black"]] as [ThemeMode, string][]).map(([k, l]) => (
               <button key={k} role="radio" aria-checked={theme === k} className={theme === k ? "on" : ""} onClick={() => pickTheme(k)}>{l}</button>
             ))}
           </div>
