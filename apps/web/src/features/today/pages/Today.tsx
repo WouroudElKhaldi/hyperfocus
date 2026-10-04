@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MyReminders } from "../../reminders/index.ts";
 import { Link } from "@tanstack/react-router";
 import { KINDS } from "../../../api.ts";
-import { useApiChange } from "../../../api/hooks.ts";
+import { useApi, useApiChange } from "../../../api/hooks.ts";
 import { useToast } from "../../../App.tsx";
 import FocusTimer from "../../../components/FocusTimer.tsx";
 import More from "../../../components/More.tsx";
@@ -11,6 +11,12 @@ import { useProfile } from "../../profile/index.ts";
 import { Welcome, useMe } from "../../account/index.ts";
 import { useAddTask, useTasks, useUpdateTask } from "../../tasks/index.ts";
 import type { OrganizedItem, Task } from "../../../types.ts";
+
+/** Today as "YYYY-MM-DD" on this device's clock. */
+const localDay = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 
 /** Someone new sees the welcome guide here first (P5-05); everyone else, their day. */
@@ -26,7 +32,11 @@ function TodayPage() {
   const [kind, setKind] = useState("thought");
   const [sorted, setSorted] = useState<OrganizedItem[] | null>(null);
   // the same cached lists as the Tasks and Notes pages, so a change on either shows here at once
-  const tasks = (useTasks().data ?? []).filter((t) => t.today && !t.done);
+  const todayDay = localDay();
+  const tasks = (useTasks().data ?? []).filter((t) => !t.done && (t.today || t.dueDay === todayDay));
+  // what is on the calendar today: events and meetings (a repeating one shows on its days)
+  const events = [...(useApi(`/calendar?from=${todayDay}&to=${todayDay}` as "/calendar", { meta: { silent: true } }).data?.events ?? [])]
+    .sort((a, b) => Number(b.allDay) - Number(a.allDay) || a.startTime.localeCompare(b.startTime));
   const recent = (useNotes().data ?? []).filter((n) => !n.archived && !n.posted).slice(0, 4);
   const addNote = useAddNote();
   const addTask = useAddTask();
@@ -71,6 +81,9 @@ function TodayPage() {
         {first ? `, ${first}` : ""}
       </h1>
       <p className="sub">One thing at a time. Dump first, sort later.</p>
+      <div className="row" style={{ marginBottom: "var(--s-3)" }}>
+        <Link className="btn primary big" to="/study">📚 Study</Link>
+      </div>
 
       <div className="grid2">
         <div className="card">
@@ -82,10 +95,23 @@ function TodayPage() {
           )}
           {tasks.map((t) => (
             <div className="item" key={t.id}>
-              <input type="checkbox" className="check" onChange={() => complete(t)} />
+              <input type="checkbox" className="check" aria-label={`Done: ${t.title}`} onChange={() => complete(t)} />
               <div>{t.title}</div>
             </div>
           ))}
+          <h3 style={{ marginTop: "var(--s-3)" }}>On your calendar today</h3>
+          {events.length === 0 ? (
+            <p className="muted">Nothing scheduled. <Link to="/calendar">Open the calendar</Link></p>
+          ) : (
+            <ul className="plain" aria-label="On your calendar today">
+              {events.map((e) => (
+                <li key={e.occId} className="item">
+                  <span className="chip">{e.allDay ? "All day" : `${e.startTime}${e.endTime ? `–${e.endTime}` : ""}`}</span>
+                  <div>{e.title}{e.location && <span className="muted"> · {e.location}</span>}</div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <FocusTimer />
       </div>
