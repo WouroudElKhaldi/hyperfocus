@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { api, errorOf } from "../../../api.ts";
 import { useToast } from "../../../App.tsx";
@@ -7,7 +9,7 @@ import type { PolishResult, Post, RewriteResult } from "../../../types.ts";
 import { useDeletePost, usePost, usePostStatus } from "../api.ts";
 
 const LIMIT = 3000;
-const QUICK = ["Make it shorter", "Stronger hook", "More personal", "Simpler words", "Add a question at the end"];
+const QUICK = ["quick1", "quick2", "quick3", "quick4", "quick5"] as const;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toLocalInput = (at: string | number | Date) => {
@@ -15,50 +17,51 @@ const toLocalInput = (at: string | number | Date) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 const tomorrowAt = (h: number) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(h, 0, 0, 0); return d; };
-const fmtWhen = (d: string | null) => new Date(d ?? 0).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const STATUS: Record<string, string> = { draft: "Draft", scheduled: "⏰ Scheduled", posting: "Sending…", posted: "✓ Posted", failed: "⚠️ Failed", missed: "⚠️ Missed" };
+const fmtWhen = (d: string | null) => new Date(d ?? 0).toLocaleString(i18next.language, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const STATUS: Record<string, "sDraft" | "sScheduled" | "sPosting" | "sPosted" | "sFailed" | "sMissed"> = { draft: "sDraft", scheduled: "sScheduled", posting: "sPosting", posted: "sPosted", failed: "sFailed", missed: "sMissed" };
 
 // Top-level so the date input keeps focus while the editor re-renders.
 type ScheduleProps = { post: Post; blockedReason: string; status: ReturnType<typeof usePostStatus> };
 function Schedule({ post, blockedReason, status }: ScheduleProps) {
   const toast = useToast();
+  const { t } = useTranslation();
   const [when, setWhen] = useState(() => toLocalInput(post.status === "scheduled" && post.scheduledAt ? post.scheduledAt : tomorrowAt(9)));
   const [changing, setChanging] = useState(false);
   const busy = status.schedule.isPending;
 
   // the latest text is saved first, so what gets posted is what you see
   const schedule = () => {
-    if (!when || Number.isNaN(new Date(when).getTime())) return toast("Pick a date and time first.", "err");
+    if (!when || Number.isNaN(new Date(when).getTime())) return toast(t("posts.pickTime"), "err");
     status.schedule.mutate(new Date(when).toISOString(), {
-      onSuccess: () => { setChanging(false); toast("Scheduled ⏰ It will post by itself at that time."); },
+      onSuccess: () => { setChanging(false); toast(t("posts.scheduledToast")); },
     });
   };
-  const cancel = () => status.unschedule.mutate(undefined, { onSuccess: () => toast("Schedule cancelled. It's a draft again.") });
+  const cancel = () => status.unschedule.mutate(undefined, { onSuccess: () => toast(t("posts.unscheduled")) });
 
   if (post.status === "posted") return null;
 
   const picker = (
     <div className="row" style={{ marginTop: "var(--s-2)" }}>
       <input type="datetime-local" style={{ width: "auto" }} value={when} onChange={(e) => setWhen(e.target.value)} />
-      <button className="ghost" onClick={() => setWhen(toLocalInput(Date.now() + 3600000))}>In 1 hour</button>
-      <button className="ghost" onClick={() => setWhen(toLocalInput(tomorrowAt(9)))}>Tomorrow 9:00</button>
-      <button className="primary" disabled={busy} onClick={schedule}>{busy ? "Saving…" : "📅 Schedule"}</button>
-      {changing && <button className="ghost" onClick={() => setChanging(false)}>Cancel</button>}
+      <button className="ghost" onClick={() => setWhen(toLocalInput(Date.now() + 3600000))}>{t("posts.in1h")}</button>
+      <button className="ghost" onClick={() => setWhen(toLocalInput(tomorrowAt(9)))}>{t("posts.tomorrow9")}</button>
+      <button className="primary" disabled={busy} onClick={schedule}>{busy ? t("posts.saving") : t("posts.schedule")}</button>
+      {changing && <button className="ghost" onClick={() => setChanging(false)}>{t("posts.cancel")}</button>}
     </div>
   );
 
   if (post.status === "scheduled" || post.status === "posting") {
     return (
       <div className="verdict v-ok" style={{ marginTop: "var(--s-4)" }}>
-        <b>{post.status === "posting" ? "📤 Sending to LinkedIn…" : `⏰ Scheduled for ${fmtWhen(post.scheduledAt)}`}</b>
+        <b>{post.status === "posting" ? t("posts.sending") : t("posts.scheduledFor", { when: fmtWhen(post.scheduledAt) })}</b>
         {post.status === "scheduled" && (
           <>
-            <p>If you haven't posted it by then, the app posts it for you. The app and n8n must be running.
-              {post.attempts > 0 && <> Last try failed ({post.attempts}/3): {post.lastError}</>}</p>
+            <p>{t("posts.autoNote")}
+              {post.attempts > 0 && <> {t("posts.lastTry", { n: post.attempts, error: post.lastError })}</>}</p>
             {changing ? picker : (
               <div className="row">
-                <button className="ghost" onClick={() => setChanging(true)}>Change time</button>
-                <button className="ghost" onClick={cancel}>Cancel schedule</button>
+                <button className="ghost" onClick={() => setChanging(true)}>{t("posts.changeTime")}</button>
+                <button className="ghost" onClick={cancel}>{t("posts.cancelSchedule")}</button>
               </div>
             )}
           </>
@@ -71,11 +74,11 @@ function Schedule({ post, blockedReason, status }: ScheduleProps) {
     <div className="schedule-box" style={{ marginTop: "var(--s-4)" }}>
       {(post.status === "failed" || post.status === "missed") && (
         <div className="verdict v-bad" style={{ marginBottom: "var(--s-3)" }}>
-          <b>{post.status === "missed" ? "⚠️ It wasn't posted on time" : "⚠️ Auto-post failed"}</b>
+          <b>{post.status === "missed" ? t("posts.notOnTime") : t("posts.autoFailed")}</b>
           <p className="pre">{post.lastError}</p>
         </div>
       )}
-      <b>📅 Schedule it</b> <span className="muted">(auto-posts at that time if you haven't posted it yourself)</span>
+      <b>{t("posts.scheduleIt")}</b> <span className="muted">{t("posts.scheduleHint")}</span>
       {blockedReason ? <p className="muted" style={{ marginTop: "var(--s-2)" }}>{blockedReason}</p> : picker}
     </div>
   );
@@ -85,6 +88,7 @@ export default function PostEditor() {
   const { id } = useParams({ from: "/posts/$id" });
   const nav = useNavigate();
   const toast = useToast();
+  const { t } = useTranslation();
   const [thought, setThought] = useState("");
   const [draft, setDraft] = useState("");
   const [history, setHistory] = useState<string[]>([]);
@@ -117,7 +121,7 @@ export default function PostEditor() {
     if (!post) return;
     setLive(["scheduled", "posting"].includes(post.status));
     if (post.status === "posted" && lastStatus.current && ["scheduled", "posting"].includes(lastStatus.current))
-      toast("Your scheduled post just went live on LinkedIn 🎉");
+      toast(t("posts.wentLive"));
     lastStatus.current = post.status;
   }, [post?.status]);
 
@@ -125,10 +129,10 @@ export default function PostEditor() {
   useEffect(() => {
     if (!loaded.current) return;
     setSaved(false);
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       api.patch(`/posts/${id}`, { thought, draft }).then(() => setSaved(true)).catch((e) => toast(e.message, "err"));
     }, 800);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [thought, draft]);
 
   const applyAI = async (instr?: string) => {
@@ -150,7 +154,7 @@ export default function PostEditor() {
     try {
       // cleans the thought itself (tiny fixes only) BEFORE generating a post; the previous text is kept for undo
       const out = await api.post("/ai/polish", { text: thought });
-      if (out.draft === thought) toast("Already clean, nothing to fix ✨");
+      if (out.draft === thought) toast(t("posts.alreadyClean"));
       else { setThoughtHistory((h) => [...h, thought]); setThought(out.draft); }
       setChanges(out.changes);
     } catch (caught) { const e = errorOf(caught); toast(e.message, "err"); }
@@ -174,79 +178,79 @@ export default function PostEditor() {
     if (hasMention) {
       await navigator.clipboard.writeText(draft).catch(() => {});
       window.open("https://www.linkedin.com/feed/?shareActive=true", "_blank");
-      toast("Copied! In LinkedIn, paste it, delete the @name and retype it, then pick the person from the dropdown so they get tagged. Come back and press “Mark as posted”.");
+      toast(t("posts.mentionCopied"));
       return;
     }
-    if (!confirm("Post this to LinkedIn now?")) return;
+    if (!confirm(t("posts.postNow"))) return;
     status.publish.mutate(undefined, {
-      onSuccess: () => toast("Posted to LinkedIn! 🎉 Proud of you."),
+      onSuccess: () => toast(t("posts.postedToast")),
       onError: (caught) => {
         const e = errorOf(caught);
         if (e.code === "n8n_not_configured") {
           navigator.clipboard.writeText(draft).catch(() => {});
           window.open("https://www.linkedin.com/feed/?shareActive=true", "_blank");
-          toast("n8n isn't connected yet, so I copied your post. Paste it in LinkedIn, then hit “Mark as posted”.");
+          toast(t("posts.noN8n"));
         } else toast(e.message, "err");
       },
     });
   };
 
   const markPosted = () => status.markPosted.mutate();
-  const remove = () => { if (confirm("Delete this post?")) deletePost.mutate(Number(id), { onSuccess: () => nav({ to: "/posts" }) }); };
+  const remove = () => { if (confirm(t("posts.deleteAsk"))) deletePost.mutate(Number(id), { onSuccess: () => nav({ to: "/posts" }) }); };
 
-  if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel="Back to posts" onRetry={() => postQuery.refetch()} />;
-  if (!post) return <p className="muted">Loading…</p>;
+  if (loadErr) return <LoadProblem error={loadErr} what="post" back="/posts" backLabel={t("posts.backToPosts")} onRetry={() => postQuery.refetch()} />;
+  if (!post) return <p className="muted">{t("posts.loading")}</p>;
   const posted = post.status === "posted";
 
   return (
     <>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
-          <h1>Post editor</h1>
+          <h1>{t("posts.editor")}</h1>
           <p className="sub">
-            <span className={"chip " + post.status}>{STATUS[post.status] || post.status}</span>{" "}
-            {saved ? "Saved" : "Saving…"}
+            <span className={"chip " + post.status}>{STATUS[post.status] ? t(`posts.${STATUS[post.status] as "sDraft"}`) : post.status}</span>{" "}
+            {saved ? t("posts.saved") : t("posts.saving")}
           </p>
         </div>
-        <button className="ghost" onClick={remove}>Delete</button>
+        <button className="ghost" onClick={remove}>{t("posts.delete")}</button>
       </div>
 
       <div className="grid2 editor">
         <div className="card">
-          <h2>My original thought</h2>
-          <textarea value={thought} onChange={(e) => setThought(e.target.value)} placeholder="Type your raw thoughts. Bullets, fragments, anything." />
-          <p className="muted">Only “Tiny polish” edits this box, and only typos. Everything else just reads it.</p>
+          <h2>{t("posts.thought")}</h2>
+          <textarea value={thought} onChange={(e) => setThought(e.target.value)} placeholder={t("posts.thoughtPlaceholder")} />
+          <p className="muted">{t("posts.thoughtNote")}</p>
           <div className="row">
-            <button className="primary" disabled={busy || !thought.trim()} onClick={() => applyAI()} title="Writes a new LinkedIn post from your thought (replaces the current draft)">
-              {busy ? "Working…" : draft.trim() ? "🔄 Rewrite from scratch" : "✨ Turn into a LinkedIn post"}
+            <button className="primary" disabled={busy || !thought.trim()} onClick={() => applyAI()} title={t("posts.rewriteHint")}>
+              {busy ? t("posts.working") : draft.trim() ? t("posts.rewrite") : t("posts.turn")}
             </button>
-            <button disabled={busy || !thought.trim()} onClick={polish} title="Fixes only typos, grammar and punctuation in your thought. Keeps your words. Do this before generating the post.">
-              {busy ? "Working…" : "🪶 Tiny polish"}
+            <button disabled={busy || !thought.trim()} onClick={polish} title={t("posts.polishHint")}>
+              {busy ? t("posts.working") : t("posts.polish")}
             </button>
-            <button className="ghost" disabled={!thoughtHistory.length} onClick={undoThought}>↶ Undo polish</button>
+            <button className="ghost" disabled={!thoughtHistory.length} onClick={undoThought}>{t("posts.undoPolish")}</button>
           </div>
           {changes.length > 0 && (
             <div className="hookbox" style={{ marginTop: "var(--s-3)" }}>
-              <b>Tiny polish fixed:</b> {changes.join(" · ")}
+              <b>{t("posts.polishFixed")}</b> {changes.join(" · ")}
             </div>
           )}
         </div>
 
         <div className="card">
-          <h2>LinkedIn draft</h2>
-          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Your draft will appear here. You can also write it yourself." />
+          <h2>{t("posts.draft")}</h2>
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("posts.draftPlaceholder")} />
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <span className="muted">{hookType && `Hook style: ${hookType}`}</span>
+            <span className="muted">{hookType && t("posts.hookStyle", { style: hookType })}</span>
             <div className={"count" + (draft.length > LIMIT ? " over" : "")}>{draft.length} / {LIMIT}</div>
           </div>
           {draft && (
             <div className="hookbox">
-              <b>Visible before “see more”:</b> <span className="pre">{draft.slice(0, 140)}{draft.length > 140 && <span className="muted">… see more</span>}</span>
+              <b>{t("posts.seeMoreLabel")}</b> <span className="pre">{draft.slice(0, 140)}{draft.length > 140 && <span className="muted">{t("posts.seeMore")}</span>}</span>
             </div>
           )}
           {hooks.length > 0 && (
             <>
-              <p className="muted" style={{ marginTop: "var(--s-3)" }}>Other hooks to try (click to swap the opening):</p>
+              <p className="muted" style={{ marginTop: "var(--s-3)" }}>{t("posts.otherHooks")}</p>
               <div className="sugg">
                 {hooks.map((h, i) => (
                   <button key={i} disabled={busy} onClick={() => applyAI(`Replace ONLY the opening hook with exactly this line, and adjust the following line so it flows: "${h}"`)}>🪝 {h}</button>
@@ -256,17 +260,17 @@ export default function PostEditor() {
           )}
 
           <div className="row" style={{ marginTop: "var(--s-2)" }}>
-            <input className="grow" placeholder="Ask AI to edit… e.g. “make it less formal”" value={instruction}
+            <input className="grow" placeholder={t("posts.askAi")} value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && instruction.trim() && draft.trim() && applyAI(instruction)} />
-            <button disabled={busy || !instruction.trim() || !draft.trim()} onClick={() => applyAI(instruction)}>Edit</button>
+            <button disabled={busy || !instruction.trim() || !draft.trim()} onClick={() => applyAI(instruction)}>{t("posts.edit")}</button>
           </div>
           <div className="sugg">
-            {QUICK.map((q) => <button key={q} disabled={busy || !draft.trim()} onClick={() => applyAI(q)}>{q}</button>)}
+            {QUICK.map((q) => <button key={q} disabled={busy || !draft.trim()} onClick={() => applyAI(t(`posts.${q}`))}>{t(`posts.${q}`)}</button>)}
           </div>
           {suggestions.length > 0 && (
             <>
-              <p className="muted" style={{ marginTop: "var(--s-4)" }}>AI suggestions (click to apply):</p>
+              <p className="muted" style={{ marginTop: "var(--s-4)" }}>{t("posts.suggestions")}</p>
               <div className="sugg">
                 {suggestions.map((s, i) => <button key={i} disabled={busy} onClick={() => applyAI(s)}>💡 {s}</button>)}
               </div>
@@ -275,7 +279,7 @@ export default function PostEditor() {
 
           {hasMention && !posted && (
             <div className="hookbox" style={{ marginTop: "var(--s-3)" }}>
-              👋 <b>You're tagging someone.</b> LinkedIn only allows real tags when posting on linkedin.com, so the button will copy your post and open LinkedIn. There, retype the @name and choose them from the dropdown.
+              👋 <b>{t("posts.tagging")}</b> {t("posts.taggingNote")}
             </div>
           )}
           {!posted && (
@@ -283,20 +287,20 @@ export default function PostEditor() {
               post={post}
               status={status}
               blockedReason={
-                !draft.trim() ? "Write the draft first." :
-                draft.length > LIMIT ? "The draft is over LinkedIn's 3000 character limit." :
-                hasMention ? "Posts that tag someone (@name) can't be auto-posted, because the tag would come out as plain text. Post this one by hand, using the button below." :
+                !draft.trim() ? t("posts.needDraft") :
+                draft.length > LIMIT ? t("posts.tooLong") :
+                hasMention ? t("posts.noAutoTag") :
                 ""
               }
             />
           )}
           <div className="row" style={{ marginTop: "var(--s-4)" }}>
-            <button className="ghost" disabled={!history.length} onClick={undo}>↶ Undo AI edit</button>
-            <button className="ghost" onClick={() => { navigator.clipboard.writeText(draft); toast("Copied"); }}>Copy</button>
+            <button className="ghost" disabled={!history.length} onClick={undo}>{t("posts.undoAi")}</button>
+            <button className="ghost" onClick={() => { navigator.clipboard.writeText(draft); toast(t("posts.copied")); }}>{t("posts.copy")}</button>
             <span className="grow" />
-            {!posted && <button className="ghost" onClick={markPosted}>Mark as posted</button>}
+            {!posted && <button className="ghost" onClick={markPosted}>{t("posts.markPosted")}</button>}
             <button className="primary big" disabled={busy || status.publish.isPending || posted || !draft.trim() || draft.length > LIMIT} onClick={publish}>
-              {posted ? "✓ Posted" : hasMention ? "🚀 Copy & open LinkedIn" : "🚀 POST"}
+              {posted ? t("posts.sPosted") : hasMention ? t("posts.copyOpen") : t("posts.post")}
             </button>
           </div>
         </div>

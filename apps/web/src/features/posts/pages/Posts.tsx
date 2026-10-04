@@ -1,12 +1,14 @@
 import { type MouseEvent, useState } from "react";
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { Post } from "../../../types.ts";
 import { useCreatePost, useDeletePost, usePosts } from "../api.ts";
 
-const FILTERS: [string, string][] = [["all", "All"], ["draft", "Drafts"], ["scheduled", "Scheduled"], ["posted", "Posted"]];
+const FILTERS: [string, "all" | "drafts" | "scheduled" | "posted"][] = [["all", "all"], ["draft", "drafts"], ["scheduled", "scheduled"], ["posted", "posted"]];
 const textOf = (p: Post) => (p.draft || p.thought).trim();
-const statusLabel = (p: Post) => p.status === "posted" ? "✓ Posted" : p.status === "scheduled" ? `⏰ ${new Date(p.scheduledAt ?? "").toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : p.status === "failed" ? "⚠️ Failed" : p.status === "missed" ? "⚠️ Missed" : p.status === "posting" ? "Sending…" : "Draft";
-const titleOf = (p: Post) => textOf(p).split("\n").find((l) => l.trim()) || "(empty)";
+const statusLabel = (p: Post) => p.status === "posted" ? i18next.t("posts.sPosted") : p.status === "scheduled" ? `⏰ ${new Date(p.scheduledAt ?? "").toLocaleString(i18next.language, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : p.status === "failed" ? i18next.t("posts.sFailed") : p.status === "missed" ? i18next.t("posts.sMissed") : p.status === "posting" ? i18next.t("posts.sPosting") : i18next.t("posts.sDraft");
+const titleOf = (p: Post) => textOf(p).split("\n").find((l) => l.trim()) || i18next.t("posts.empty");
 
 function load(key: string, fallback: string) {
   try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
@@ -17,6 +19,7 @@ function save(key: string, value: string) {
 
 export default function Posts() {
   const nav = useNavigate();
+  const { t, i18n } = useTranslation();
   const posts = usePosts().data ?? [];
   const createPost = useCreatePost();
   const deletePost = useDeletePost();
@@ -25,45 +28,45 @@ export default function Posts() {
 
   const changeView = (v: string) => { setView(v); save("posts-view", v); };
   const create = () =>
-    createPost.mutate("(write your raw thought here)", { onSuccess: (p) => nav({ to: "/posts/$id", params: { id: String(p.id) } }) });
+    createPost.mutate(t("posts.newThought"), { onSuccess: (p) => nav({ to: "/posts/$id", params: { id: String(p.id) } }) });
   const remove = (e: MouseEvent, p: Post) => {
     e.preventDefault(); e.stopPropagation();
-    if (confirm("Delete this post?")) deletePost.mutate(p.id);
+    if (confirm(t("posts.deleteAsk"))) deletePost.mutate(p.id);
   };
 
   const shown = posts.filter((p) => filter === "all" || p.status === filter);
   const count = (f: string) => posts.filter((p) => f === "all" || p.status === f).length;
-  const when = (p: Post) => new Date(p.updatedAt).toLocaleDateString([], { day: "numeric", month: "short" });
+  const when = (p: Post) => new Date(p.updatedAt).toLocaleDateString(i18n.language, { day: "numeric", month: "short" });
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>LinkedIn posts</h1>
-          <p className="sub">Your words in, a polished post out.</p>
+          <h1>{t("posts.title")}</h1>
+          <p className="sub">{t("posts.sub")}</p>
         </div>
-        <button className="primary big" onClick={create}>+ New post</button>
+        <button className="primary big" onClick={create}>{t("posts.new")}</button>
       </div>
 
       <div className="row" style={{ justifyContent: "space-between", marginBottom: "var(--s-4)" }}>
         <div className="tabs" style={{ margin: 0 }}>
           {FILTERS.map(([k, label]) => (
-            <button key={k} className={filter === k ? "on" : ""} onClick={() => setFilter(k)}>{label} ({count(k)})</button>
+            <button key={k} className={filter === k ? "on" : ""} onClick={() => setFilter(k)}>{t(`posts.${label}`)} ({count(k)})</button>
           ))}
         </div>
         <div className="tabs" style={{ margin: 0 }}>
-          <button className={view === "table" ? "on" : ""} onClick={() => changeView("table")} title="Table">☰ Table</button>
-          <button className={view === "cards" ? "on" : ""} onClick={() => changeView("cards")} title="Small cards">▦ Cards</button>
+          <button className={view === "table" ? "on" : ""} onClick={() => changeView("table")} title={t("posts.tableHint")}>{t("posts.table")}</button>
+          <button className={view === "cards" ? "on" : ""} onClick={() => changeView("cards")} title={t("posts.cardsHint")}>{t("posts.cards")}</button>
         </div>
       </div>
 
-      {shown.length === 0 && <div className="empty">{posts.length ? "Nothing in this filter." : "No posts yet. Start with something you learned this week!"}</div>}
+      {shown.length === 0 && <div className="empty">{posts.length ? t("posts.nothingFilter") : t("posts.none")}</div>}
 
       {shown.length > 0 && view === "table" && (
         <div className="card table-card">
           <table className="ptable">
             <thead>
-              <tr><th>Status</th><th>Post</th><th className="num">Chars</th><th>Updated</th><th /></tr>
+              <tr><th>{t("posts.colStatus")}</th><th>{t("posts.colPost")}</th><th className="num">{t("posts.colChars")}</th><th>{t("posts.colUpdated")}</th><th /></tr>
             </thead>
             <tbody>
               {shown.map((p) => (
@@ -72,7 +75,7 @@ export default function Posts() {
                   <td className="ptitle"><Link to="/posts/$id" params={{ id: String(p.id) }} onClick={(e) => e.stopPropagation()}>{titleOf(p)}</Link></td>
                   <td className="num muted">{textOf(p).length}</td>
                   <td className="muted nowrap">{when(p)}</td>
-                  <td className="nowrap"><button className="ghost" title="Delete" onClick={(e) => remove(e, p)}>✕</button></td>
+                  <td className="nowrap"><button className="ghost" title={t("posts.delete")} aria-label={t("posts.delete")} onClick={(e) => remove(e, p)}>✕</button></td>
                 </tr>
               ))}
             </tbody>
@@ -91,8 +94,8 @@ export default function Posts() {
               <div className="mini-title">{titleOf(p)}</div>
               <div className="mini-text">{textOf(p).slice(titleOf(p).length).trim()}</div>
               <div className="mini-foot muted">
-                <span>{textOf(p).length} chars</span>
-                <button className="ghost" title="Delete" onClick={(e) => remove(e, p)}>✕</button>
+                <span>{t("posts.chars", { count: textOf(p).length })}</span>
+                <button className="ghost" title={t("posts.delete")} aria-label={t("posts.delete")} onClick={(e) => remove(e, p)}>✕</button>
               </div>
             </Link>
           ))}

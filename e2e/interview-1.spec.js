@@ -113,3 +113,12 @@ test("the Study page in French and Lebanese Arabic (P3-28: pages)", async ({ pag
   await expect(page.getByRole("button", { name: "▶ شغّل العدّاد" })).toBeVisible();
   await page.goto("/study?lang=en");
 });
+
+test("LinkedIn posts in French and Lebanese Arabic (P3-28: pages)", async ({ page }) => {
+  await page.goto("/posts?lang=fr");
+  await expect(page.getByRole("heading", { name: "Posts LinkedIn", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "+ Nouveau post" })).toBeVisible();
+  await page.goto("/posts?lang=ar-LB");
+  await expect(page.getByRole("heading", { name: "بوستات لينكدإن", level: 1 })).toBeVisible();
+  await page.goto("/posts?lang=en");
+});
