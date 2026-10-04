@@ -103,3 +103,13 @@ test("the Today page in French and Lebanese Arabic (P3-28: pages)", async ({ pag
   await page.goto("/?lang=en");
   await expect(page.getByRole("heading", { name: "Brain dump" })).toBeVisible();
 });
+
+test("the Study page in French and Lebanese Arabic (P3-28: pages)", async ({ page }) => {
+  await page.goto("/study?lang=fr");
+  await expect(page.getByRole("heading", { name: "Journal d'étude", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "▶ Lancer le chrono" })).toBeVisible();
+  await page.goto("/study?lang=ar-LB");
+  await expect(page.getByRole("heading", { name: "دفتر الدرس", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "▶ شغّل العدّاد" })).toBeVisible();
+  await page.goto("/study?lang=en");
+});
