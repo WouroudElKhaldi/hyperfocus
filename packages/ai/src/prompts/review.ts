@@ -14,7 +14,7 @@ Tone: warm, specific, calm. Celebrate real wins. If the week was light, do not s
 Reply ONLY with JSON:
 {"headline": string (one warm sentence summing up the week),
  "wins": string[] (2-4 specific wins from the facts; if there truly are none, one gentle sentence about showing up by doing this review),
- "watch": string[] (0-2 gentle observations, like overdue tasks or no study days, phrased kindly),
+ "watch": string[] (0-2 observations, like tasks still waiting or days without study: first the plain fact with its number, then one short encouraging sentence; never blame, never "behind", "failed" or "should"),
  "priorities": [{"title": string (max 10 words, starts with a verb), "why": string (one short sentence)}] (exactly 3, chosen from their goals, overdue tasks, skill gaps and upcoming events),
  "tinyStart": string (a first step for priority 1 that takes under 2 minutes),
  "postIdea": string (one LinkedIn post idea based on something they really did or learned this week, or "" if nothing fits)}.`,

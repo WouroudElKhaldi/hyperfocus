@@ -82,7 +82,7 @@ export default function Review() {
           <div className="stats">
             <Stat label="Study time" value={hm(s.studyMinutes)} sub={s.studyMinutesLastWeek || s.studyMinutes ? `${diff >= 0 ? "+" : "−"}${hm(Math.abs(diff))} vs the week before` : ""} />
             <Stat label="Study days" value={`${s.studyDays} / 7`} sub={`${s.studySessions} session${s.studySessions === 1 ? "" : "s"}`} />
-            <Stat label="Tasks done" value={s.tasksDone} sub={s.tasksOverdue ? `${s.tasksOverdue} overdue` : `${s.tasksOpen} open`} />
+            <Stat label="Tasks done" value={s.tasksDone} sub={s.tasksOverdue ? `${s.tasksOverdue} still waiting from before` : `${s.tasksOpen} open`} />
             <Stat label="Posts published" value={s.postsPublished} sub={`${s.draftsWaiting} draft${s.draftsWaiting === 1 ? "" : "s"} waiting`} />
           </div>
           </More>

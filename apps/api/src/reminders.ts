@@ -4,15 +4,18 @@ import type { Db } from "./types.ts";
 import { clockIn, reached } from "./clock.ts";
 import { eventOccurrences, addDays } from "./modules/calendar/calendar.ts";
 
+/** P3-25: tasks still open from earlier days, as a fact with a kind way forward. */
+export const gentleWaiting = (n: number) =>
+  `${n} task${n > 1 ? "s are" : " is"} still waiting from earlier days. That happens. Pick one for today, or give ${n > 1 ? "them" : "it"} a new day: both are fine.`;
+
 // Checks once a minute for things worth a gentle nudge. Every reminder is sent once (see remind()).
 const pad = (n: number) => String(n).padStart(2, "0");
 const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const clock = (d: Date) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-export async function checkReminders(prisma: Db): Promise<void> {
+export async function checkReminders(prisma: Db, now = new Date()): Promise<void> {
   const settings = await getSettings(prisma);
   if (!settings.reminders) return;
-  const now = new Date();
 
   // 1. Studying for a long stretch: suggest a break (hyperfocus is easy to miss)
   const running = await prisma.studySession.findFirst({ where: { endedAt: null } });
@@ -45,8 +48,13 @@ export async function checkReminders(prisma: Db): Promise<void> {
   if (reached(settings.morningAt, settings.timeZone, now)) {
     const today = clockIn(settings.timeZone, now).day;
     const tasks = await prisma.task.findMany({ where: { done: false, OR: [{ today: true }, { dueDay: today }] } });
+    // P3-25 (interview 1): what is still waiting from earlier days, said plainly and kindly, never as a failure
+    const waiting = await prisma.task.count({ where: { done: false, dueDay: { lt: today } } });
+    const earlier = waiting ? `\n${gentleWaiting(waiting)}` : "";
     if (tasks.length) {
-      await remind(prisma, `morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0]?.title}. Just that one.`);
+      await remind(prisma, `morning:${today}`, `🌸 Today: ${tasks.length} thing${tasks.length > 1 ? "s" : ""}`, `Start with: ${tasks[0]?.title}. Just that one.${earlier}`);
+    } else if (waiting) {
+      await remind(prisma, `morning:${today}`, "🌸 A fresh day", gentleWaiting(waiting));
     }
   }
 }
