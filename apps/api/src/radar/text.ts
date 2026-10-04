@@ -17,15 +17,21 @@ export function decodeEntities(s: string): string {
 export function htmlToText(html: string): string {
   let s = html;
   if (/&lt;\/?[a-z]/i.test(s) && !/<\/?[a-z]/i.test(s)) s = decodeEntities(s); // escaped HTML: unescape once first
-  return decodeEntities(
-    s
-      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/(p|div|h[1-6]|li|ul|ol|tr|section|article)>/gi, "\n")
-      .replace(/<li[^>]*>/gi, "• ")
-      .replace(/<[^>]+>/g, " "),
-  )
+  const strip = (t: string) =>
+    decodeEntities(
+      t
+        .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(p|div|h[1-6]|li|ul|ol|tr|section|article)>/gi, "\n")
+        .replace(/<li[^>]*>/gi, "• ")
+        .replace(/<[^>]+>/g, " "),
+    );
+  s = strip(s);
+  // HTML escaped inside real tags (some sources mix both): its tags only appear now, so once more
+  if (/<\/?(p|div|br|li|ul|ol|strong|b|i|em|span|h[1-6]|a)\b[^>]*>/i.test(s)) s = strip(s);
+  return s
     .replace(/[ \t ]+/g, " ")
+    .replace(/ +([.,;:!?])(?=\s|$)/g, "$1") // "Hello <b>World</b>." leaves no space before the dot
     .replace(/ *\n */g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

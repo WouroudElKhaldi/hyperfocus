@@ -75,7 +75,7 @@ async function getExtractor(db: Db): Promise<Extractor> {
   const stats = await db.taxonomySkill.aggregate({ _count: true, _max: { id: true } });
   const key = `${stats._count}:${stats._max.id ?? 0}`;
   if (extractor?.key === key) return extractor.value;
-  const skills = await db.taxonomySkill.findMany({ select: { id: true, type: true, name: true, altLabels: true } });
+  const skills = await db.taxonomySkill.findMany({ select: { id: true, type: true, name: true, altLabels: true, hot: true } });
   extractor = { key, value: makeExtractor(skills) };
   return extractor.value;
 }

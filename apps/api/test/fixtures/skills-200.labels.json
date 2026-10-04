@@ -1,0 +1,982 @@
+{
+ "legal-assistant-werkstudent-holdco-hamburg-482370": {
+  "asks": [],
+  "wrong": []
+ },
+ "onboarding-manager-cybersecurity-cti-munich-headquarters-362579": {
+  "asks": [],
+  "wrong": [
+   "Account management software"
+  ]
+ },
+ "remote-sales-go-to-market-manager-pipeline-growth-berlin-331442": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-marketing-consultant-schwerpunkt-seo-all-genders-hamburg-syzygy-performance-marketing-gmbh-210776": {
+  "asks": [],
+  "wrong": []
+ },
+ "product-design-manager-germany-212541": {
+  "asks": [],
+  "wrong": [
+   "GitHub"
+  ],
+  "recall": true
+ },
+ "business-development-representative-german-speaking-berlin-147890": {
+  "asks": [],
+  "wrong": []
+ },
+ "head-of-europe-government-sales-munich-323196": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-market-lead-dach-senior-account-executive-frankfurt-71387": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-marketing-manager-berlin-416985": {
+  "asks": [],
+  "wrong": []
+ },
+ "production-test-engineer-de-berlin-40043": {
+  "asks": [],
+  "wrong": []
+ },
+ "principal-engineer-autonomous-systems-munich-deu-434316": {
+  "asks": [],
+  "wrong": []
+ },
+ "werkstudent-content-creation-tiktok-mensch-hamburg-138530": {
+  "asks": [],
+  "wrong": []
+ },
+ "master-trainer-openai-ai-cloud-partners-munich-munchen-365883": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "werkstudentin-vertrieb-sales-development-representative-hamburg-125868": {
+  "asks": [],
+  "wrong": []
+ },
+ "governance-risk-compliance-senior-consultant-munchen-75949": {
+  "asks": [],
+  "wrong": []
+ },
+ "cybersecurity-management-consultant-munchen-210509": {
+  "asks": [],
+  "wrong": []
+ },
+ "ai-strategy-intern-munchen-288127": {
+  "asks": [],
+  "wrong": []
+ },
+ "ai-governance-senior-consultant-munchen-228269": {
+  "asks": [],
+  "wrong": []
+ },
+ "ai-senior-developer-munchen-183272": {
+  "asks": [],
+  "wrong": []
+ },
+ "bereichsleiterin-fundraising-berlin-115154": {
+  "asks": [],
+  "wrong": []
+ },
+ "management-accountant-freiburg-161049": {
+  "asks": [
+   "Accounts payable software",
+   "Financial reporting software",
+   "Payroll software"
+  ],
+  "wrong": [],
+  "recall": true
+ },
+ "client-enablement-coaching-lead-berlin-340773": {
+  "asks": [],
+  "wrong": [
+   "Data management software",
+   "Customer relationship management CRM software"
+  ]
+ },
+ "recruiter-talent-acquisition-mit-quereinstieg-lohne-oldenburg-332910": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-ms-dynamics-business-central-developer-munich-office-132227": {
+  "asks": [],
+  "wrong": [
+   "Microsoft Azure software"
+  ]
+ },
+ "working-student-finance-all-genders-deutschland-berlin-203237": {
+  "asks": [],
+  "wrong": []
+ },
+ "working-student-for-planning-procurement-munchen-18117": {
+  "asks": [],
+  "wrong": []
+ },
+ "lead-software-engineer-berlin-268296": {
+  "asks": [],
+  "wrong": []
+ },
+ "junior-campaign-manager-remote-321503": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-project-manager-fur-digitale-verwaltungsprojekte-migration-und-inneres-all-genders-bremen-373458": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "senior-project-manager-all-genders-munchen-55414": {
+  "asks": [],
+  "wrong": []
+ },
+ "enterprise-account-manager-uk-london-62232": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-software-engineer-full-stack-new-verticals-london-396688": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-data-scientist-economist-london-99067": {
+  "asks": [],
+  "wrong": []
+ },
+ "graduate-analyst-programme-public-sector-consulting-london-456572": {
+  "asks": [],
+  "wrong": []
+ },
+ "graduate-analyst-programme-energy-resources-london-372170": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-optical-fibre-engineer-daresbury-134349": {
+  "asks": [],
+  "wrong": []
+ },
+ "director-crm-london-480903": {
+  "asks": [
+   "Customer relationship management CRM software"
+  ],
+  "wrong": [],
+  "recall": true
+ },
+ "sustainability-internship-2027-start-86065": {
+  "asks": [],
+  "wrong": []
+ },
+ "graduate-software-test-engineer-2027-start-440565": {
+  "asks": [],
+  "wrong": []
+ },
+ "graduate-human-centric-ai-engineer-2027-start-405650": {
+  "asks": [],
+  "wrong": [
+   "Human machine interface HMI software"
+  ]
+ },
+ "graduate-electronics-engineer-2027-start-246496": {
+  "asks": [],
+  "wrong": []
+ },
+ "graduate-design-engineer-healthcare-2027-start-340915": {
+  "asks": [],
+  "wrong": []
+ },
+ "cloud-software-engineering-internship-2027-start-442089": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-salesforce-administrator-revtech-39160": {
+  "asks": [],
+  "wrong": []
+ },
+ "staff-product-manager-comms-platform-304340": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ],
+  "recall": true
+ },
+ "senior-cloud-security-engineer-ai-resilience-security-enhancements-fixed-term-contract-206644": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-revenue-accountant-london-223127": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "associate-client-service-graduates-2026-manchester-324136": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-fpa-analyst-london-386962": {
+  "asks": [],
+  "wrong": [
+   "Adaptive conjoint analysis ACA software"
+  ]
+ },
+ "vehicle-integration-technician-london-336347": {
+  "asks": [],
+  "wrong": []
+ },
+ "account-executive-existing-customers-dach-london-uk-98584": {
+  "asks": [],
+  "wrong": [
+   "Operating system software",
+   "Figma"
+  ]
+ },
+ "graduate-customer-intelligence-executive-french-speaking-london-435581": {
+  "asks": [],
+  "wrong": [
+   "TikTok"
+  ]
+ },
+ "sr-engineering-manager-precompute-edinburgh-30455": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "senior-technical-recruiter-bracknell-326022": {
+  "asks": [],
+  "wrong": [
+   "Mass appraisal records system MARS",
+   "Automated Targeting System ATS"
+  ]
+ },
+ "manager-data-scientisth-f-90927": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "business-development-representative-nordics-h-f-paris-295153": {
+  "asks": [],
+  "wrong": []
+ },
+ "human-design-program-lead-paris-74225": {
+  "asks": [],
+  "wrong": [
+   "Data management software",
+   "Customer relationship management CRM software"
+  ]
+ },
+ "lead-software-engineer-paris-9th-arrondissement-of-paris-75009-paris-358876": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "anti-corruption-trade-compliance-legal-counsel-paris-83732": {
+  "asks": [],
+  "wrong": []
+ },
+ "post-doctorante-en-apprentissage-decentralise-sur-conficentiel-et-explicable-cdd-12-mois-evry-428047": {
+  "asks": [],
+  "wrong": []
+ },
+ "junior-backend-developer-c-net-paris-113660": {
+  "asks": [
+   "C#",
+   "Python",
+   "Microsoft .NET Framework"
+  ],
+  "wrong": [],
+  "recall": true
+ },
+ "brand-design-intern-or-apprentice-paris-102533": {
+  "asks": [],
+  "wrong": [
+   "Operating system software"
+  ]
+ },
+ "french-speaking-customer-support-specialist-relocate-to-sunny-greece-marseille-311877": {
+  "asks": [],
+  "wrong": []
+ },
+ "data-center-facilities-operations-technician-all-genders-lauterbourg-202218": {
+  "asks": [],
+  "wrong": []
+ },
+ "key-account-manager-senior-lead-laboratoires-paris-paris-323405": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-data-scientist-economist-supply-paris-34186": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-sales-account-executive-cybersecurity-montrouge-362742": {
+  "asks": [],
+  "wrong": []
+ },
+ "customer-support-specialist-paris-75958": {
+  "asks": [],
+  "wrong": []
+ },
+ "account-manager-paris-245272": {
+  "asks": [],
+  "wrong": [
+   "Search engine optimization SEO software"
+  ],
+  "recall": true
+ },
+ "japanese-language-trainer-paris-301781": {
+  "asks": [],
+  "wrong": []
+ },
+ "conseiller-de-vente-h-f-35h-cdd-aix-en-provence-427155": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-product-manager-carpool-experience-paris-france-14229": {
+  "asks": [],
+  "wrong": [
+   "WhatsApp",
+   "Chat software"
+  ]
+ },
+ "software-engineer-onecheckout-lille-upline-nord-342498": {
+  "asks": [],
+  "wrong": []
+ },
+ "expert-data-catalog-villeneuve-dascq-nord-234153": {
+  "asks": [],
+  "wrong": []
+ },
+ "marketing-artist-blitz-paris-473267": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-ios-engineer-paris-14438": {
+  "asks": [],
+  "wrong": []
+ },
+ "growth-marketer-anywhere-in-france-256472": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "senior-software-engineer-data-search-remote-europe-paris-389109": {
+  "asks": [],
+  "wrong": [
+   "Instagram",
+   "TikTok",
+   "YouTube"
+  ]
+ },
+ "product-engineer-zurich-146931": {
+  "asks": [],
+  "wrong": []
+ },
+ "sales-representative-quereinstieg-solothurn-230500": {
+  "asks": [],
+  "wrong": []
+ },
+ "sales-representative-quereinstieg-thurgau-387031": {
+  "asks": [],
+  "wrong": []
+ },
+ "sales-representative-quereinstieg-st-gallen-93424": {
+  "asks": [],
+  "wrong": []
+ },
+ "sales-representative-glarus-150555": {
+  "asks": [],
+  "wrong": []
+ },
+ "sales-representative-quereinstieg-uri-8761": {
+  "asks": [],
+  "wrong": []
+ },
+ "software-engineer-simulation-digital-twins-zurich-198101": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "software-engineer-robot-autonomy-reliability-test-infrastructure-zurich-362461": {
+  "asks": [],
+  "wrong": []
+ },
+ "brand-manager-zurich-196111": {
+  "asks": [],
+  "wrong": []
+ },
+ "software-engineer-intern-industrialization-zurich-70030": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-senior-cloud-operations-engineer-all-genders-ch-baar-329699": {
+  "asks": [],
+  "wrong": [
+   "Customer relationship management CRM software"
+  ]
+ },
+ "computational-design-of-biological-experiments-for-model-development-berlin-germany-or-palo-alto-ca-or-zurich-446408": {
+  "asks": [],
+  "wrong": []
+ },
+ "telecoms-qa-director-belgium-uk-netherlands-germany-italy-419950": {
+  "asks": [],
+  "wrong": [
+   "Biometric Storage System BSS"
+  ]
+ },
+ "staff-cryptography-engineer-geneva-70491": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ]
+ },
+ "senior-cryptography-engineer-geneva-295248": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ],
+  "recall": true
+ },
+ "distinguished-pqc-cryptography-architecture-leader-geneva-105282": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ]
+ },
+ "practice-lead-media-data-consulting-solutions-osterreich-schweiz-zurich-35367": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "hr-marketing-coordinator-remote-ch-schweiz-234768": {
+  "asks": [],
+  "wrong": [
+   "Automated Targeting System ATS"
+  ]
+ },
+ "senior-automation-ot-engineer-n-e-visp-395941": {
+  "asks": [],
+  "wrong": []
+ },
+ "devops-engineer-zurich-14809": {
+  "asks": [],
+  "wrong": []
+ },
+ "azure-engineer-zurich-280951": {
+  "asks": [],
+  "wrong": []
+ },
+ "junior-computational-geometry-engineer-zurich-128102": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-senior-product-designer-design-systems-117305": {
+  "asks": [],
+  "wrong": [
+   "Apple iOS",
+   "Google Android",
+   "Project management software"
+  ],
+  "recall": true
+ },
+ "senior-lead-consultant-verteidigung-resilienz-all-genders-mainz-342507": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-project-manager-all-genders-munchen-91137": {
+  "asks": [],
+  "wrong": []
+ },
+ "working-student-global-licensing-dach-all-genders-dusseldorf-16315": {
+  "asks": [],
+  "wrong": []
+ },
+ "trainee-people-culture-hr-quadriga-media-berlin-gmbh-156718": {
+  "asks": [],
+  "wrong": []
+ },
+ "it-systemadministrator-datacenter-infrastructure-karlsruhe-151414": {
+  "asks": [],
+  "wrong": []
+ },
+ "enterprise-account-executive-dach-munich-490199": {
+  "asks": [],
+  "wrong": []
+ },
+ "ex-founder-with-track-record-munich-249260": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-category-manager-books-berlin-309828": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "senior-category-manager-berlin-364491": {
+  "asks": [],
+  "wrong": []
+ },
+ "data-platform-engineer-berlin-294315": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "maintenance-technician-part-time-ideal-alongside-your-studies-hamburg-124290": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-senior-consultant-finance-solutions-baden-wurttemberg-340850": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "senior-backend-engineer-data-core-remote-europe-berlin-240626": {
+  "asks": [],
+  "wrong": [
+   "Instagram",
+   "TikTok",
+   "YouTube"
+  ]
+ },
+ "senior-produkt-manager-munich-de-105794": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-projektcontroller-munich-486359": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-werkstudentin-operational-excellence-berlin-128459": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "werkstudentin-community-management-hamburg-61338": {
+  "asks": [],
+  "wrong": []
+ },
+ "sales-manager-photovoltaik-warmepumpe-intelligente-energiesysteme-1komma5-kiel-lubeck-flensburg-106991": {
+  "asks": [],
+  "wrong": []
+ },
+ "bauleiter-shk-fur-warmepumpenprojekte-1komma5-handwerk-frankfurt-am-main-315751": {
+  "asks": [],
+  "wrong": []
+ },
+ "product-manager-safety-compliance-london-53816": {
+  "asks": [],
+  "wrong": []
+ },
+ "principal-engineer-backend-london-132133": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-manager-quantum-development-tools-929-uk-cambridge-58442": {
+  "asks": [],
+  "wrong": []
+ },
+ "chief-compliance-officer-uk-london-90466": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-technical-program-manager-sydney-australia-24620": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "solutions-engineer-495494": {
+  "asks": [],
+  "wrong": []
+ },
+ "machine-learning-engineer-london-299291": {
+  "asks": [],
+  "wrong": [
+   "Shipping software"
+  ]
+ },
+ "founding-deployment-strategist-london-24693": {
+  "asks": [],
+  "wrong": []
+ },
+ "software-engineer-applications-and-user-interface-oxford-110088": {
+  "asks": [],
+  "wrong": []
+ },
+ "area-director-north-fieldbased-333049": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-solutions-engineer-165483": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-lease-administration-analyst-london-462911": {
+  "asks": [],
+  "wrong": []
+ },
+ "quality-engineer-london-223131": {
+  "asks": [
+   "Test automation software"
+  ],
+  "wrong": [],
+  "recall": true
+ },
+ "staff-data-engineer-london-hybrid-446234": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-technical-program-manager-sydney-australia-308607": {
+  "asks": [],
+  "wrong": [
+   "Operating system software"
+  ]
+ },
+ "quality-inspector-sydney-australia-136998": {
+  "asks": [],
+  "wrong": [
+   "Operating system software"
+  ]
+ },
+ "data-scientist-electromagnetic-environment-london-314097": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-software-engineering-manager-global-billing-payments-api-bristol-edinburgh-london-314377": {
+  "asks": [],
+  "wrong": []
+ },
+ "head-of-product-flex-london-208787": {
+  "asks": [],
+  "wrong": []
+ },
+ "staff-software-engineer-non-realtime-controllers-oxford-298086": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ]
+ },
+ "senior-software-engineer-non-realtime-controllers-oxford-71503": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ],
+  "recall": true
+ },
+ "senior-optics-technician-oxford-198862": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ]
+ },
+ "senior-fpga-verification-engineer-oxford-11143": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ]
+ },
+ "director-systems-software-oxford-5259": {
+  "asks": [],
+  "wrong": [
+   "Financial modeling software"
+  ]
+ },
+ "remote-senior-sap-consultant-ewm-287565": {
+  "asks": [],
+  "wrong": []
+ },
+ "stage-developpeureuse-ia-generative-janvier-2027-saint-denis-460197": {
+  "asks": [],
+  "wrong": []
+ },
+ "move-to-new-zealand-technical-strategist-solution-architect-lyon-71642": {
+  "asks": [],
+  "wrong": []
+ },
+ "sr-clinical-research-associate-contractor-france-paris-386678": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-account-receivable-specialist-36295": {
+  "asks": [
+   "Accounts receivable software"
+  ],
+  "wrong": [
+   "Cash flow software"
+  ],
+  "recall": true
+ },
+ "propulsion-ait-principal-engineer-bordeaux-387660": {
+  "asks": [],
+  "wrong": []
+ },
+ "managing-director-france-paris-255410": {
+  "asks": [],
+  "wrong": []
+ },
+ "cdi-consultante-social-media-senior-paris-388205": {
+  "asks": [],
+  "wrong": []
+ },
+ "customer-success-intern-mirakl-ads-paris-399187": {
+  "asks": [],
+  "wrong": [
+   "Operating system software"
+  ]
+ },
+ "remote-senior-product-marketing-manager-emea-456189": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-web-engineer-react-remote-friendly-paris-445363": {
+  "asks": [],
+  "wrong": []
+ },
+ "regional-marketing-intern-dach-market-paris-office-101236": {
+  "asks": [],
+  "wrong": [
+   "WhatsApp"
+  ]
+ },
+ "ai-growth-strategic-partnership-manager-paris-205591": {
+  "asks": [],
+  "wrong": [
+   "GitHub"
+  ],
+  "recall": true
+ },
+ "senior-applied-ai-manager-f-h-paris-311823": {
+  "asks": [],
+  "wrong": []
+ },
+ "growth-operations-automation-specialist-paris-307338": {
+  "asks": [],
+  "wrong": [
+   "Operating system software"
+  ]
+ },
+ "fpa-analyst-controleurse-de-gestion-paris-316521": {
+  "asks": [],
+  "wrong": [
+   "Remote monitoring software"
+  ]
+ },
+ "industrial-vision-automation-engineer-orly-386329": {
+  "asks": [],
+  "wrong": []
+ },
+ "simulation-engineer-drone-physical-models-integration-paris-142818": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-business-development-manager-dissemination-distribution-paris-400869": {
+  "asks": [],
+  "wrong": []
+ },
+ "associate-account-manager-paris-296525": {
+  "asks": [],
+  "wrong": [
+   "Operating system software",
+   "Records management software",
+   "Instagram",
+   "Facebook"
+  ]
+ },
+ "senior-software-engineer-connectors-platform-paris-149614": {
+  "asks": [
+   "Kubernetes",
+   "Google Cloud software",
+   "BigQuery",
+   "MySQL",
+   "Shopify software",
+   "JavaScript Object Notation JSON"
+  ],
+  "wrong": [],
+  "recall": true
+ },
+ "key-account-manager-public-sector-paris-8448": {
+  "asks": [],
+  "wrong": [
+   "Business management software"
+  ]
+ },
+ "ingenieure-cvc-pb-paris-258673": {
+  "asks": [],
+  "wrong": [
+   "Chef"
+  ]
+ },
+ "commercial-account-executive-paris-paris-346438": {
+  "asks": [],
+  "wrong": []
+ },
+ "maitre-de-conferences-en-cybersecurite-rennes-210868": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-chemical-purchaser-80-100-hedingen-322002": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-reinforcement-learning-engineer-zurich-475036": {
+  "asks": [],
+  "wrong": [
+   "Remote control software"
+  ]
+ },
+ "data-ml-ops-lead-zurich-335947": {
+  "asks": [],
+  "wrong": [
+   "Remote control software",
+   "Control system software"
+  ]
+ },
+ "senior-electrical-engineer-lausanne-338812": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "director-business-development-zurich-482132": {
+  "asks": [],
+  "wrong": []
+ },
+ "electronics-engineering-intern-zurich-471494": {
+  "asks": [],
+  "wrong": []
+ },
+ "linguist-malagasy-ui-technical-marketing-remote-353908": {
+  "asks": [],
+  "wrong": []
+ },
+ "linguist-mongolian-ui-technical-marketing-remote-165068": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-software-engineer-infrastructure-geneva-373235": {
+  "asks": [],
+  "wrong": []
+ },
+ "supplier-quality-engineer-zurich-241468": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-business-analyst-financial-crime-compliance-market-conduct-470819": {
+  "asks": [],
+  "wrong": []
+ },
+ "ai-research-engineer-kernel-inference-optimization-switzerland-456279": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "remote-team-lead-talent-acquisition-290576": {
+  "asks": [],
+  "wrong": [
+   "Social media software"
+  ]
+ },
+ "ai-systems-engineer-geneva-476203": {
+  "asks": [],
+  "wrong": [
+   "GitHub",
+   "ServiceNow",
+   "SonarQube"
+  ]
+ },
+ "remote-ai-native-video-producer-17194": {
+  "asks": [],
+  "wrong": [
+   "LinkedIn",
+   "TikTok"
+  ]
+ },
+ "backend-software-engineer-indexing-zurich-240473": {
+  "asks": [],
+  "wrong": []
+ },
+ "account-director-client-solutions-switzerland-103298": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-or-staff-backend-engineer-ai-tooling-switzerland-10901": {
+  "asks": [],
+  "wrong": []
+ },
+ "software-engineer-robot-autonomy-actuator-control-locomotion-intern-zurich-419100": {
+  "asks": [],
+  "wrong": []
+ },
+ "remote-senior-software-engineer-quality-4113": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "remote-voice-actor-cx-agent-voice-cloning-swiss-german-switzerland-438891": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-risk-manager-geneva-geneva-2373": {
+  "asks": [],
+  "wrong": [
+   "Portfolio management software"
+  ]
+ },
+ "intern-data-governance-strategy-analytics-munchen-1173": {
+  "asks": [],
+  "wrong": [
+   "Google Analytics",
+   "Adobe Analytics"
+  ]
+ },
+ "praktikant-e-commerce-all-genders-ab-sofort-mind-3-monate-berlin-149579": {
+  "asks": [],
+  "wrong": []
+ },
+ "werkstudentin-data-analytics-mainz-oder-berlin-343257": {
+  "asks": [],
+  "wrong": [
+   "Adobe Analytics"
+  ]
+ },
+ "seniorbauleiter-tga-stuttgart-7515": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-projektleiter-hochbau-dusseldorf-9796": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-bauleiter-ingenieurbau-stuttgart-karlsruhe-268435": {
+  "asks": [],
+  "wrong": [],
+  "recall": true
+ },
+ "senior-bauleiter-ingenieurbau-mannheim-141055": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-bauleiter-hochbau-in-stuttgart-oder-karlsruhe-157300": {
+  "asks": [],
+  "wrong": []
+ },
+ "senior-bauleiter-hochbau-in-mannheim-375284": {
+  "asks": [],
+  "wrong": []
+ }
+}
