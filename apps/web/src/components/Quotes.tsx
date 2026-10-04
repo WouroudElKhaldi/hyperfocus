@@ -2,11 +2,18 @@ import i18next from "i18next";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QUOTES, QUOTE_CATEGORIES } from "../data/quotes.ts";
+import { QUOTE_LABELS, QUOTES_BY_LANG } from "../data/quotes.i18n.ts";
+
+/** The chosen language's table: Lebanese, then standard Arabic, then French; null = English. */
+const langKey = () => { const l = i18next.language || "en"; return l === "ar-LB" ? "ar-LB" : l.startsWith("ar") ? "ar" : l.startsWith("fr") ? "fr" : null; };
+/** A quote in the chosen language (the English line when it has no translation). */
+const quoteText = (q: { cat: string; i: number; text: string }) => { const k = langKey(); return (k && QUOTES_BY_LANG[k]?.[q.cat]?.[q.i]) || q.text; };
+export const catLabel = (id: string, en: string | undefined) => { const k = langKey(); return (k && QUOTE_LABELS[k]?.[id]) || en; };
 
 // Quote settings live in this browser (not the database). They are read and written only through these helpers.
 const KEY = "quotes-settings";
 export type QuoteSettings = { on: boolean; everyMin: number; cats: string[] };
-type Quote = { text: string; cat: string; id: number };
+type Quote = { text: string; cat: string; i: number; id: number };
 const DEFAULTS: QuoteSettings = { on: true, everyMin: 3, cats: QUOTE_CATEGORIES.map((c) => c.id) };
 export function readQuoteSettings(): QuoteSettings {
   try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return DEFAULTS; }
@@ -36,7 +43,7 @@ export default function Quotes() {
   // take the next line from a shuffled bag so nothing repeats until everything has been shown
   const next = useCallback(() => {
     if (!bag.current.length) {
-      const all = settings.cats.flatMap((c) => (QUOTES[c] || []).map((text) => ({ text, cat: c })));
+      const all = settings.cats.flatMap((c) => (QUOTES[c] || []).map((text, i) => ({ text, cat: c, i })));
       bag.current = all.sort(() => Math.random() - 0.5);
     }
     return bag.current.pop() || null;
@@ -83,13 +90,13 @@ export default function Quotes() {
   return (
     <aside className={`quote-card q-${quote.cat}`} key={quote.id} role="status" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <div className="q-head">
-        <span className="q-tag"><i />{cat?.label}</span>
+        <span className="q-tag"><i />{catLabel(quote.cat, cat?.label)}</span>
         <div className="row" style={{ gap: 0 }}>
           <button className="ghost icon-btn" onClick={() => { const q = next(); if (q) setQuote({ ...q, id: Date.now() }); }} aria-label={i18next.t("misc.anotherOne")} title={i18next.t("misc.anotherOne")}>↻</button>
           <button className="ghost icon-btn" onClick={() => setQuote(null)} aria-label={i18next.t("misc.close")}>✕</button>
         </div>
       </div>
-      <p>{quote.text}</p>
+      <p>{quoteText(quote)}</p>
       {!hover && <span className="q-timer" style={{ animationDuration: `${SHOW_MS}ms` }} />}
     </aside>
   );

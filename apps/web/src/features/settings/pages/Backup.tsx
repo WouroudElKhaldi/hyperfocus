@@ -23,7 +23,7 @@ const A11Y_OPTIONS: { key: Exclude<keyof A11y, "focusMode">; label: string; hint
   { key: "font", label: i18next.t("settings.font"), hint: i18next.t("settings.easyToReadUses"), choices: [["default", "Usual"], ["readable", "Easy to read"]] },
   { key: "textSize", label: i18next.t("settings.textSize"), hint: i18next.t("settings.makesAllTheText"), choices: [["normal", "Normal"], ["large", "Large"], ["larger", "Larger"]] },
 ];
-import { type QuoteSettings, readQuoteSettings, writeQuoteSettings } from "../../../components/Quotes.tsx";
+import { catLabel, type QuoteSettings, readQuoteSettings, writeQuoteSettings } from "../../../components/Quotes.tsx";
 import { QUOTE_CATEGORIES } from "../../../data/quotes.ts";
 
 const kb = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -149,7 +149,7 @@ export default function Backup() {
             {QUOTE_CATEGORIES.map((c) => (
               <button key={c.id} className={"trait" + (quotes.cats.includes(c.id) ? " on" : "")} aria-pressed={quotes.cats.includes(c.id)}
                 onClick={() => { const cats = quotes.cats.includes(c.id) ? quotes.cats.filter((x) => x !== c.id) : [...quotes.cats, c.id]; if (cats.length) saveQuotes({ cats }); }}>
-                {c.label}
+                {catLabel(c.id, c.label)}
               </button>
             ))}
           </div>

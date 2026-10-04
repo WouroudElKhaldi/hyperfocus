@@ -62,7 +62,7 @@ export const QUOTES: Record<string, string[]> = {
     "Doubt often shows up right before growth. Say hi and keep walking.",
     "You're not late. You're on your own timeline.",
     "One more line. One more page. One more try.",
-    "Every expert once opened a confusing tutorial and felt lost.",
+    "Every expert once felt lost in front of a confusing explanation.",
     "Show up, even on the slow days.",
   ],
   study: [
@@ -90,11 +90,11 @@ export const QUOTES: Record<string, string[]> = {
     "Protect a focus block today. Notifications can wait.",
     "\"Let me think about that\" is a complete sentence.",
     "You don't have to be the loudest to be the most valuable.",
-    "Leave the code a little cleaner than you found it.",
+    "Leave things a little tidier than you found them.",
     "Progress you can show beats plans you can only describe.",
     "Finished and imperfect beats perfect and invisible.",
     "Your curiosity is a career skill.",
     "Saying no to something can protect a better yes.",
-    "Celebrate the bug you fixed, not only the feature you shipped.",
+    "Celebrate the problem you solved, not only the big win.",
   ],
 };
