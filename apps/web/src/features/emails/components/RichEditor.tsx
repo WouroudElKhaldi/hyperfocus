@@ -1,4 +1,6 @@
 import { type ClipboardEvent, type DragEvent, type ReactNode, forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { errorOf } from "../../../api.ts";
 
 // A small rich-text editor on top of the browser's own editing (contentEditable). Bold, lists, links, colours, images.
@@ -38,6 +40,7 @@ type Props = {
 };
 
 const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor({ html, onChange, onImage, onError, disabled }, ref) {
+  const { t } = useTranslation();
   const box = useRef<HTMLDivElement | null>(null);
   const fileIn = useRef<HTMLInputElement>(null);
   const init = useRef(false);
@@ -73,16 +76,16 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor({ htm
   const cmd = (c: string, v?: string) => { restore(); run("styleWithCSS", "true"); run(c, v); emit(); };
   const link = () => {
     const sel = lastRange.current?.toString() ?? "";
-    if (!sel) return onError?.("Select the words you want to turn into a link first.");
-    const url = window.prompt("Link address (https://…)", "https://");
+    if (!sel) return onError?.(i18next.t("email.selectFirst"));
+    const url = window.prompt(i18next.t("email.linkAddress"), "https://");
     if (!url) return;
-    if (!SAFE_URL.test(url.trim())) return onError?.("A link must start with https://, mailto: or tel:");
+    if (!SAFE_URL.test(url.trim())) return onError?.(i18next.t("email.linkRule"));
     cmd("createLink", url.trim());
   };
 
   const addImages = async (files: File[]) => {
     for (const f of files) {
-      if (!IMG.test(f.type)) { onError?.("Only PNG, JPG, GIF or WebP images can go inside the email. Use “Attach files” for other files."); continue; }
+      if (!IMG.test(f.type)) { onError?.(i18next.t("email.imagesOnly")); continue; }
       try {
         const url = await onImage(f);
         restore();
@@ -107,36 +110,36 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor({ htm
 
   return (
     <div className={"rte" + (disabled ? " disabled" : "")}>
-      <div className="rte-bar" role="toolbar" aria-label="Formatting">
-        <select aria-label="Text style" value="p" disabled={disabled} onChange={(e) => cmd("formatBlock", e.target.value)}>
-          <option value="p">Normal</option><option value="h1">Heading</option><option value="h2">Subheading</option><option value="blockquote">Quote</option><option value="pre">Code</option>
+      <div className="rte-bar" role="toolbar" aria-label={t("email.formatting")}>
+        <select aria-label={t("email.textStyle")} value="p" disabled={disabled} onChange={(e) => cmd("formatBlock", e.target.value)}>
+          <option value="p">{t("email.normal")}</option><option value="h1">{t("email.heading")}</option><option value="h2">{t("email.subheading")}</option><option value="blockquote">{t("email.quote")}</option><option value="pre">{t("email.code")}</option>
         </select>
-        <B c="bold" title="Bold (Ctrl+B)"><b>B</b></B>
-        <B c="italic" title="Italic (Ctrl+I)"><i>I</i></B>
-        <B c="underline" title="Underline (Ctrl+U)"><u>U</u></B>
-        <B c="strikeThrough" title="Strikethrough"><s>S</s></B>
+        <B c="bold" title={t("email.bold")}><b>B</b></B>
+        <B c="italic" title={t("email.italic")}><i>I</i></B>
+        <B c="underline" title={t("email.underline")}><u>U</u></B>
+        <B c="strikeThrough" title={t("email.strike")}><s>S</s></B>
         <span className="rte-sep" />
-        <B c="insertUnorderedList" title="Bullet list">• List</B>
-        <B c="insertOrderedList" title="Numbered list">1. List</B>
-        <B c="justifyLeft" title="Align left">⇤</B>
-        <B c="justifyCenter" title="Center">↔</B>
-        <B c="justifyRight" title="Align right">⇥</B>
+        <B c="insertUnorderedList" title={t("email.bullets")}>• {t("email.list")}</B>
+        <B c="insertOrderedList" title={t("email.numbered")}>1. {t("email.list")}</B>
+        <B c="justifyLeft" title={t("email.left")}>⇤</B>
+        <B c="justifyCenter" title={t("email.center")}>↔</B>
+        <B c="justifyRight" title={t("email.right")}>⇥</B>
         <span className="rte-sep" />
         <span className="rte-colors">
           {COLORS.map((c) => (
-            <button key={c} type="button" className="rte-dot" style={{ background: c }} title="Text colour" aria-label={`Text colour ${c}`} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("foreColor", c)} />
+            <button key={c} type="button" className="rte-dot" style={{ background: c }} title={t("email.colour")} aria-label={t("email.colourNamed", { c })} disabled={disabled} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd("foreColor", c)} />
           ))}
         </span>
-        <B c="hiliteColor" v="#fff2a8" title="Highlight">🖍</B>
+        <B c="hiliteColor" v="#fff2a8" title={t("email.highlight")}>🖍</B>
         <span className="rte-sep" />
-        <Btn title="Add a link to the selected words" disabled={disabled} onRun={link}>🔗 Link</Btn>
-        <Btn title="Insert an image into the email" disabled={disabled} onRun={() => fileIn.current?.click()}>🖼 Image</Btn>
-        <B c="removeFormat" title="Clear formatting">⌫ Clear</B>
-        <B c="undo" title="Undo">↶</B>
-        <B c="redo" title="Redo">↷</B>
+        <Btn title={t("email.linkHint")} disabled={disabled} onRun={link}>{t("email.link")}</Btn>
+        <Btn title={t("email.imageHint")} disabled={disabled} onRun={() => fileIn.current?.click()}>{t("email.image")}</Btn>
+        <B c="removeFormat" title={t("email.clearHint")}>{t("email.clear")}</B>
+        <B c="undo" title={t("email.undo")}>↶</B>
+        <B c="redo" title={t("email.redo")}>↷</B>
         <input ref={fileIn} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden onChange={(e) => { addImages([...(e.target.files ?? [])]); e.target.value = ""; }} />
       </div>
-      <div ref={setBox} className="rte-body" contentEditable={!disabled} suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Email body" data-placeholder="Write your email…"
+      <div ref={setBox} className="rte-body" contentEditable={!disabled} suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label={t("email.body")} data-placeholder={t("email.bodyPlaceholder")}
         onInput={emit} onPaste={onPaste} onDrop={onDrop} />
     </div>
   );

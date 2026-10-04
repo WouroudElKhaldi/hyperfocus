@@ -1,4 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import i18next from "i18next";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { api, errorOf } from "../../../api.ts";
 import { useApi } from "../../../api/hooks.ts";
@@ -22,13 +24,14 @@ async function uploadFile(emailId: string | undefined, file: File, inline: boole
       headers: { "Content-Type": "application/octet-stream", "X-File-Type": file.type || "application/octet-stream" },
       body: file,
     });
-  } catch { throw new Error("Can't reach the server. Is `npm run dev` running?"); }
+  } catch { throw new Error(i18next.t("email.uploadServer")); }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || (res.status === 413 ? "That file is too big (20 MB max)." : `Upload failed (${res.status})`));
+  if (!res.ok) throw new Error(data.error || (res.status === 413 ? i18next.t("email.tooBig") : i18next.t("email.uploadFailed", { status: res.status })));
   return data;
 }
 
 export default function EmailEditor() {
+  const { t } = useTranslation();
   const { id } = useParams({ from: "/emails/$id" });
   const nav = useNavigate();
   const toast = useToast();
@@ -97,7 +100,7 @@ export default function EmailEditor() {
     try {
       const before = current();
       const out = await api.post("/ai/polish-email", { subject: before.subject, html: before.html });
-      if (out.html === before.html && out.subject === before.subject) toast("Already clean, nothing to fix ✨");
+      if (out.html === before.html && out.subject === before.subject) toast(t("email.alreadyClean"));
       else {
         setHistory((h) => [...h, before]);
         editor.current?.setHtml(out.html);
@@ -117,38 +120,38 @@ export default function EmailEditor() {
   };
 
   const saveTemplate = () => {
-    const name = window.prompt("Template name", f.subject || "");
+    const name = window.prompt(t("email.templateName"), f.subject || "");
     if (name === null) return;
-    change.saveTemplate.mutate({ name: name || f.subject || "Untitled template", subject: f.subject, html: current().html }, { onSuccess: () => toast("Saved as a template 📌") });
+    change.saveTemplate.mutate({ name: name || f.subject || t("email.untitledTemplate"), subject: f.subject, html: current().html }, { onSuccess: () => toast(t("email.savedTemplate")) });
   };
 
   const send = () => {
     const d = current();
-    if (!d.toAddr.trim()) return toast("Add who it's for in “To”.", "err");
-    if (!d.subject.trim() && !confirm("This email has no subject. Send it anyway?")) return;
-    if (!confirm(`Send this email to ${d.toAddr.trim()}${d.ccAddr.trim() ? ` (cc ${d.ccAddr.trim()})` : ""}?`)) return;
+    if (!d.toAddr.trim()) return toast(t("email.needTo"), "err");
+    if (!d.subject.trim() && !confirm(t("email.noSubjectAsk"))) return;
+    if (!confirm(d.ccAddr.trim() ? t("email.sendAskCc", { to: d.toAddr.trim(), cc: d.ccAddr.trim() }) : t("email.sendAsk", { to: d.toAddr.trim() }))) return;
     setBusy("send");
     clearTimeout(timer.current);
     change.send.mutate(d, {
-      onSuccess: () => { loaded.current = false; toast("Sent ✉️"); },
+      onSuccess: () => { loaded.current = false; toast(t("email.sentToast")); },
       onError: (caught) => toast(errorOf(caught).message, "err"),
       onSettled: () => setBusy(""),
     });
   };
 
   // linking works even after sending, that is how a sent email proves an application
-  const setJob = (jobId: string) => change.linkJob.mutate(jobId, { onSuccess: (out) => toast(out.jobId ? "Linked to the job 💼" : "Unlinked from the job") });
+  const setJob = (jobId: string) => change.linkJob.mutate(jobId, { onSuccess: (out) => toast(out.jobId ? t("email.linkedToast") : t("email.unlinkedToast")) });
 
   const remove = () => {
-    if (!confirm("Delete this email for good?")) return;
+    if (!confirm(t("email.deleteForGood"))) return;
     clearTimeout(timer.current);
     loaded.current = false;
     deleteEmail.mutate(Number(id), { onSuccess: () => nav({ to: "/emails" }) });
   };
   const duplicate = () => change.duplicate.mutate(undefined, { onSuccess: (c) => nav({ to: "/emails/$id", params: { id: String(c.id) } }) });
 
-  if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel="Back to email" onRetry={() => emailQuery.refetch()} />;
-  if (!email) return <p className="muted">Loading…</p>;
+  if (loadErr) return <LoadProblem error={loadErr} what="email" back="/emails" backLabel={t("email.backToEmail")} onRetry={() => emailQuery.refetch()} />;
+  if (!email) return <p className="muted">{t("email.loading")}</p>;
   const set = (k: keyof Draft) => (e: ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
   const attached = files.filter((a) => !a.inline);
 
@@ -156,47 +159,47 @@ export default function EmailEditor() {
     <>
       <div className="page-head">
         <div>
-          <h1>{locked ? "Sent email" : "Write an email"}</h1>
+          <h1>{locked ? t("email.sentEmail") : t("email.write")}</h1>
           <p className="sub">
-            <Link to="/emails">← All emails</Link>{" · "}
+            <Link to="/emails">{t("email.allEmails")}</Link>{" · "}
             {locked
-              ? <span className="chip posted">✓ Sent {email.sentAt && when(email.sentAt)}{email.fromAddr && ` from ${email.fromAddr}`}</span>
-              : <><span className={"chip " + (email.status === "failed" ? "failed" : "")}>{email.status === "failed" ? "⚠️ Not sent" : "Draft"}</span> {saved ? "Saved" : "Saving…"}</>}
+              ? <span className="chip posted">{t("email.sentOn", { when: email.sentAt ? when(email.sentAt) : "" })}{email.fromAddr && t("email.fromAddr", { from: email.fromAddr })}</span>
+              : <><span className={"chip " + (email.status === "failed" ? "failed" : "")}>{email.status === "failed" ? t("email.sFailed") : t("email.sDraft")}</span> {saved ? t("email.saved") : t("email.saving")}</>}
           </p>
         </div>
         <div className="row">
-          {locked && <button className="primary" onClick={duplicate}>Duplicate as new draft</button>}
-          <button className="ghost danger" onClick={remove}>Delete</button>
+          {locked && <button className="primary" onClick={duplicate}>{t("email.duplicate")}</button>}
+          <button className="ghost danger" onClick={remove}>{t("email.delete")}</button>
         </div>
       </div>
 
       {!locked && status && !status.ready && (
         <div className="card warn-card" role="note">
-          <b>Gmail isn't connected yet.</b> You can write and save drafts. To send, add your Gmail address and an App Password in <Link to="/backup">Settings → Your connections</Link>.
+          <b>{t("email.gmailOff")}</b> {t("email.gmailOffNote")} <Link to="/backup">{t("email.connections")}</Link>.
         </div>
       )}
-      {email.status === "failed" && email.lastError && <div className="card warn-card" role="alert"><b>Last attempt failed:</b> {email.lastError}</div>}
+      {email.status === "failed" && email.lastError && <div className="card warn-card" role="alert"><b>{t("email.lastFailed")}</b> {email.lastError}</div>}
 
       <div className="card email-card">
         <div className="email-fields">
-          <label>To<input value={f.toAddr} onChange={set("toAddr")} disabled={locked} placeholder="name@example.com, another@example.com" /></label>
-          {!showCc && !locked && <button type="button" className="ghost" onClick={() => setShowCc(true)}>+ Cc / Bcc</button>}
+          <label>{t("email.toLabel")}<input value={f.toAddr} onChange={set("toAddr")} disabled={locked} placeholder="name@example.com, another@example.com" /></label>
+          {!showCc && !locked && <button type="button" className="ghost" onClick={() => setShowCc(true)}>{t("email.ccBcc")}</button>}
           {(showCc || (locked && (f.ccAddr || f.bccAddr))) && (
             <>
               <label>Cc<input value={f.ccAddr} onChange={set("ccAddr")} disabled={locked} /></label>
               <label>Bcc<input value={f.bccAddr} onChange={set("bccAddr")} disabled={locked} /></label>
             </>
           )}
-          <label>Job
+          <label>{t("email.job")}
             <span className="row" style={{ gap: "var(--s-2)" }}>
-              <select value={email.jobId ?? ""} onChange={(e) => setJob(e.target.value)} aria-label="Linked job" style={{ maxWidth: 420 }}>
-                <option value="">Not linked to a job</option>
-                {jobs.map((j) => <option key={j.id} value={j.id}>{j.title || "(no title)"} at {j.company}</option>)}
+              <select value={email.jobId ?? ""} onChange={(e) => setJob(e.target.value)} aria-label={t("email.linkedJob")} style={{ maxWidth: 420 }}>
+                <option value="">{t("email.notLinked")}</option>
+                {jobs.map((j) => <option key={j.id} value={j.id}>{t("email.jobAt", { title: j.title || t("email.noTitle"), company: j.company })}</option>)}
               </select>
-              {email.jobId && <Link to="/jobs/$id" params={{ id: String(email.jobId) }}>Open job →</Link>}
+              {email.jobId && <Link to="/jobs/$id" params={{ id: String(email.jobId) }}>{t("email.openJob")}</Link>}
             </span>
           </label>
-          <label>Subject<input value={f.subject} onChange={set("subject")} disabled={locked} placeholder="What is it about?" /></label>
+          <label>{t("email.subject")}<input value={f.subject} onChange={set("subject")} disabled={locked} placeholder={t("email.subjectPlaceholder")} /></label>
         </div>
 
         {locked
@@ -209,23 +212,23 @@ export default function EmailEditor() {
             {attached.map((a) => (
               <span className="file-chip" key={a.id}>
                 <a href={FILE(a)} download={a.filename}>📎 {a.filename}</a> <span className="muted">{size(a.size)}</span>
-                {!locked && <button type="button" className="ghost" aria-label={`Remove ${a.filename}`} onClick={() => removeFile(a)}>✕</button>}
+                {!locked && <button type="button" className="ghost" aria-label={t("email.remove", { name: a.filename })} onClick={() => removeFile(a)}>✕</button>}
               </span>
             ))}
-            {!locked && <label className="btn ghost attach">{busy === "upload" ? "Uploading…" : "📎 Attach files"}<input type="file" multiple hidden onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ""; }} /></label>}
+            {!locked && <label className="btn ghost attach">{busy === "upload" ? t("email.uploading") : t("email.attach")}<input type="file" multiple hidden onChange={(e) => { addFiles([...(e.target.files ?? [])]); e.target.value = ""; }} /></label>}
           </div>
         )}
 
         {!locked && (
           <>
             <div className="row email-actions">
-              <button className="primary big" disabled={!!busy} onClick={send}>{busy === "send" ? "Sending…" : "✉️ Send"}</button>
-              <button disabled={!!busy} onClick={polish} title="Fixes spelling, grammar and awkward sentences. Keeps your words, order and formatting.">{busy === "polish" ? "Working…" : "🪶 Fix my English"}</button>
-              <button className="ghost" disabled={!history.length} onClick={undoPolish}>↶ Undo fix</button>
+              <button className="primary big" disabled={!!busy} onClick={send}>{busy === "send" ? t("email.sending") : t("email.send")}</button>
+              <button disabled={!!busy} onClick={polish} title={t("email.fixHint")}>{busy === "polish" ? t("email.working") : t("email.fix")}</button>
+              <button className="ghost" disabled={!history.length} onClick={undoPolish}>{t("email.undoFix")}</button>
               <span className="tabs-gap" />
-              <button className="ghost" disabled={!!busy} onClick={saveTemplate}>📌 Save as template</button>
+              <button className="ghost" disabled={!!busy} onClick={saveTemplate}>{t("email.saveTemplate")}</button>
             </div>
-            {fixes.length > 0 && <div className="hookbox"><b>Fixed:</b> {fixes.join(" · ")}</div>}
+            {fixes.length > 0 && <div className="hookbox"><b>{t("email.fixed")}</b> {fixes.join(" · ")}</div>}
           </>
         )}
       </div>

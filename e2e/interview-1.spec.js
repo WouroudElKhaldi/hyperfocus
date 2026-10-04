@@ -122,3 +122,12 @@ test("LinkedIn posts in French and Lebanese Arabic (P3-28: pages)", async ({ pag
   await expect(page.getByRole("heading", { name: "بوستات لينكدإن", level: 1 })).toBeVisible();
   await page.goto("/posts?lang=en");
 });
+
+test("Email in French and Lebanese Arabic (P3-28: pages)", async ({ page }) => {
+  await page.goto("/emails?lang=fr");
+  await expect(page.getByRole("heading", { name: "E-mail", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: "+ Nouvel e-mail" })).toBeVisible();
+  await page.goto("/emails?lang=ar-LB");
+  await expect(page.getByRole("heading", { name: "الإيميل", level: 1 })).toBeVisible();
+  await page.goto("/emails?lang=en");
+});
