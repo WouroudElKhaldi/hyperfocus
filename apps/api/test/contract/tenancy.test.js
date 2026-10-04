@@ -1,3 +1,4 @@
+import { PrismaClient } from "@hyperfocus/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startExtraApi } from "../support/extra-api.js";
 import { CLOUD, signUp } from "../support/people.js";
@@ -13,6 +14,10 @@ const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10
 
 beforeAll(async () => {
   api = await startExtraApi("tenancy", { ...CLOUD, SHARE_AI_KEY: "1" }); // (Alice uses the AI features too)
+  // Job Radar on for everyone here (it is admins-only while tested): this test is about whose rows are whose
+  const db = new PrismaClient({ datasourceUrl: api.dbUrl });
+  await db.featureFlag.create({ data: { key: "job-radar", enabled: true } });
+  await db.$disconnect();
   [alice, bob] = await Promise.all([signUp(api, "alice@example.com", "Alice"), signUp(api, "bob@example.com", "Bob")]);
   // Alice: something in every module
   const a = (m, p, b) => alice.json(m, p, b);

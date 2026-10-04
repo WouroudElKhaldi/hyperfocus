@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { body, json, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
+import { mayUseRadar } from "../../radar/access.ts";
 import { presetForField } from "../../taxonomy/presets.ts";
 
 // The welcome guide (P5-05), three short screens for someone new: their name, what they study, what they want help
@@ -32,7 +33,8 @@ export function onboardingRouter({ prisma, events }: AppDeps) {
       const { name, fieldCode, helpWith } = c.req.valid("json");
       const id = c.get("userId");
       let filterId: number | null = null;
-      if (fieldCode && helpWith.includes("jobs") && !(await prisma.jobFilter.count())) {
+      const radar = await mayUseRadar(prisma, c.get("role"));
+      if (radar && fieldCode && helpWith.includes("jobs") && !(await prisma.jobFilter.count())) {
         const preset = await presetForField(prisma, fieldCode);
         if (preset) {
           const f = await prisma.jobFilter.create({ data: { name: `${preset.field.label} jobs`, spec: preset.spec } });
@@ -48,7 +50,7 @@ export function onboardingRouter({ prisma, events }: AppDeps) {
       if (profile) await prisma.profile.update({ where: { id: profile.id }, data: { name, ...(role ? { role } : {}) } });
       else await prisma.profile.create({ data: { name, ...(role ? { role } : {}) } });
       const first = ORDER.find((h) => helpWith.includes(h));
-      return c.json({ filterId, next: first ? START[first] : "/" }, 200);
+      return c.json({ filterId, next: first === "jobs" && !radar ? "/jobs" : first ? START[first] : "/" }, 200);
     },
   );
 

@@ -56,6 +56,7 @@ import { studyRouter } from "./modules/study/routes.ts";
 import { tasksRouter } from "./modules/tasks/routes.ts";
 import { winsRouter } from "./modules/wins/routes.ts";
 import type { EventBus } from "./events.ts";
+import { mayUseRadar, RADAR_ROUTES } from "./radar/access.ts";
 import { type Db, httpError } from "./types.ts";
 
 // The composition root (P2-01). Everything a route needs comes in through `deps`, so tests can pass fakes and nothing
@@ -105,6 +106,7 @@ const Me = z
     connected: z.object({ ai: z.boolean(), linkedin: z.boolean(), email: z.boolean() }).openapi({ description: "What works for you: your own credentials, or the app's where it shares them" }),
     google: z.boolean().openapi({ description: "Sign in with Google is offered" }),
     onboarded: z.boolean().openapi({ description: "They finished or skipped the welcome guide (P5-05); always true in local mode" }),
+    radar: z.boolean().openapi({ description: "Job Radar is open to you (admins while it is tested; everyone once the job-radar flag is on)" }),
   })
   .openapi("Me");
 const meRoute = createRoute({
@@ -179,6 +181,12 @@ export function createApp(deps: AppDeps) {
     // with their own credentials opened (P5-07): their AI key, n8n webhook, Gmail
     return asUser(userId, () => withCredentials(deps.prisma, deps.secrets, () => next(), appAiFor(deps, who.email)));
   });
+  // Job Radar is being tested (the owner, 2026-10-04): admins only, until an admin switches the "job-radar" feature
+  // flag on for everyone (Admin → Feature flags). Job applications (/api/jobs) stay open to everyone.
+  app.use("/api/*", async (c, next) => {
+    if (RADAR_ROUTES.test(c.req.path) && !(await mayUseRadar(deps.prisma, c.get("role")))) throw httpError(403, "Job Radar is still being tested. Add jobs by hand in Job applications for now.");
+    await next();
+  });
   if (config.demo) {
     app.use(async (c, next) => {
       if (switchedOffInDemo(c.req.path)) throw httpError(403, "This is switched off in the demo.");
@@ -199,7 +207,7 @@ export function createApp(deps: AppDeps) {
       : await asUser(who.id, () => withCredentials(deps.prisma, deps.secrets, async () => ({ ai: aiReady(), linkedin: deps.publisher.configured(), email: !deps.mail.unavailable() }), appAiFor(deps, who.email)));
     // P5-05: someone new sees the welcome guide once (the owner in local mode never does)
     const onboarded = !deps.auth || !who || !!(await deps.prisma.user.findUnique({ where: { id: who.id }, select: { onboardedAt: true } }))?.onboardedAt;
-    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google, onboarded }, 200);
+    return c.json({ mode: deps.auth ? ("cloud" as const) : ("local" as const), user, flags, connected, google: !!deps.auth && !!config.auth.google, onboarded, radar: await mayUseRadar(deps.prisma, who?.role) }, 200);
   });
 
   app.openapi(healthRoute, (c) => c.json({ ok: true, ai: !!config.deepseek.apiKey, n8n: !!config.n8nWebhookUrl, demo: config.demo }, 200));

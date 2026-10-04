@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import type { AppDeps, AppEnv } from "../../app.ts";
 import { body, json, problem } from "../../http/crud.ts";
 import { defaultHook } from "../../http/validation.ts";
+import { forgetRadarFlag } from "../../radar/access.ts";
 import { httpError } from "../../types.ts";
 
 // The admin area (P5-06). Two roles: `user` (everyone) and `admin`. Admins see the people who have accounts and can
@@ -89,6 +90,7 @@ export function adminRouter({ prisma, config }: AppDeps) {
       const { key } = c.req.valid("param");
       const { enabled, note } = c.req.valid("json");
       const f = await prisma.featureFlag.upsert({ where: { key }, create: { key, enabled, note: note ?? "" }, update: { enabled, ...(note === undefined ? {} : { note }) } });
+      forgetRadarFlag();
       return c.json(flag(f), 200);
     },
   );

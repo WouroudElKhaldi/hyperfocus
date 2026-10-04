@@ -112,11 +112,13 @@ test.describe("privacy @cloud", () => {
     await page.getByRole("button", { name: "Next" }).click();
     await expect(page.getByRole("heading", { name: "What do you want help with?" })).toBeVisible();
     await page.getByLabel(/Finding internships and jobs/).click();
-    await expect(page.getByText("We'll start Job Radar with Computer Science jobs for you.")).toBeVisible();
+    await expect(page.getByText(/We'll start Job Radar/)).toHaveCount(0); // (Job Radar is for admins while it is tested)
     await page.getByRole("button", { name: "Let's go" }).click();
 
-    await expect(page).toHaveURL(/\/radar$/);
-    await expect(page.getByRole("article", { name: "Software Engineer Intern" })).toBeVisible();
+    await expect(page).toHaveURL(/\/jobs$/);
+    await expect(page.getByRole("link", { name: "Job Radar" })).toHaveCount(0);
+    await page.goto("/radar");
+    await expect(page.getByText("Job Radar is still being tested.")).toBeVisible();
     await expect(page.locator("header.topbar")).toContainText("Wel");
     // the skills their job needs are waiting on the Skills page; one click adds one
     await page.goto("/skills");

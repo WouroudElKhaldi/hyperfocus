@@ -25,7 +25,7 @@ export const useToast = () => useContext(ToastCtx);
 
 // The menu, grouped by what you use it for. `tab` marks the shortcuts shown in the phone tab bar.
 // (labels are word keys: the words themselves are in i18n/en.ts, P3-19)
-type NavItem = { to: LinkProps["to"] & string; icon: string; label: Exclude<keyof Strings["nav"], "groups" | "chatShort">; tab?: boolean };
+type NavItem = { to: LinkProps["to"] & string; icon: string; label: Exclude<keyof Strings["nav"], "groups" | "chatShort">; tab?: boolean; radar?: boolean };
 type NavGroup = { group: keyof Strings["nav"]["groups"]; items: NavItem[] };
 const NAV: NavGroup[] = [
   { group: "Plan", items: [
@@ -45,7 +45,7 @@ const NAV: NavGroup[] = [
     { to: "/posts", icon: "posts", label: "posts" },
     { to: "/emails", icon: "mail", label: "emails" },
     { to: "/jobs", icon: "jobs", label: "jobs" },
-    { to: "/radar", icon: "radar", label: "radar" },
+    { to: "/radar", icon: "radar", label: "radar", radar: true }, // (admins only while it is tested)
   ] },
   { group: "You", items: [
     { to: "/chat", icon: "chat", label: "chat", tab: true },
@@ -92,7 +92,10 @@ function Shell() {
   const [toast, setToast] = useState<{ msg: string; kind: string; id: number } | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
   // what works for you (your own keys, or the app's), P5-07; the server-wide health until it is known
-  const connected = useMe().data?.connected;
+  const meData = useMe().data;
+  const connected = meData?.connected;
+  // Job Radar is shown to those it is open to (admins while it is tested)
+  const shown = (i: NavItem) => !i.radar || !!meData?.radar;
   const [sheet, setSheet] = useState(false);
   useA11y(); // the accessibility settings (P3-18), kept in step with what is saved
   const [sbWidth, setSbWidth] = useState(() => clampW(lsGet("sb-width", SB.def)));
@@ -173,7 +176,7 @@ function Shell() {
                     )}
                     <div className={"nav-items" + (isFolded ? "" : " open")}>
                       <div className="nav-items-inner">
-                        {g.items.map((i) => (
+                        {g.items.filter(shown).map((i) => (
                           <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav" activeProps={{ className: "active" }} title={collapsed ? t(`nav.${i.label}`) : undefined} tabIndex={isFolded ? -1 : 0}>
                             <Icon name={i.icon} /> <span className="nav-text">{t(`nav.${i.label}`)}</span>
                           </Link>
@@ -218,7 +221,7 @@ function Shell() {
 
         {/* phones only: the bottom tab bar and the "More" sheet (P3-17: Tailwind, was the phone layer in styles.css) */}
         <nav className="hidden phone:flex fixed inset-x-0 bottom-0 z-35 h-[calc(var(--tab-h)+env(safe-area-inset-bottom,0px))] border-t border-line bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] px-2 pt-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-[10px] small:pt-1" aria-label={t("shell.quickMenu")}>
-          {ALL.filter((i) => i.tab).map((i) => (
+          {ALL.filter((i) => i.tab && shown(i)).map((i) => (
             <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className={TAB} activeProps={{ className: "active" }}>
               <Icon name={i.icon} size={22} /><span>{t(i.label === "chat" ? "nav.chatShort" : `nav.${i.label}`)}</span>
             </Link>
@@ -233,7 +236,7 @@ function Shell() {
             <div className="card fixed inset-x-2 bottom-[calc(var(--tab-h)+8px+env(safe-area-inset-bottom,0px))] grid max-h-[72vh] animate-[slide-up_.25s_both] gap-2 overflow-y-auto small:max-h-[78vh] small:p-3" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("shell.allPages")}>
               <PetWidget compact />
               <div className="grid grid-cols-2 gap-1">
-                {ALL.map((i) => (
+                {ALL.filter(shown).map((i) => (
                   <Link key={i.to} to={i.to} activeOptions={{ exact: i.to === "/" }} className="nav border border-line bg-surface-2 [&.active]:bg-[var(--accent)] small:min-h-12 small:text-[1rem]" activeProps={{ className: "active" }}><Icon name={i.icon} /> <span>{t(`nav.${i.label}`)}</span></Link>
                 ))}
               </div>

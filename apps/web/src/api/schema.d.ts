@@ -11220,6 +11220,8 @@ export interface components {
             mode: "local" | "cloud";
             /** @description They finished or skipped the welcome guide (P5-05); always true in local mode */
             onboarded: boolean;
+            /** @description Job Radar is open to you (admins while it is tested; everyone once the job-radar flag is on) */
+            radar: boolean;
             /** @description Who is signed in (in local mode, the owner); null = nobody */
             user: {
                 email: string;

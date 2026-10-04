@@ -1,4 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMe } from "../../account/index.ts";
 import TaxonomyPicker from "../../../components/TaxonomyPicker.tsx";
 import { useToast } from "../../../App.tsx";
 import FilterBuilder from "../components/FilterBuilder.tsx";
@@ -80,6 +82,19 @@ function Empty() {
 }
 
 export default function Radar() {
+  const me = useMe().data;
+  if (me && !me.radar) {
+    return (
+      <>
+        <h1>Job Radar</h1>
+        <p className="sub">Job Radar is still being tested. For now, add the jobs you find in <Link to="/jobs">Job applications</Link>.</p>
+      </>
+    );
+  }
+  return <RadarPage />;
+}
+
+function RadarPage() {
   const filters = useFilters();
   const matches = useMatches(20).data;
   const saved = useSaved().data?.items ?? [];

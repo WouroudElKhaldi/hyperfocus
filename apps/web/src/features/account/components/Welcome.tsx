@@ -95,7 +95,7 @@ export default function Welcome() {
               </label>
             ))}
           </fieldset>
-          {help.includes("jobs") && field && <p className="muted">We'll start Job Radar with {field.label} jobs for you.</p>}
+          {help.includes("jobs") && field && me?.radar && <p className="muted">We'll start Job Radar with {field.label} jobs for you.</p>}
           <div className="row">
             <button type="button" onClick={() => setStep(2)}>Back</button>
             <button type="button" className="primary" disabled={finish.isPending} onClick={() => finish.mutate()}>Let's go</button>
