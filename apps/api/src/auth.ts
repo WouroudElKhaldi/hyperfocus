@@ -3,6 +3,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import type { Logger } from "pino";
+import { type AccountEmail, accountEmailHtml, accountEmailText } from "./account-email.ts";
 import type { MailProvider } from "./modules/emails/mail-provider.ts";
 import type { Db } from "./types.ts";
 
@@ -12,7 +13,9 @@ import type { Db } from "./types.ts";
 
 /** The emails accounts need (verify, reset). Through the app's mail provider; written to the log in tests (MAIL_DRY_RUN). */
 export function authMailer({ mail, log, dryRun }: { mail: MailProvider; log: Pick<Logger, "info" | "error">; dryRun: boolean }) {
-  return async (to: string, subject: string, text: string) => {
+  // a styled email with one button (accounts), or plain text (the background jobs' notes)
+  return async (to: string, subject: string, email: AccountEmail | string) => {
+    const text = typeof email === "string" ? email : accountEmailText(email);
     if (dryRun) {
       // one line the tests can read the link from
       console.log(`[auth mail] to=${to} subject=${JSON.stringify(subject)} text=${JSON.stringify(text)}`);
@@ -23,7 +26,7 @@ export function authMailer({ mail, log, dryRun }: { mail: MailProvider; log: Pic
       log.error({ to, subject }, `Can't send an account email: ${why.message}`);
       return;
     }
-    await mail.send({ to: [to], cc: [], bcc: [], subject, text, html: `<p>${text.replace(/\n/g, "<br>")}</p>`, attachments: [] });
+    await mail.send({ to: [to], cc: [], bcc: [], subject, text, html: typeof email === "string" ? `<p>${text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>` : accountEmailHtml(email), attachments: [] });
   };
 }
 
@@ -58,14 +61,24 @@ export function createAuth({ prisma, config, send }: { prisma: Db; config: ApiCo
       requireEmailVerification: true,
       minPasswordLength: 8,
       sendResetPassword: async ({ user, url }) => {
-        await send(user.email, "Reset your Hyperfocus password", `Someone (hopefully you) asked to reset your password.\nOpen this link to choose a new one: ${url}\nIf it wasn't you, you can ignore this email.`);
+        await send(user.email, "Reset your Hyperfocus password", {
+          title: "Choose a new password",
+          intro: "Someone (hopefully you) asked to reset your Hyperfocus password. Press the button to pick a new one.",
+          button: "Choose a new password", url,
+          outro: "If it wasn't you, you can ignore this email: your password stays the same.",
+        });
       },
     },
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url }) => {
-        await send(user.email, "Confirm your email for Hyperfocus", `Welcome! Open this link to confirm your email and sign in: ${url}`);
+        await send(user.email, "Confirm your email for Hyperfocus", {
+          title: "Welcome to Hyperfocus 👋",
+          intro: "One tap and you're in. Press the button to confirm your email; it signs you in and opens a short welcome.",
+          button: "Confirm my email", url,
+          outro: "Didn't make an account? You can ignore this email.",
+        });
       },
     },
     ...(config.auth.google ? { socialProviders: { google: { clientId: config.auth.google.clientId, clientSecret: config.auth.google.clientSecret } } } : {}),
